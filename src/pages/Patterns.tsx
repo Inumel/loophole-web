@@ -271,15 +271,23 @@ export default function PatternsPage() {
 
         {/* Meta grid */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-          {([['Difficulty', selected.difficulty], ['Category', selected.category],
-            ['Yarn Weight', selected.yarn_weight], ['Needles', selected.needle_size],
-            selected.gauge_stitches != null ? ['Gauge', `${selected.gauge_stitches} sts × ${selected.gauge_rows} rows ${selected.gauge_unit ?? 'per 10cm'}`] : null,
-          ] as Array<[string, string | null] | null>).filter(Boolean).map(([k, v]) => v ? (
+          {(
+            [
+              ['Difficulty', selected.difficulty],
+              ['Category', selected.category],
+              ['Yarn Weight', selected.yarn_weight],
+              ['Needles', selected.needle_size],
+              selected.gauge_stitches != null
+                ? ['Gauge', `${selected.gauge_stitches} sts × ${selected.gauge_rows} rows ${selected.gauge_unit ?? 'per 10cm'}`]
+                : null,
+            ] as ([string, string | null] | null)[]
+          ).filter((item): item is [string, string | null] => item !== null && item[1] !== null)
+            .map(([k, v]) => (
             <div key={k} style={{ background: '#1F2937', borderRadius: 8, padding: '8px 12px', minWidth: 120 }}>
               <p style={{ color: '#6B7280', fontSize: 11, marginBottom: 2 }}>{k}</p>
               <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{v}</p>
             </div>
-          ) : null)}
+          ))}
         </div>
 
         {/* Stitch patterns */}
