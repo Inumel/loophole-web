@@ -27,7 +27,7 @@ type LinkedProject = {
   id: string;
   quantity_used: number | null;
   unit: string;
-  project: { id: string; name: string; status: string } | null;
+  project: { id: string; name: string; status: string }[] | null;
 };
 
 const WEIGHTS = ['Lace', 'Fingering', 'Sport', 'DK', 'Worsted', 'Aran', 'Bulky', 'Super Bulky'];
@@ -410,8 +410,8 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
               {projects.map(p => (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 10, borderTop: '1px solid #374151' }}>
                   <div style={{ flex: 1 }}>
-                    <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{p.project?.name ?? 'Unknown'}</p>
-                    <p style={{ color: '#9CA3AF', fontSize: 12, marginTop: 2 }}>{p.project?.status}</p>
+                    <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{p.project?.[0]?.name ?? 'Unknown'}</p>
+                    <p style={{ color: '#9CA3AF', fontSize: 12, marginTop: 2 }}>{p.project?.[0]?.status}</p>
                   </div>
                   {p.quantity_used != null && (
                     <span style={{ color: '#A78BFA', fontWeight: 600, fontSize: 13 }}>{p.quantity_used} {p.unit}</span>

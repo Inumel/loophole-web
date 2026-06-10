@@ -38,7 +38,7 @@ type ProjectYarn = {
   yarn_name: string | null;
   quantity_used: number | null;
   unit: string;
-  yarn: { name: string; brand: string | null; color_hex: string | null } | null;
+  yarn: { name: string; brand: string | null; color_hex: string | null }[] | null;
 };
 
 type StashYarn = {
@@ -396,10 +396,10 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
           <p style={{ color: '#6B7280', fontSize: 13, fontStyle: 'italic' }}>No yarn linked yet.</p>
         ) : projectYarns.map(py => (
           <div key={py.id} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 8, borderTop: '1px solid #374151' }}>
-            <div style={{ width: 20, height: 20, borderRadius: 10, background: py.yarn?.color_hex ?? '#6B7280', flexShrink: 0 }} />
+            <div style={{ width: 20, height: 20, borderRadius: 10, background: py.yarn?.[0]?.color_hex ?? '#6B7280', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
-              <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{py.yarn?.name ?? py.yarn_name ?? 'Unknown'}</p>
-              {py.yarn?.brand && <p style={{ color: '#9CA3AF', fontSize: 12 }}>{py.yarn.brand}</p>}
+            <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{py.yarn?.[0]?.name ?? py.yarn_name ?? 'Unknown'}</p>
+            {py.yarn?.[0]?.brand && <p style={{ color: '#9CA3AF', fontSize: 12 }}>{py.yarn[0].brand}</p>}
             </div>
             {py.quantity_used != null && <span style={{ color: '#A78BFA', fontWeight: 600 }}>{py.quantity_used} {py.unit}</span>}
           </div>
