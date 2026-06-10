@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getPref } from '../lib/prefs';
 
 type Result = {
   stitchScale: number;
@@ -41,7 +42,8 @@ export default function GaugePage() {
 
   const [patternSts, setPatternSts] = useState('');
   const [patternRows, setPatternRows] = useState('');
-  const [patternUnit, setPatternUnit] = useState('10cm');
+  const [patternUnit, setPatternUnit] = useState(() => getPref('DEFAULT_GAUGE_UNIT'));
+  const [needleSystem] = useState(() => getPref('PREFERRED_NEEDLE_SYSTEM'));
   const [yourSts, setYourSts] = useState('');
   const [yourRows, setYourRows] = useState('');
   const [originalSts, setOriginalSts] = useState('');
@@ -242,8 +244,8 @@ export default function GaugePage() {
           <div style={{ background: '#1F2937', borderRadius: 12, overflow: 'hidden' }}>
             {/* Header */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '10px 16px', background: '#374151' }}>
-              {['Metric (mm)', 'US', 'UK / Canadian'].map(h => (
-                <span key={h} style={{ color: '#9CA3AF', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>{h}</span>
+              {[['Metric (mm)', 'metric'], ['US', 'US'], ['UK / Canadian', 'UK']].map(([h, sys]) => (
+                <span key={h} style={{ color: needleSystem === sys ? '#A78BFA' : '#9CA3AF', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>{h}</span>
               ))}
             </div>
             {filteredNeedles.length === 0 ? (
@@ -256,9 +258,9 @@ export default function GaugePage() {
                   background: i % 2 === 0 ? 'transparent' : '#1a1f2e',
                   borderTop: '1px solid #374151',
                 }}>
-                  <span style={{ color: '#A78BFA', fontWeight: 600, fontSize: 15 }}>{n.metric} mm</span>
-                  <span style={{ color: '#F9FAFB', fontSize: 15 }}>{n.us}</span>
-                  <span style={{ color: '#F9FAFB', fontSize: 15 }}>{n.uk}</span>
+                  <span style={{ color: needleSystem === 'metric' ? '#F9FAFB' : '#A78BFA', fontWeight: needleSystem === 'metric' ? 700 : 600, fontSize: 15 }}>{n.metric} mm</span>
+                  <span style={{ color: needleSystem === 'US' ? '#F9FAFB' : '#9CA3AF', fontWeight: needleSystem === 'US' ? 700 : 400, fontSize: 15 }}>{n.us}</span>
+                  <span style={{ color: needleSystem === 'UK' ? '#F9FAFB' : '#9CA3AF', fontWeight: needleSystem === 'UK' ? 700 : 400, fontSize: 15 }}>{n.uk}</span>
                 </div>
               ))
             )}

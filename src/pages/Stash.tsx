@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import YarnDetail from '../components/YarnDetail';
+import { getPref } from '../lib/prefs';
 
 type YarnCatalog = {
   id: string;
@@ -32,7 +33,7 @@ export default function StashPage() {
   const [shopUrl, setShopUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState('g');
+  const [unit, setUnit] = useState(() => getPref('DEFAULT_YARN_UNIT'));
   const [lot, setLot] = useState('');
   const [saving, setSaving] = useState(false);
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import StepText from './StepText';
+import { getPref } from '../lib/prefs';
 
 type Project = {
   id: string;
@@ -77,6 +78,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
   const [quantityUsed, setQuantityUsed] = useState('');
   const [yarnUnit, setYarnUnit] = useState('g');
   const [savingYarn, setSavingYarn] = useState(false);
+  const rowIncrement = parseInt(getPref('ROW_COUNTER_INCREMENT')) || 1;
 
   // Edit
   const [showEditModal, setShowEditModal] = useState(false);
@@ -202,7 +204,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
 
   async function adjustRow(delta: number) {
     if (!project) return;
-    const newRow = Math.max(0, project.current_row + delta);
+    const newRow = Math.max(0, project.current_row + (delta * rowIncrement));
     await supabase.from('projects').update({ current_row: newRow }).eq('id', projectId);
     setProject({ ...project, current_row: newRow });
   }
