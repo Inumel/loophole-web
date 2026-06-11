@@ -14,6 +14,8 @@ async function callClaude(body: object): Promise<{ content: Array<{ text: string
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      'x-loophole-token': token,
     },
     body: JSON.stringify(body),
   });
