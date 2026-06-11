@@ -25,7 +25,7 @@ type Session = {
 type GuideSection = {
   title: string;
   steps?: string[];
-  steps_by_size?: Record<string, string[]>;
+  steps_by_size?: Record<string, unknown>;
 };
 
 type StepProgress = {
@@ -55,11 +55,15 @@ type Props = { projectId: string; onBack: () => void; readOnly?: boolean };
 
 function getSteps(sec: GuideSection, chosenSize: string | null): string[] {
   if (sec.steps_by_size) {
-    if (chosenSize && sec.steps_by_size[chosenSize]) return sec.steps_by_size[chosenSize];
+    if (chosenSize && sec.steps_by_size[chosenSize]) {
+      const val = sec.steps_by_size[chosenSize];
+      return Array.isArray(val) ? val as string[] : [];
+    }
     const firstKey = Object.keys(sec.steps_by_size)[0];
-    return firstKey ? sec.steps_by_size[firstKey] : [];
+    const val = firstKey ? sec.steps_by_size[firstKey] : [];
+    return Array.isArray(val) ? val as string[] : [];
   }
-  return sec.steps ?? [];
+  return Array.isArray(sec.steps) ? sec.steps : [];
 }
 
 const UNITS = ['g', 'oz', 'yards', 'meters', 'skeins'];

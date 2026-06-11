@@ -23,12 +23,13 @@ type Mode = 'manual' | 'ravelry' | 'pdf';
 
 const sourceIcon: Record<string, string> = { ravelry: '🧶', pdf: '📄', manual: '✏️' };
 
-function getSteps(sec: { steps?: string[]; steps_by_size?: Record<string, string[]> }): string[] {
+function getSteps(sec: { steps?: string[]; steps_by_size?: Record<string, unknown> }): string[] {
   if (sec.steps_by_size) {
     const firstKey = Object.keys(sec.steps_by_size)[0];
-    return firstKey ? sec.steps_by_size[firstKey] : [];
+    const val = firstKey ? sec.steps_by_size[firstKey] : [];
+    return Array.isArray(val) ? val as string[] : [];
   }
-  return sec.steps ?? [];
+  return Array.isArray(sec.steps) ? sec.steps : [];
 }
 
 export default function PatternsPage() {
