@@ -73,6 +73,12 @@ export default function PatternsPage() {
   const [availableVariations, setAvailableVariations] = useState<string[]>([]);
   const [chosenVariation, setChosenVariation] = useState<string | null>(null);
   const [savingProject, setSavingProject] = useState(false);
+  // Yarn selection for new project
+  const [newProjectYarns, setNewProjectYarns] = useState<Array<{ stashId: string | null; name: string; colorHex: string | null; quantity: string; unit: string; role: string }>>([]);
+  const [stashYarns, setStashYarns] = useState<Array<{ id: string; name: string; brand: string | null; color_hex: string | null; stash: Array<{ id: string; quantity: number | null; unit: string; status: string }> }>>([]);
+  const [showYarnPicker, setShowYarnPicker] = useState(false);
+  const [pickingYarnIndex, setPickingYarnIndex] = useState<number | null>(null);
+  const [yarnSearch, setYarnSearch] = useState('');
   const [activeSection, setActiveSection] = useState(0);
 
   useEffect(() => { if (view === 'list') fetchPatterns(); }, [view]);
@@ -200,6 +206,30 @@ export default function PatternsPage() {
     setChosenSize(firstSize);
     const sizeSuffix = firstSize && firstSize !== 'One Size' ? ` - ${firstSize}` : '';
     setNewProjectName(`${pattern.name}${sizeSuffix}`);
+    setNewProjectTargetRows('');
+
+    // Pre-fill yarn slots from yarn_quantity
+    const yarnQty = pattern.yarn_quantity as Array<{ amount: number; unit: string; color?: string; size?: string }> | null;
+    if (yarnQty && yarnQty.length > 0) {
+      const seen = new Set<string>();
+      const uniqueRoles: string[] = [];
+      for (const y of yarnQty) {
+        const role = y.color?.trim() || 'MC';
+        if (!seen.has(role)) { seen.add(role); uniqueRoles.push(role); }
+      }
+      setNewProjectYarns(uniqueRoles.slice(0, 4).map(role => ({
+        stashId: null, name: '', colorHex: null, quantity: '', unit: 'yards', role,
+      })));
+    } else {
+      setNewProjectYarns([{ stashId: null, name: '', colorHex: null, quantity: '', unit: 'yards', role: 'MC' }]);
+    }
+
+    // Load stash
+    supabase.from('yarn_catalog')
+      .select('id, name, brand, color_hex, stash:yarn_stash(id, quantity, unit, status)')
+      .order('name', { ascending: true })
+      .then(({ data }) => { if (data) setStashYarns(data); });
+
     setView('new-project');
   }
 
@@ -207,7 +237,7 @@ export default function PatternsPage() {
     if (!newProjectName.trim() || !selected) return;
     if (availableSizes.length > 1 && !chosenSize) { alert('Please choose a size.'); return; }
     setSavingProject(true);
-    await supabase.from('projects').insert({
+    const { data } = await supabase.from('projects').insert({
       name: newProjectName.trim(),
       pattern_id: selected.id,
       chosen_size: chosenSize || (availableSizes[0] ?? null),
@@ -215,7 +245,23 @@ export default function PatternsPage() {
       target_rows: newProjectTargetRows ? parseInt(newProjectTargetRows) : null,
       status: 'active', current_row: 0,
       started_at: new Date().toISOString().split('T')[0],
-    });
+    }).select().single();
+
+    if (data) {
+      const yarnsToLink = newProjectYarns.filter(y => y.stashId);
+      if (yarnsToLink.length > 0) {
+        await supabase.from('project_yarn').insert(
+          yarnsToLink.map(y => ({
+            project_id: data.id,
+            yarn_stash_id: y.stashId,
+            yarn_name: y.name,
+            quantity_used: y.quantity ? parseFloat(y.quantity) : null,
+            unit: y.unit,
+          }))
+        );
+      }
+    }
+
     setSavingProject(false);
     setView('detail');
   }
@@ -283,11 +329,87 @@ export default function PatternsPage() {
             onChange={e => setNewProjectTargetRows(e.target.value)} type="number" placeholder="e.g. 220" />
         </div>
 
+        {/* Yarn selection */}
+        <p style={{ color: '#7C3AED', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Yarn from Stash (optional)</p>
+        {newProjectYarns.map((yarn, index) => (
+          <div key={index} style={{ background: '#1F2937', borderRadius: 10, padding: 14, marginBottom: 10, border: '1px solid #374151' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <input value={yarn.role}
+                onChange={e => setNewProjectYarns(prev => prev.map((y, i) => i === index ? { ...y, role: e.target.value } : y))}
+                placeholder="MC / CC1…"
+                style={{ background: '#374151', border: 'none', borderRadius: 6, padding: '4px 10px', color: '#F9FAFB', fontSize: 13, width: 100 }} />
+              {newProjectYarns.length > 1 && (
+                <button onClick={() => setNewProjectYarns(prev => prev.filter((_, i) => i !== index))}
+                  style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', fontSize: 18 }}>✕</button>
+              )}
+            </div>
+            {yarn.name ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#374151', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <div style={{ width: 20, height: 20, borderRadius: 10, background: yarn.colorHex ?? '#6B7280', flexShrink: 0 }} />
+                <span style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600, flex: 1 }}>{yarn.name}</span>
+                <button onClick={() => { setPickingYarnIndex(index); setShowYarnPicker(true); }}
+                  style={{ background: 'none', border: 'none', color: '#A78BFA', cursor: 'pointer', fontSize: 13 }}>Change</button>
+              </div>
+            ) : (
+              <button onClick={() => { setPickingYarnIndex(index); setShowYarnPicker(true); }}
+                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px dashed #374151', background: 'transparent', color: '#7C3AED', cursor: 'pointer', fontSize: 14, marginBottom: 10 }}>
+                + Pick from stash
+              </button>
+            )}
+          </div>
+        ))}
+        <button onClick={() => setNewProjectYarns(prev => [...prev, { stashId: null, name: '', colorHex: null, quantity: '', unit: 'yards', role: `CC${prev.length}` }])}
+          style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #374151', background: 'transparent', color: '#9CA3AF', cursor: 'pointer', fontSize: 14, marginBottom: 24 }}>
+          + Add another yarn
+        </button>
+
         <button className="btn btn-primary" onClick={saveProject}
           disabled={savingProject || !newProjectName.trim() || (availableSizes.length > 1 && !chosenSize)}
           style={{ marginTop: 8, opacity: savingProject ? 0.6 : 1 }}>
           {savingProject ? 'Creating…' : 'Create Project'}
         </button>
+
+        {/* Yarn picker modal */}
+        {showYarnPicker && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+            <div style={{ background: '#1F2937', borderRadius: 16, padding: 24, width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <p style={{ color: '#F9FAFB', fontSize: 18, fontWeight: 700 }}>Pick a Yarn</p>
+                <button onClick={() => { setShowYarnPicker(false); setPickingYarnIndex(null); setYarnSearch(''); }}
+                  style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              </div>
+              <input value={yarnSearch} onChange={e => setYarnSearch(e.target.value)}
+                placeholder="Search…" style={{ ...fi.input, marginBottom: 12 }} />
+              <div style={{ overflow: 'auto', flex: 1 }}>
+                {stashYarns
+                  .filter(y => !yarnSearch.trim() || y.name.toLowerCase().includes(yarnSearch.toLowerCase()) || (y.brand ?? '').toLowerCase().includes(yarnSearch.toLowerCase()))
+                  .map(y => {
+                    const inStock = y.stash?.find(s => s.status === 'in_stock');
+                    const stashEntry = inStock ?? y.stash?.[0];
+                    const qty = stashEntry?.quantity;
+                    const unit = stashEntry?.unit ?? 'g';
+                    return (
+                      <div key={y.id} onClick={() => {
+                        if (pickingYarnIndex === null) return;
+                        setNewProjectYarns(prev => prev.map((yarn, i) => i === pickingYarnIndex ? {
+                          ...yarn, stashId: stashEntry?.id ?? null, name: y.name,
+                          colorHex: y.color_hex, unit: unit,
+                        } : yarn));
+                        setShowYarnPicker(false); setPickingYarnIndex(null); setYarnSearch('');
+                      }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', borderBottom: '1px solid #374151', cursor: 'pointer' }}>
+                        <div style={{ width: 24, height: 24, borderRadius: 12, background: y.color_hex ?? '#6B7280', flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{y.name}</p>
+                          {y.brand && <p style={{ color: '#9CA3AF', fontSize: 12 }}>{y.brand}</p>}
+                        </div>
+                        {qty != null && <span style={{ color: inStock ? '#10B981' : '#EF4444', fontSize: 13 }}>{qty} {unit}{!inStock ? ' (out)' : ''}</span>}
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
