@@ -260,9 +260,11 @@ export default function PatternsPage() {
   // ── Detail view ──────────────────────────────────────────────────────────────
   if (view === 'detail' && selected) {
     const rawSections = selected.parsed_guide?.sections;
-    const sections = Array.isArray(rawSections)
+    const sections = Array.isArray(rawSections) && rawSections.length > 0
       ? (rawSections as Array<{ title: string; steps?: string[]; steps_by_size?: Record<string, string[]> }>)
       : null;
+    const safeStitchPatterns = Array.isArray(selected.stitch_patterns) ? selected.stitch_patterns : [];
+    const safeYarnQuantity = Array.isArray(selected.yarn_quantity) ? selected.yarn_quantity : [];
     return (
       <div>
         <button className="btn btn-secondary" onClick={() => setView('list')} style={{ marginBottom: 20 }}>← Back</button>
@@ -291,19 +293,19 @@ export default function PatternsPage() {
         </div>
 
         {/* Stitch patterns */}
-        {selected.stitch_patterns && selected.stitch_patterns.length > 0 && (
+        {safeStitchPatterns.length > 0 && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-            {selected.stitch_patterns.map((sp, i) => (
+            {safeStitchPatterns.map((sp, i) => (
               <span key={i} style={{ background: '#2D1B6B', color: '#A78BFA', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 }}>{sp}</span>
             ))}
           </div>
         )}
 
         {/* Yarn required */}
-        {selected.yarn_quantity && selected.yarn_quantity.length > 0 && (
+        {safeYarnQuantity.length > 0 && (
           <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
             <p className="card-title" style={{ marginBottom: 12 }}>Yarn Required</p>
-            {selected.yarn_quantity.filter(y => y.amount != null).map((y, i) => (
+            {safeYarnQuantity.filter(y => y.amount != null).map((y, i) => (
               <div key={i} style={{ display: 'flex', gap: 16, paddingTop: 8, borderTop: i > 0 ? '1px solid #374151' : 'none', flexWrap: 'wrap' }}>
                 <span style={{ color: '#F9FAFB', fontWeight: 700, minWidth: 100 }}>{y.amount} {y.unit}</span>
                 {y.size && <span style={{ color: '#7C3AED', fontSize: 13, fontWeight: 600 }}>{y.size}</span>}
