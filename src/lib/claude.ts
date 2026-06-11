@@ -28,8 +28,7 @@ async function callClaude(body: object): Promise<{ content: Array<{ text: string
 
 export async function parsePatternWithClaude(pdfBase64: string): Promise<object> {
   const data = await callClaude({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
+    max_tokens: 8096, // signals proxy to use Sonnet
     messages: [{
       role: 'user',
       content: [
@@ -39,17 +38,42 @@ export async function parsePatternWithClaude(pdfBase64: string): Promise<object>
         },
         {
           type: 'text',
-          text: `You are a knitting pattern parser. Extract the key information from this knitting pattern PDF and return a structured JSON object with these fields:
+          text: `You are an expert knitting pattern parser. Extract all information from this pattern PDF and return a structured JSON object.
+
+CRITICAL RULES:
+1. SIZE EXPANSION: Patterns often write sizes in brackets like "Cast on 80 (90, 100, 110) sts". You MUST expand these into separate per-size instructions. If sizes are [S, M, L, XL], then "Cast on 80 (90, 100, 110) sts" becomes:
+   - S: "Cast on 80 sts"
+   - M: "Cast on 90 sts"
+   - L: "Cast on 100 sts"
+   - XL: "Cast on 110 sts"
+   Every instruction must be fully written out for each size with no brackets remaining.
+
+2. GAUGE: Patterns write gauge many ways. Extract correctly from all formats:
+   - "22 sts and 30 rows = 4 inches"
+   - "22 sts/4in"
+   - "22 stitches over 10cm"
+   - "22 sts x 30 rows over 10cm in stockinette"
+   Always store as { stitches: number, rows: number, unit: string } where unit is "per 10cm" or "per 4in".
+
+3. YARN QUANTITY: Extract quantities for ALL sizes if given, not just the smallest. Use format:
+   { amount: number, unit: string, size?: string, color?: string, note?: string }
+
+4. SECTIONS: Break the pattern into logical sections (e.g. "Cast On", "Body", "Sleeve", "Finishing"). Each section gets its own steps_by_size object.
+
+5. ABBREVIATIONS: If the pattern includes an abbreviations glossary, extract it as an object.
+
+Return a JSON object with these fields:
 - name: pattern name
 - designer: designer name if present
 - difficulty: one of "Beginner", "Easy", "Intermediate", "Advanced", or ""
-- sizes: array of size labels (e.g. ["S", "M", "L"]. If only one size, use ["One Size"])
+- sizes: array of size labels exactly as written (e.g. ["S", "M", "L"] or ["One Size"])
 - gauge: { stitches, rows, unit }
 - needles: needle size(s) as a string
-- yarn_weight: yarn weight category
-- yarn_quantity: array of { amount: number, unit: string, color?: string, note?: string }
-- stitch_patterns: array of stitch pattern names
-- sections: array of { title: string, steps_by_size: object } where steps_by_size keys are size labels and values are arrays of instruction strings fully written out for that size.
+- yarn_weight: yarn weight category (e.g. "DK", "Worsted", "Fingering")
+- yarn_quantity: array of { amount, unit, size?, color?, note? } — include all sizes
+- stitch_patterns: array of stitch pattern names used
+- abbreviations: object of { abbrev: explanation } from the pattern's own glossary if present
+- sections: array of { title: string, steps_by_size: object } where every size has fully expanded instructions with no brackets
 
 Return ONLY a raw JSON object. No markdown, no code fences. Start with { and end with }.`,
         },
