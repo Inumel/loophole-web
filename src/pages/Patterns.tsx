@@ -79,6 +79,8 @@ export default function PatternsPage() {
   const [showYarnPicker, setShowYarnPicker] = useState(false);
   const [pickingYarnIndex, setPickingYarnIndex] = useState<number | null>(null);
   const [yarnSearch, setYarnSearch] = useState('');
+  // List search
+  const [listSearch, setListSearch] = useState('');
   const [activeSection, setActiveSection] = useState(0);
 
   useEffect(() => { if (view === 'list') fetchPatterns(); }, [view]);
@@ -311,7 +313,11 @@ export default function PatternsPage() {
                 color: chosenVariation === null ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 14,
               }}>None</button>
               {availableVariations.map(v => (
-                <button key={v} onClick={() => setChosenVariation(v)} style={{
+                <button key={v} onClick={() => {
+                  setChosenVariation(v);
+                  const sizeSuffix = chosenSize && chosenSize !== 'One Size' ? ` - ${chosenSize}` : '';
+                  setNewProjectName(`${selected.name}${sizeSuffix} (${v})`);
+                }} style={{
                   padding: '8px 16px', borderRadius: 20, border: '1px solid',
                   borderColor: chosenVariation === v ? '#7C3AED' : '#374151',
                   background: chosenVariation === v ? '#7C3AED' : 'transparent',
@@ -457,6 +463,23 @@ export default function PatternsPage() {
             ))}
           </div>
         )}
+
+        {/* Colour variations */}
+        {(() => {
+          const variations = Array.isArray(selected.parsed_guide?.color_variations)
+            ? (selected.parsed_guide!.color_variations as string[])
+            : [];
+          return variations.length > 0 ? (
+            <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
+              <p className="card-title" style={{ marginBottom: 10 }}>Colour Variations</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {variations.map((v, i) => (
+                  <span key={i} style={{ background: '#1a2e1a', color: '#10B981', borderRadius: 6, padding: '4px 12px', fontSize: 13, fontWeight: 600, border: '1px solid #10B981' }}>🎨 {v}</span>
+                ))}
+              </div>
+            </div>
+          ) : null;
+        })()}
 
         {/* Yarn required */}
         {safeYarnQuantity.length > 0 && (
@@ -645,16 +668,29 @@ export default function PatternsPage() {
   }
 
   // ── List view ────────────────────────────────────────────────────────────────
+  const filteredPatterns = patterns.filter(p =>
+    !listSearch.trim() ||
+    p.name.toLowerCase().includes(listSearch.toLowerCase()) ||
+    (p.designer ?? '').toLowerCase().includes(listSearch.toLowerCase()) ||
+    (p.category ?? '').toLowerCase().includes(listSearch.toLowerCase())
+  );
+
   return (
     <div>
       <div className="page-header">
         <h1>Patterns</h1>
         <button className="btn btn-primary" onClick={() => setView('new')}>+ Add Pattern</button>
       </div>
-      {loading ? <p style={{ color: '#9CA3AF' }}>Loading…</p> : patterns.length === 0 ? (
-        <p className="empty">No patterns yet.</p>
+      <input
+        value={listSearch}
+        onChange={e => setListSearch(e.target.value)}
+        placeholder="Search patterns…"
+        style={{ width: '100%', background: '#1F2937', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+      />
+      {loading ? <p style={{ color: '#9CA3AF' }}>Loading…</p> : filteredPatterns.length === 0 ? (
+        <p className="empty">{listSearch ? 'No matching patterns.' : 'No patterns yet.'}</p>
       ) : (
-        patterns.map(p => (
+        filteredPatterns.map(p => (
           <div key={p.id} className="card" onClick={() => { setSelected(p); setView('detail'); }}>
             <div className="card-row" style={{ alignItems: 'flex-start', gap: 12 }}>
               <span style={{ fontSize: 20 }}>{sourceIcon[p.source] ?? '📌'}</span>

@@ -107,6 +107,12 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Completion
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [completionNotes, setCompletionNotes] = useState('');
+  const [completionRating, setCompletionRating] = useState(0);
+  const [savingCompletion, setSavingCompletion] = useState(false);
+
   useEffect(() => {
     fetchProject();
     fetchSessions();
@@ -145,9 +151,30 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
   }
 
   async function openYarnModal() {
-    const { data } = await supabase.from('yarn_stash')
-      .select('id, name, brand, color_hex, quantity, unit').order('name');
-    if (data) setStashYarns(data);
+    const { data } = await supabase.from('yarn_catalog')
+      .select('id, name, brand, color_hex, stash:yarn_stash(id, quantity, unit, status)')
+      .order('name');
+    // Flatten to stash entries for display, keeping catalog info
+    const flat = (data ?? []).flatMap(c =>
+      (c.stash as Array<{ id: string; quantity: number | null; unit: string; status: string }>).map(s => ({
+        id: s.id,
+        name: c.name,
+        brand: c.brand,
+        color_hex: c.color_hex,
+        quantity: s.quantity,
+        unit: s.unit,
+        status: s.status,
+      }))
+    );
+    // If no stash entries, show catalog items anyway
+    if (flat.length > 0) {
+      setStashYarns(flat);
+    } else {
+      setStashYarns((data ?? []).map(c => ({
+        id: c.id, name: c.name, brand: c.brand,
+        color_hex: c.color_hex, quantity: null, unit: 'g', status: 'in_stock',
+      })));
+    }
     setSelectedStashYarn(null); setQuantityUsed(''); setYarnUnit('g');
     setShowYarnModal(true);
   }
@@ -229,8 +256,28 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
 
   async function setStatus(status: string) {
     if (!project) return;
+    if (status === 'completed') {
+      setCompletionNotes('');
+      setCompletionRating(0);
+      setShowCompletionModal(true);
+      return;
+    }
     await supabase.from('projects').update({ status }).eq('id', projectId);
     setProject({ ...project, status });
+  }
+
+  async function saveCompletion() {
+    if (!project) return;
+    setSavingCompletion(true);
+    await supabase.from('projects').update({
+      status: 'completed',
+      completed_at: new Date().toISOString().split('T')[0],
+      completion_notes: completionNotes || null,
+      rating: completionRating || null,
+    }).eq('id', projectId);
+    setSavingCompletion(false);
+    setShowCompletionModal(false);
+    setProject({ ...project, status: 'completed' });
   }
 
   function openEdit() {
@@ -472,6 +519,46 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
                 {savingEdit ? 'Saving…' : 'Save Changes'}
               </button>
               <button className="btn btn-secondary" onClick={() => setShowEditModal(false)} style={{ flex: 1 }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Completion modal */}
+      {showCompletionModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: '#1F2937', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <p style={{ color: '#F9FAFB', fontSize: 18, fontWeight: 700 }}>🎉 Project Complete!</p>
+              <button onClick={() => setShowCompletionModal(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 20, cursor: 'pointer' }}>✕</button>
+            </div>
+            <label style={{ display: 'block', color: '#9CA3AF', fontSize: 13, marginBottom: 6 }}>How did it go? (optional)</label>
+            <textarea
+              value={completionNotes}
+              onChange={e => setCompletionNotes(e.target.value)}
+              placeholder="Any notes about the finished project…"
+              rows={3}
+              style={{ width: '100%', background: '#374151', border: '1px solid #4B5563', borderRadius: 8, padding: 10, color: '#F9FAFB', fontSize: 14, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 16 }}
+            />
+            <label style={{ display: 'block', color: '#9CA3AF', fontSize: 13, marginBottom: 10 }}>Rating</label>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+              {[1,2,3,4,5].map(star => (
+                <button key={star} onClick={() => setCompletionRating(star)}
+                  style={{ background: 'none', border: 'none', fontSize: 32, cursor: 'pointer', opacity: star <= completionRating ? 1 : 0.3 }}>⭐</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-primary" onClick={saveCompletion}
+                disabled={savingCompletion}
+                style={{ flex: 1, background: '#10B981', opacity: savingCompletion ? 0.6 : 1 }}>
+                {savingCompletion ? 'Saving…' : 'Mark as Complete'}
+              </button>
+              <button className="btn btn-secondary" onClick={async () => {
+                if (!project) return;
+                await supabase.from('projects').update({ status: 'completed', completed_at: new Date().toISOString().split('T')[0] }).eq('id', projectId);
+                setProject({ ...project, status: 'completed' });
+                setShowCompletionModal(false);
+              }} style={{ flex: 1 }}>Skip</button>
             </div>
           </div>
         </div>

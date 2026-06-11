@@ -61,6 +61,9 @@ export default function ProjectsPage() {
   const [pickingIndex, setPickingIndex] = useState<number | null>(null);
   const [yarnSearch, setYarnSearch] = useState('');
 
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
   const fetchProjects = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
@@ -137,6 +140,12 @@ export default function ProjectsPage() {
         (y.brand ?? '').toLowerCase().includes(yarnSearch.toLowerCase())
       )
     : stashYarns;
+
+  const filteredProjects = projects.filter(p => {
+    const matchSearch = !search.trim() || p.name.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'all' || p.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
 
   if (view === 'detail' && selectedId) {
     return (
@@ -293,10 +302,28 @@ export default function ProjectsPage() {
           </p>
         </div>
       )}
-      {loading ? <p style={{ color: '#9CA3AF' }}>Loading…</p> : projects.length === 0 ? (
-        <p className="empty">No projects yet.</p>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search projects…"
+          style={{ flex: 1, minWidth: 200, background: '#1F2937', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 14 }}
+        />
+        <div style={{ display: 'flex', gap: 6 }}>
+          {(['all', 'active', 'paused', 'completed', 'frogged'] as const).map(s => (
+            <button key={s} onClick={() => setStatusFilter(s)} style={{
+              padding: '6px 12px', borderRadius: 16, border: '1px solid',
+              borderColor: statusFilter === s ? '#7C3AED' : '#374151',
+              background: statusFilter === s ? '#7C3AED' : 'transparent',
+              color: statusFilter === s ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12,
+            }}>{s}</button>
+          ))}
+        </div>
+      </div>
+      {loading ? <p style={{ color: '#9CA3AF' }}>Loading…</p> : filteredProjects.length === 0 ? (
+        <p className="empty">{search || statusFilter !== 'all' ? 'No matching projects.' : 'No projects yet.'}</p>
       ) : (
-        projects.map(p => (
+        filteredProjects.map(p => (
           <div key={p.id} className="card" onClick={() => { setSelectedId(p.id); setView('detail'); }}>
             <div className="card-row">
               <span className="card-title">{p.name}</span>

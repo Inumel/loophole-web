@@ -36,6 +36,7 @@ export default function StashPage() {
   const [unit, setUnit] = useState(() => getPref('DEFAULT_YARN_UNIT'));
   const [lot, setLot] = useState('');
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => { if (view === 'list') fetchYarns(); }, [view]);
 
@@ -181,10 +182,21 @@ export default function StashPage() {
         <h1>Yarn Stash</h1>
         <button className="btn btn-primary" onClick={() => setView('new')}>+ Add Yarn</button>
       </div>
+      <input
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search stash…"
+        style={{ width: '100%', background: '#1F2937', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+      />
       {loading ? <p style={{ color: '#9CA3AF' }}>Loading…</p> : yarns.length === 0 ? (
         <p className="empty">Your stash is empty.</p>
       ) : (
-        yarns.map(y => {
+        yarns.filter(y =>
+          !search.trim() ||
+          y.name.toLowerCase().includes(search.toLowerCase()) ||
+          (y.brand ?? '').toLowerCase().includes(search.toLowerCase()) ||
+          (y.colorway ?? '').toLowerCase().includes(search.toLowerCase())
+        ).map(y => {
           const status = stockStatus(y);
           const total = totalInStock(y);
           const unit = y.stash[0]?.unit ?? 'g';

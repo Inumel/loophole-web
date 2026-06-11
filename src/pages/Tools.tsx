@@ -19,6 +19,7 @@ export default function ToolsPage() {
   const [material, setMaterial] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => { if (view === 'list') fetchTools(); }, [view]);
 
@@ -98,10 +99,21 @@ export default function ToolsPage() {
         <h1>Tools</h1>
         <button className="btn btn-primary" onClick={() => setView('new')}>+ Add Tool</button>
       </div>
+      <input
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search tools…"
+        style={{ width: '100%', background: '#1F2937', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+      />
       {loading ? <p style={{ color: '#9CA3AF' }}>Loading…</p> : tools.length === 0 ? (
         <p className="empty">No tools yet.</p>
       ) : (
-        tools.map(t => (
+        tools.filter(t =>
+          !search.trim() ||
+          t.name.toLowerCase().includes(search.toLowerCase()) ||
+          (t.type ?? '').toLowerCase().includes(search.toLowerCase()) ||
+          (t.size ?? '').toLowerCase().includes(search.toLowerCase())
+        ).map(t => (
           <div key={t.id} className="card" onClick={() => { setSelectedId(t.id); setView('detail'); }}>
             <p className="card-title">{t.name}</p>
             <p className="card-sub">{[t.type, t.size, t.material].filter(Boolean).join(' · ')}</p>
