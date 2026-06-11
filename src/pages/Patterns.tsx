@@ -23,13 +23,18 @@ type Mode = 'manual' | 'ravelry' | 'pdf';
 
 const sourceIcon: Record<string, string> = { ravelry: '🧶', pdf: '📄', manual: '✏️' };
 
-function getSteps(sec: { steps?: string[]; steps_by_size?: Record<string, unknown> }): string[] {
-  if (sec.steps_by_size) {
+function getSteps(sec: { steps?: unknown; steps_by_size?: Record<string, unknown> }): string[] {
+  if (sec.steps_by_size && Object.keys(sec.steps_by_size).length > 0) {
     const firstKey = Object.keys(sec.steps_by_size)[0];
-    const val = firstKey ? sec.steps_by_size[firstKey] : [];
-    return Array.isArray(val) ? val as string[] : [];
+    const val = sec.steps_by_size[firstKey];
+    if (Array.isArray(val)) return val as string[];
+    // Sometimes Sonnet returns steps_by_size with object values instead of arrays
+    if (val && typeof val === 'object') return Object.values(val as object) as string[];
   }
-  return Array.isArray(sec.steps) ? sec.steps : [];
+  if (Array.isArray(sec.steps)) return sec.steps as string[];
+  // Handle case where steps is a single string
+  if (typeof sec.steps === 'string') return [sec.steps];
+  return [];
 }
 
 export default function PatternsPage() {
@@ -281,7 +286,7 @@ export default function PatternsPage() {
               ['Yarn Weight', selected.yarn_weight],
               ['Needles', selected.needle_size],
               selected.gauge_stitches != null
-                ? ['Gauge', `${selected.gauge_stitches} sts × ${selected.gauge_rows} rows ${selected.gauge_unit ?? 'per 10cm'}`]
+                ? ['Gauge', `${selected.gauge_stitches} sts${selected.gauge_rows != null ? ` × ${selected.gauge_rows} rows` : ''} ${selected.gauge_unit ?? 'per 10cm'}`]
                 : null,
             ] as ([string, string | null] | null)[]
           ).filter((item): item is [string, string | null] => item !== null && item[1] !== null)
