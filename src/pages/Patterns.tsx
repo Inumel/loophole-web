@@ -9,7 +9,7 @@ type Pattern = {
   category: string | null; yarn_weight: string | null; needle_size: string | null;
   gauge_stitches: number | null; gauge_rows: number | null; gauge_unit: string | null;
   difficulty: string | null; stitch_patterns: string[] | null;
-  yarn_quantity: Array<{ amount: number; unit: string; color?: string; note?: string }> | null;
+  yarn_quantity: Array<{ amount: number; unit: string; size?: string; color?: string; note?: string }> | null;
   notes: string | null; parsed_guide: Record<string, unknown> | null;
 };
 
@@ -303,9 +303,10 @@ export default function PatternsPage() {
         {selected.yarn_quantity && selected.yarn_quantity.length > 0 && (
           <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
             <p className="card-title" style={{ marginBottom: 12 }}>Yarn Required</p>
-            {selected.yarn_quantity.map((y, i) => (
-              <div key={i} style={{ display: 'flex', gap: 16, paddingTop: 8, borderTop: i > 0 ? '1px solid #374151' : 'none' }}>
+            {selected.yarn_quantity.filter(y => y.amount != null).map((y, i) => (
+              <div key={i} style={{ display: 'flex', gap: 16, paddingTop: 8, borderTop: i > 0 ? '1px solid #374151' : 'none', flexWrap: 'wrap' }}>
                 <span style={{ color: '#F9FAFB', fontWeight: 700, minWidth: 100 }}>{y.amount} {y.unit}</span>
+                {y.size && <span style={{ color: '#7C3AED', fontSize: 13, fontWeight: 600 }}>{y.size}</span>}
                 {(y.color || y.note) && <span style={{ color: '#9CA3AF', fontSize: 13 }}>{[y.color, y.note].filter(Boolean).join(' — ')}</span>}
               </div>
             ))}
