@@ -12,12 +12,32 @@ type Project = {
   started_at: string | null;
 };
 
+type StashYarn = {
+  id: string;
+  name: string;
+  brand: string | null;
+  color_hex: string | null;
+  stash: Array<{ id: string; quantity: number | null; unit: string; status: string }>;
+};
+
+type SelectedYarn = {
+  catalogId: string;
+  stashId: string | null;
+  name: string;
+  colorHex: string | null;
+  quantity: string;
+  unit: string;
+  role: string;
+};
+
 type View = 'list' | 'detail' | 'new';
 
 const statusClass: Record<string, string> = {
   active: 'badge-active', completed: 'badge-completed',
   paused: 'badge-paused', frogged: 'badge-frogged',
 };
+
+const UNITS = ['g', 'oz', 'yards', 'meters', 'skeins'];
 
 export default function ProjectsPage() {
   const { unlocked } = useAuth();
@@ -32,6 +52,15 @@ export default function ProjectsPage() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Yarn selection
+  const [stashYarns, setStashYarns] = useState<StashYarn[]>([]);
+  const [selectedYarns, setSelectedYarns] = useState<SelectedYarn[]>([
+    { catalogId: '', stashId: null, name: '', colorHex: null, quantity: '', unit: 'yards', role: 'MC' }
+  ]);
+  const [showYarnPicker, setShowYarnPicker] = useState(false);
+  const [pickingIndex, setPickingIndex] = useState<number | null>(null);
+  const [yarnSearch, setYarnSearch] = useState('');
+
   const fetchProjects = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
@@ -44,6 +73,32 @@ export default function ProjectsPage() {
 
   useEffect(() => { if (view === 'list') fetchProjects(); }, [view, fetchProjects]);
 
+  useEffect(() => {
+    if (view === 'new') {
+      supabase.from('yarn_catalog')
+        .select('id, name, brand, color_hex, stash:yarn_stash(id, quantity, unit, status)')
+        .order('name', { ascending: true })
+        .then(({ data }) => { if (data) setStashYarns(data); });
+    }
+  }, [view]);
+
+  function pickYarn(yarn: StashYarn) {
+    if (pickingIndex === null) return;
+    const inStock = yarn.stash?.find(s => s.status === 'in_stock');
+    const stashEntry = inStock ?? yarn.stash?.[0];
+    setSelectedYarns(prev => prev.map((y, i) => i === pickingIndex ? {
+      ...y,
+      catalogId: yarn.id,
+      stashId: stashEntry?.id ?? null,
+      name: yarn.name,
+      colorHex: yarn.color_hex,
+      unit: stashEntry?.unit ?? 'yards',
+    } : y));
+    setShowYarnPicker(false);
+    setPickingIndex(null);
+    setYarnSearch('');
+  }
+
   async function saveNew() {
     if (!name.trim()) return;
     setSaving(true);
@@ -55,11 +110,33 @@ export default function ProjectsPage() {
       status: 'active',
       current_row: 0,
     }).select().single();
+    if (error || !data) { setSaving(false); return; }
+
+    // Link yarns
+    const yarnsToLink = selectedYarns.filter(y => y.stashId);
+    if (yarnsToLink.length > 0) {
+      await supabase.from('project_yarn').insert(
+        yarnsToLink.map(y => ({
+          project_id: data.id,
+          yarn_stash_id: y.stashId,
+          yarn_name: y.name,
+          quantity_used: y.quantity ? parseFloat(y.quantity) : null,
+          unit: y.unit,
+        }))
+      );
+    }
+
     setSaving(false);
-    if (error || !data) return;
     setSelectedId(data.id);
     setView('detail');
   }
+
+  const filteredYarns = yarnSearch.trim()
+    ? stashYarns.filter(y =>
+        y.name.toLowerCase().includes(yarnSearch.toLowerCase()) ||
+        (y.brand ?? '').toLowerCase().includes(yarnSearch.toLowerCase())
+      )
+    : stashYarns;
 
   if (view === 'detail' && selectedId) {
     return (
@@ -73,9 +150,10 @@ export default function ProjectsPage() {
 
   if (view === 'new' && unlocked) {
     return (
-      <div>
+      <div style={{ maxWidth: 700 }}>
         <button className="btn btn-secondary" onClick={() => setView('list')} style={{ marginBottom: 20 }}>← Back</button>
         <h1>New Project</h1>
+
         <div style={f.field}>
           <label style={f.label}>Project Name *</label>
           <input style={f.input} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Blue Cabled Sweater" />
@@ -93,10 +171,108 @@ export default function ProjectsPage() {
           <textarea style={{ ...f.input, minHeight: 100, resize: 'vertical', fontFamily: 'inherit' }}
             value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any notes..." />
         </div>
+
+        {/* Yarn selection */}
+        <p style={{ color: '#7C3AED', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+          Yarn from Stash (optional)
+        </p>
+
+        {selectedYarns.map((yarn, index) => (
+          <div key={index} style={{ background: '#1F2937', borderRadius: 10, padding: 14, marginBottom: 10, border: '1px solid #374151' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <input
+                value={yarn.role}
+                onChange={e => setSelectedYarns(prev => prev.map((y, i) => i === index ? { ...y, role: e.target.value } : y))}
+                placeholder="MC / CC1…"
+                style={{ background: '#374151', border: 'none', borderRadius: 6, padding: '4px 10px', color: '#F9FAFB', fontSize: 13, width: 100 }}
+              />
+              {selectedYarns.length > 1 && (
+                <button onClick={() => setSelectedYarns(prev => prev.filter((_, i) => i !== index))}
+                  style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', fontSize: 18 }}>✕</button>
+              )}
+            </div>
+
+            {yarn.name ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#374151', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <div style={{ width: 20, height: 20, borderRadius: 10, background: yarn.colorHex ?? '#6B7280', flexShrink: 0 }} />
+                <span style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600, flex: 1 }}>{yarn.name}</span>
+                <button onClick={() => { setPickingIndex(index); setShowYarnPicker(true); }}
+                  style={{ background: 'none', border: 'none', color: '#A78BFA', cursor: 'pointer', fontSize: 13 }}>Change</button>
+              </div>
+            ) : (
+              <button onClick={() => { setPickingIndex(index); setShowYarnPicker(true); }}
+                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px dashed #374151', background: 'transparent', color: '#7C3AED', cursor: 'pointer', fontSize: 14, marginBottom: 10 }}>
+                + Pick from stash
+              </button>
+            )}
+
+            {yarn.name && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  value={yarn.quantity}
+                  onChange={e => setSelectedYarns(prev => prev.map((y, i) => i === index ? { ...y, quantity: e.target.value } : y))}
+                  placeholder="Qty used"
+                  type="number"
+                  style={{ ...f.input, width: 100 }}
+                />
+                {UNITS.map(u => (
+                  <button key={u} onClick={() => setSelectedYarns(prev => prev.map((y, i) => i === index ? { ...y, unit: u } : y))}
+                    style={{ padding: '6px 10px', borderRadius: 16, border: '1px solid', borderColor: yarn.unit === u ? '#7C3AED' : '#374151', background: yarn.unit === u ? '#7C3AED' : 'transparent', color: yarn.unit === u ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12 }}>
+                    {u}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+
+        <button onClick={() => setSelectedYarns(prev => [...prev, { catalogId: '', stashId: null, name: '', colorHex: null, quantity: '', unit: 'yards', role: `CC${prev.length}` }])}
+          style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #374151', background: 'transparent', color: '#9CA3AF', cursor: 'pointer', fontSize: 14, marginBottom: 24 }}>
+          + Add another yarn
+        </button>
+
         <button className="btn btn-primary" onClick={saveNew} disabled={saving || !name.trim()}
-          style={{ marginTop: 16, opacity: saving ? 0.6 : 1 }}>
+          style={{ opacity: saving ? 0.6 : 1 }}>
           {saving ? 'Creating…' : 'Create Project'}
         </button>
+
+        {/* Yarn picker modal */}
+        {showYarnPicker && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+            <div style={{ background: '#1F2937', borderRadius: 16, padding: 24, width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <p style={{ color: '#F9FAFB', fontSize: 18, fontWeight: 700 }}>Pick a Yarn</p>
+                <button onClick={() => { setShowYarnPicker(false); setPickingIndex(null); setYarnSearch(''); }}
+                  style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              </div>
+              <input value={yarnSearch} onChange={e => setYarnSearch(e.target.value)}
+                placeholder="Search…"
+                style={{ ...f.input, marginBottom: 12 }} />
+              <div style={{ overflow: 'auto', flex: 1 }}>
+                {filteredYarns.map(y => {
+                  const inStock = y.stash?.find(s => s.status === 'in_stock');
+                  const qty = inStock?.quantity ?? y.stash?.[0]?.quantity;
+                  const unit = inStock?.unit ?? y.stash?.[0]?.unit ?? 'g';
+                  return (
+                    <div key={y.id} onClick={() => pickYarn(y)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', borderBottom: '1px solid #374151', cursor: 'pointer' }}>
+                      <div style={{ width: 24, height: 24, borderRadius: 12, background: y.color_hex ?? '#6B7280', flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{y.name}</p>
+                        {y.brand && <p style={{ color: '#9CA3AF', fontSize: 12 }}>{y.brand}</p>}
+                      </div>
+                      {qty != null && (
+                        <span style={{ color: inStock ? '#10B981' : '#EF4444', fontSize: 13 }}>
+                          {qty} {unit}{!inStock ? ' (out)' : ''}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

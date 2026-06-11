@@ -12,6 +12,7 @@ type Project = {
   started_at: string | null;
   notes: string | null;
   chosen_size: string | null;
+  chosen_color_variation: string | null;
   pattern: { name: string; parsed_guide: Record<string, unknown> | null } | null;
 };
 
@@ -26,6 +27,7 @@ type GuideSection = {
   title: string;
   steps?: string[];
   steps_by_size?: Record<string, unknown>;
+  steps_by_variation?: Record<string, unknown>;
 };
 
 type StepProgress = {
@@ -53,8 +55,14 @@ type StashYarn = {
 
 type Props = { projectId: string; onBack: () => void; readOnly?: boolean };
 
-function getSteps(sec: GuideSection, chosenSize: string | null): string[] {
-  if (sec.steps_by_size) {
+function getSteps(sec: GuideSection, chosenSize: string | null, chosenVariation: string | null = null): string[] {
+  // If a variation is chosen and this section has variation-specific steps, use those
+  if (chosenVariation && sec.steps_by_variation?.[chosenVariation]) {
+    const val = sec.steps_by_variation[chosenVariation];
+    if (Array.isArray(val)) return val as string[];
+    if (val && typeof val === 'object') return Object.values(val as object) as string[];
+  }
+  if (sec.steps_by_size && Object.keys(sec.steps_by_size).length > 0) {
     if (chosenSize && sec.steps_by_size[chosenSize]) {
       const val = sec.steps_by_size[chosenSize];
       return Array.isArray(val) ? val as string[] : [];
@@ -63,7 +71,9 @@ function getSteps(sec: GuideSection, chosenSize: string | null): string[] {
     const val = firstKey ? sec.steps_by_size[firstKey] : [];
     return Array.isArray(val) ? val as string[] : [];
   }
-  return Array.isArray(sec.steps) ? sec.steps : [];
+  if (Array.isArray(sec.steps)) return sec.steps;
+  if (typeof sec.steps === 'string') return [sec.steps];
+  return [];
 }
 
 const UNITS = ['g', 'oz', 'yards', 'meters', 'skeins'];
@@ -249,7 +259,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
 
   const rawSections = project.pattern?.parsed_guide?.sections;
   const sections = Array.isArray(rawSections) ? (rawSections as GuideSection[]) : null;
-  const totalSteps = sections?.reduce((sum, s) => sum + getSteps(s, project.chosen_size).length, 0) ?? 0;
+  const totalSteps = sections?.reduce((sum, s) => sum + getSteps(s, project.chosen_size, project.chosen_color_variation).length, 0) ?? 0;
   const completedSteps = stepProgress.filter(p => p.completed).length;
   const progress = project.target_rows ? Math.min(100, (project.current_row / project.target_rows) * 100) : null;
 
@@ -342,8 +352,8 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
           {/* Section tabs */}
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 12, paddingBottom: 4 }}>
             {sections.map((sec, i) => {
-              const comp = sectionProg(i, getSteps(sec, project.chosen_size).length);
-              const total = getSteps(sec, project.chosen_size).length;
+              const comp = sectionProg(i, getSteps(sec, project.chosen_size, project.chosen_color_variation).length);
+              const total = getSteps(sec, project.chosen_size, project.chosen_color_variation).length;
               const done = comp === total;
               return (
                 <button key={i} onClick={() => setActiveSection(i)} style={{
@@ -359,7 +369,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
           </div>
           <p style={{ color: '#4B5563', fontSize: 11, textAlign: 'center', marginBottom: 10, fontStyle: 'italic' }}>Click to complete a step</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {getSteps(sections[activeSection], project.chosen_size).map((step, si) => {
+            {getSteps(sections[activeSection], project.chosen_size, project.chosen_color_variation).map((step, si) => {
               const done = isCompleted(activeSection, si);
               return (
                 <div key={si} onClick={() => toggleStep(activeSection, si)} style={{

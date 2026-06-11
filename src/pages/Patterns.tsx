@@ -70,6 +70,8 @@ export default function PatternsPage() {
   const [newProjectTargetRows, setNewProjectTargetRows] = useState('');
   const [availableSizes, setAvailableSizes] = useState<string[]>([]);
   const [chosenSize, setChosenSize] = useState('');
+  const [availableVariations, setAvailableVariations] = useState<string[]>([]);
+  const [chosenVariation, setChosenVariation] = useState<string | null>(null);
   const [savingProject, setSavingProject] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
 
@@ -190,7 +192,10 @@ export default function PatternsPage() {
     setSelected(pattern);
     const guide = pattern.parsed_guide as Record<string, unknown> | null;
     const sizes = guide?.sizes as string[] | null;
+    const variations = guide?.color_variations as string[] | null;
     setAvailableSizes(sizes ?? []);
+    setAvailableVariations(variations ?? []);
+    setChosenVariation(null);
     const firstSize = sizes?.length === 1 ? sizes[0] : '';
     setChosenSize(firstSize);
     const sizeSuffix = firstSize && firstSize !== 'One Size' ? ` - ${firstSize}` : '';
@@ -206,6 +211,7 @@ export default function PatternsPage() {
       name: newProjectName.trim(),
       pattern_id: selected.id,
       chosen_size: chosenSize || (availableSizes[0] ?? null),
+      chosen_color_variation: chosenVariation ?? null,
       target_rows: newProjectTargetRows ? parseInt(newProjectTargetRows) : null,
       status: 'active', current_row: 0,
       started_at: new Date().toISOString().split('T')[0],
@@ -232,11 +238,11 @@ export default function PatternsPage() {
             <label style={fi.label}>Size *</label>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {availableSizes.map(s => (
-              <button key={s} onClick={() => {
-                setChosenSize(s);
-                const suffix = s && s !== 'One Size' ? ` - ${s}` : '';
-                setNewProjectName(`${selected.name}${suffix}`);
-              }} style={{
+                <button key={s} onClick={() => {
+                  setChosenSize(s);
+                  const suffix = s && s !== 'One Size' ? ` - ${s}` : '';
+                  setNewProjectName(`${selected.name}${suffix}`);
+                }} style={{
                   padding: '8px 16px', borderRadius: 20, border: '1px solid',
                   borderColor: chosenSize === s ? '#7C3AED' : '#374151',
                   background: chosenSize === s ? '#7C3AED' : 'transparent',
@@ -245,6 +251,29 @@ export default function PatternsPage() {
               ))}
             </div>
             {chosenSize && <p style={{ color: '#10B981', fontSize: 12, marginTop: 8 }}>✓ Steps will be shown for size: {chosenSize}</p>}
+          </div>
+        )}
+
+        {availableVariations.length > 0 && (
+          <div style={fi.field}>
+            <label style={fi.label}>Colour variation (optional)</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => setChosenVariation(null)} style={{
+                padding: '8px 16px', borderRadius: 20, border: '1px solid',
+                borderColor: chosenVariation === null ? '#7C3AED' : '#374151',
+                background: chosenVariation === null ? '#7C3AED' : 'transparent',
+                color: chosenVariation === null ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 14,
+              }}>None</button>
+              {availableVariations.map(v => (
+                <button key={v} onClick={() => setChosenVariation(v)} style={{
+                  padding: '8px 16px', borderRadius: 20, border: '1px solid',
+                  borderColor: chosenVariation === v ? '#7C3AED' : '#374151',
+                  background: chosenVariation === v ? '#7C3AED' : 'transparent',
+                  color: chosenVariation === v ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 14,
+                }}>{v}</button>
+              ))}
+            </div>
+            {chosenVariation && <p style={{ color: '#10B981', fontSize: 12, marginTop: 8 }}>✓ Variation: {chosenVariation}</p>}
           </div>
         )}
 

@@ -50,12 +50,20 @@ CRITICAL RULES:
    - XL: "Cast on 110 sts"
    Every instruction must be fully written out for each size with no brackets remaining.
 
-2. GAUGE: Patterns write gauge many ways. Extract correctly from all formats:
-   - "22 sts and 30 rows = 4 inches"
-   - "22 sts/4in"
-   - "22 stitches over 10cm"
-   - "22 sts x 30 rows over 10cm in stockinette"
-   Always store as { stitches: number, rows: number, unit: string } where unit is "per 10cm" or "per 4in".
+1b. COLOR VARIATIONS: If the pattern includes optional color variations, stripes, or style variations (e.g. "One Stripe Hat", "Pinstripe Variation", "Rainbow Version"), do NOT treat them as regular sections. Instead:
+   - Add a "color_variations" field at the top level: array of variation name strings
+   - For each section that has color-specific steps, add a "steps_by_variation" object alongside steps_by_size, where keys are variation names and values are arrays of steps
+   - Sections that apply to ALL variations (cast on, basic body, finishing) should use steps_by_size as normal
+   - Only colour/style optional variants go in steps_by_variation — not size differences
+
+2. GAUGE: Patterns write gauge many different ways. Extract ALL components correctly:
+   - "22 sts and 30 rows = 4 inches" → stitches: 22, rows: 30, unit: "per 4in"
+   - "22 sts/4in" → stitches: 22, rows: null, unit: "per 4in"
+   - "22 stitches over 10cm" → stitches: 22, rows: null, unit: "per 10cm"
+   - "22 sts x 30 rows over 10cm in stockinette" → stitches: 22, rows: 30, unit: "per 10cm"
+   - "12 sts = 4 inches" → stitches: 12, rows: null, unit: "per 4in"
+   If rows are not mentioned, set rows to null rather than guessing.
+   unit must be exactly "per 10cm" or "per 4in".
 
 3. YARN QUANTITY: Extract quantities for ALL sizes if given, not just the smallest. Use format:
    { amount: number, unit: string, size?: string, color?: string, note?: string }
@@ -69,13 +77,14 @@ Return a JSON object with these fields:
 - designer: designer name if present
 - difficulty: one of "Beginner", "Easy", "Intermediate", "Advanced", or ""
 - sizes: array of size labels exactly as written (e.g. ["S", "M", "L"] or ["One Size"])
+- color_variations: array of optional colour/style variation names if present, empty array if none
 - gauge: { stitches, rows, unit }
 - needles: needle size(s) as a string
 - yarn_weight: yarn weight category (e.g. "DK", "Worsted", "Fingering")
 - yarn_quantity: array of { amount, unit, size?, color?, note? } — include all sizes
 - stitch_patterns: array of stitch pattern names used
 - abbreviations: object of { abbrev: explanation } from the pattern's own glossary if present
-- sections: array of { title: string, steps_by_size: object } where every size has fully expanded instructions with no brackets
+- sections: array of { title: string, steps_by_size: object, steps_by_variation?: object } where every size has fully expanded instructions with no brackets. steps_by_variation only present for sections with colour-specific steps.
 
 Return ONLY a raw JSON object. No markdown, no code fences. Start with { and end with }.`,
         },
