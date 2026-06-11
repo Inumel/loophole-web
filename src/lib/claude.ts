@@ -13,7 +13,7 @@ async function callClaude(body: object): Promise<{ content: Array<{ text: string
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
       'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
       'x-loophole-token': token,
     },
