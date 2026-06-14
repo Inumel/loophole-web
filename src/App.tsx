@@ -1,5 +1,6 @@
 import { Routes, Route, NavLink } from 'react-router-dom';
 import { useAuth } from './lib/auth';
+import { APP_VERSION } from './lib/version';
 import ProjectsPage from './pages/Projects';
 import PatternsPage from './pages/Patterns';
 import StashPage from './pages/Stash';
@@ -27,6 +28,9 @@ export default function App() {
         <NavLink to="/settings" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
           {unlocked ? '🔓 Settings' : '🔒 Unlock'}
         </NavLink>
+        <div style={{ padding: '12px 16px', color: '#374151', fontSize: 11, textAlign: 'center' }}>
+          v{APP_VERSION}
+        </div>
       </nav>
       <main className="content">
         <Routes>
