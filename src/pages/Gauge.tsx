@@ -36,8 +36,16 @@ const NEEDLE_SIZES = [
   { metric: '25.0', us: '50', uk: '—' },
 ];
 
+// Long tail cast on: inches_per_stitch = (2 / WPI) × (needle_mm / 4)
+// tail_inches = (stitches × inches_per_stitch) + 6" buffer
+function calcTail(stitches: number, wpi: number, needleMm: number): { inches: number; cm: number } {
+  const inchesPerStitch = (2 / wpi) * (needleMm / 4);
+  const inches = stitches * inchesPerStitch + 6;
+  return { inches: Math.ceil(inches), cm: Math.ceil(inches * 2.54) };
+}
+
 export default function GaugePage() {
-  const [tab, setTab] = useState<'gauge' | 'needles'>('gauge');
+  const [tab, setTab] = useState<'gauge' | 'needles' | 'castonTail'>('gauge');
   const [needleSearch, setNeedleSearch] = useState('');
 
   const [patternSts, setPatternSts] = useState('');
@@ -49,6 +57,13 @@ export default function GaugePage() {
   const [originalSts, setOriginalSts] = useState('');
   const [originalRows, setOriginalRows] = useState('');
   const [result, setResult] = useState<Result | null>(null);
+
+  // Cast on tail state
+  const [tailStitches, setTailStitches] = useState('');
+  const [tailWpi, setTailWpi] = useState('');
+  const [tailNeedle, setTailNeedle] = useState('');
+  const [tailNeedleInput, setTailNeedleInput] = useState('custom');
+  const [tailResult, setTailResult] = useState<{ inches: number; cm: number } | null>(null);
 
   function calculate() {
     const pSts = parseFloat(patternSts);
@@ -86,15 +101,15 @@ export default function GaugePage() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid #374151', marginBottom: 24 }}>
-        {(['gauge', 'needles'] as const).map(t => (
+        {(['gauge', 'needles', 'castonTail'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '10px 20px', border: 'none', background: 'transparent',
             color: tab === t ? '#7C3AED' : '#9CA3AF', cursor: 'pointer', fontSize: 14,
             fontWeight: tab === t ? 700 : 500,
             borderBottom: `2px solid ${tab === t ? '#7C3AED' : 'transparent'}`,
-            marginBottom: -1,
+            marginBottom: -1, whiteSpace: 'nowrap',
           }}>
-            {t === 'gauge' ? 'Gauge Calculator' : 'Needle Size Converter'}
+            {t === 'gauge' ? 'Gauge Calculator' : t === 'needles' ? 'Needle Size Converter' : 'Cast On Tail'}
           </button>
         ))}
       </div>
@@ -230,7 +245,7 @@ export default function GaugePage() {
             </div>
           )}
         </>
-      ) : (
+      ) : tab === 'needles' ? (
         <>
           <p style={{ color: '#9CA3AF', marginBottom: 16, fontSize: 14 }}>
             Search by metric (mm), US, or UK size.
@@ -265,6 +280,103 @@ export default function GaugePage() {
               ))
             )}
           </div>
+        </>
+      ) : (
+        /* Cast On Tail Calculator */
+        <>
+          <p style={{ color: '#9CA3AF', marginBottom: 24, fontSize: 14 }}>
+            Calculate how long a tail you need for a long tail cast on, based on your yarn and needle size.
+          </p>
+
+          <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
+            <p className="card-title" style={{ marginBottom: 4 }}>Stitch count</p>
+            <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 12 }}>How many stitches are you casting on?</p>
+            <input style={{ ...inp, textAlign: 'left', maxWidth: 200 }}
+              value={tailStitches} onChange={e => { setTailStitches(e.target.value); setTailResult(null); }}
+              placeholder="e.g. 80" type="number" />
+          </div>
+
+          <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
+            <p className="card-title" style={{ marginBottom: 4 }}>WPI (wraps per inch)</p>
+            <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 12 }}>Wrap your yarn around a ruler — count how many wraps fit in 1 inch.</p>
+            <input style={{ ...inp, textAlign: 'left', maxWidth: 200 }}
+              value={tailWpi} onChange={e => { setTailWpi(e.target.value); setTailResult(null); }}
+              placeholder="e.g. 14" type="number" />
+            <div style={{ marginTop: 16 }}>
+              <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 8 }}>Common WPI ranges by weight:</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Lace', wpi: '30+' }, { label: 'Fingering', wpi: '14–18' },
+                  { label: 'Sport', wpi: '12–14' }, { label: 'DK', wpi: '11–13' },
+                  { label: 'Worsted', wpi: '9–11' }, { label: 'Aran', wpi: '7–9' },
+                  { label: 'Bulky', wpi: '5–7' }, { label: 'Super Bulky', wpi: '1–4' },
+                ].map(({ label, wpi: range }) => (
+                  <div key={label} style={{ background: '#374151', borderRadius: 6, padding: '4px 10px', fontSize: 12 }}>
+                    <span style={{ color: '#A78BFA', fontWeight: 600 }}>{label}</span>
+                    <span style={{ color: '#6B7280' }}> {range}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
+            <p className="card-title" style={{ marginBottom: 4 }}>Needle size</p>
+            <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 12 }}>Pick a common size or enter a custom diameter.</p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+              {['2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0', '8.0', '9.0', '10.0', '12.0'].map(mm => (
+                <button key={mm} onClick={() => { setTailNeedleInput(mm); setTailNeedle(mm); setTailResult(null); }} style={{
+                  padding: '5px 10px', borderRadius: 8, border: '1px solid',
+                  borderColor: tailNeedleInput === mm ? '#7C3AED' : '#374151',
+                  background: tailNeedleInput === mm ? '#7C3AED' : 'transparent',
+                  color: tailNeedleInput === mm ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12,
+                }}>{mm} mm</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ color: '#6B7280', fontSize: 13 }}>Custom:</span>
+              <input
+                style={{ ...inp, textAlign: 'left', maxWidth: 120 }}
+                value={tailNeedleInput === 'custom' ? tailNeedle : (tailNeedleInput !== tailNeedle ? tailNeedle : '')}
+                onChange={e => { setTailNeedle(e.target.value); setTailNeedleInput('custom'); setTailResult(null); }}
+                placeholder="mm"
+                type="number"
+              />
+              <span style={{ color: '#6B7280', fontSize: 13 }}>mm</span>
+            </div>
+          </div>
+
+          <button
+            className="btn btn-primary"
+            style={{ marginBottom: 20, opacity: (!tailStitches || !tailWpi || !tailNeedle) ? 0.5 : 1 }}
+            disabled={!tailStitches || !tailWpi || !tailNeedle}
+            onClick={() => {
+              const s = parseFloat(tailStitches);
+              const w = parseFloat(tailWpi);
+              const n = parseFloat(tailNeedle);
+              if (s > 0 && w > 0 && n > 0) setTailResult(calcTail(s, w, n));
+            }}
+          >
+            Calculate Tail Length
+          </button>
+
+          {tailResult && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ background: '#1F2937', borderRadius: 16, padding: 28, textAlign: 'center' }}>
+                <p style={{ color: '#9CA3AF', fontSize: 13, marginBottom: 8 }}>Leave a tail of at least</p>
+                <p style={{ color: '#F9FAFB', fontSize: 52, fontWeight: 700, lineHeight: 1 }}>{tailResult.inches}"</p>
+                <p style={{ color: '#A78BFA', fontSize: 20, fontWeight: 600, marginTop: 4 }}>{tailResult.cm} cm</p>
+                <p style={{ color: '#6B7280', fontSize: 12, marginTop: 12 }}>Includes 6" extra to weave in the end</p>
+              </div>
+              <div style={{ background: '#1a2540', borderRadius: 12, padding: 16, borderLeft: '3px solid #7C3AED' }}>
+                <p style={{ color: '#F9FAFB', fontWeight: 600, marginBottom: 6 }}>💡 Tip</p>
+                <p style={{ color: '#D1D5DB', fontSize: 14, lineHeight: 1.6 }}>
+                  When in doubt, add a little extra — running out of tail mid-cast-on means starting over.
+                  For very large stitch counts, cut a long tail and fold it in half to find the midpoint first.
+                </p>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
