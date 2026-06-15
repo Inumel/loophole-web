@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 
 const YARN_WEIGHTS = ['Lace', 'Fingering', 'Sport', 'DK', 'Worsted', 'Aran', 'Bulky', 'Super Bulky'];
-const OBJECTS = ['Scarf', 'Hat', 'Cowl', 'Shawl', 'Mittens', 'Socks', 'Sweater', 'Cardigan', 'Baby Blanket', 'Dishcloth', 'Other'];
-const STYLES = ['Stockinette', 'Garter', 'Ribbing', 'Seed stitch', 'Ribbing with cabling', 'Lace', 'Colorwork', 'Cables', 'Textured'];
 const DIFFICULTIES = ['Beginner', 'Easy', 'Intermediate', 'Advanced'];
+
+const SUGGESTED_OBJECTS = ['Scarf', 'Hat', 'Cowl', 'Shawl', 'Mittens', 'Socks', 'Sweater', 'Cardigan', 'Baby Blanket', 'Dishcloth', 'Fingerless Gloves', 'Headband', 'Bag', 'Toy'];
+const SUGGESTED_STYLES = ['Stockinette', 'Garter', 'Ribbing', 'Seed stitch', 'Moss stitch', 'Ribbing with cabling', 'Lace', 'Colorwork', 'Cables', 'Textured', 'Brioche', 'Slip stitch', 'Fair Isle'];
 
 type PatternSection = {
   title: string;
@@ -23,9 +24,8 @@ type GeneratedPattern = {
 
 export default function GeneratePage() {
   const { unlocked } = useAuth();
-  const [object, setObject] = useState('Scarf');
-  const [customObject, setCustomObject] = useState('');
-  const [style, setStyle] = useState('Ribbing with cabling');
+  const [object, setObject] = useState('');
+  const [style, setStyle] = useState('');
   const [yarnWeight, setYarnWeight] = useState('Worsted');
   const [difficulty, setDifficulty] = useState('Intermediate');
   const [length, setLength] = useState('');
@@ -52,7 +52,7 @@ export default function GeneratePage() {
     const token = sessionStorage.getItem('loophole_token');
     if (!token) { setError('Not authenticated. Please unlock first.'); return; }
 
-    const objectName = object === 'Other' ? customObject.trim() : object;
+    const objectName = object.trim();
     if (!objectName) { setError('Please specify what you want to knit.'); return; }
 
     setGenerating(true);
@@ -64,34 +64,32 @@ export default function GeneratePage() {
       width && `width: ${width}`,
     ].filter(Boolean).join(', ');
 
-    const prompt = `You are an expert knitting pattern designer. Create a complete, detailed knitting pattern based on these specifications:
+    const prompt = `You are an expert knitting pattern designer. Create a complete, detailed, genuinely usable knitting pattern based on these specifications:
 
 Object: ${objectName}
-Style: ${style}
+Style: ${style || 'your choice based on the object'}
 Yarn weight: ${yarnWeight}
 Difficulty: ${difficulty}${dimensions ? `\nDimensions: ${dimensions}` : ''}${extraNotes ? `\nAdditional notes: ${extraNotes}` : ''}
 
-Return a JSON object with this exact structure:
+Return a JSON object with this exact structure (omit optional fields if not relevant):
 {
   "name": "Pattern name",
   "tagline": "One-line description (yarn weight · dimensions · style summary)",
   "metadata": {
-    "Yarn weight": "...",
-    "Needle size": "...",
-    "Gauge": "...",
-    "Cast on": "...",
-    "Finished length": "...",
-    "Finished width": "...",
-    "Yarn needed": "...",
-    "Difficulty": "..."
+    "Yarn weight": "e.g. Medium (4)",
+    "Needle size": "e.g. US 7 (4.5 mm)",
+    "Gauge": "e.g. 20 sts / 4 inches",
+    "Cast on": "e.g. 34 sts",
+    "Finished length": "e.g. 70 inches",
+    "Finished width": "e.g. 6 inches",
+    "Yarn needed": "e.g. ~600 yds",
+    "Difficulty": "e.g. Intermediate"
   },
   "abbreviations": {
     "k": "knit",
     "p": "purl"
-    // include all abbreviations used in the pattern
   },
   "extras": [
-    // Optional — include only if relevant (e.g. cable definitions, special techniques)
     {
       "title": "Cable Definitions",
       "rows": [
@@ -101,7 +99,6 @@ Return a JSON object with this exact structure:
     }
   ],
   "stitchPattern": {
-    // Optional — include for textured/cable/colorwork patterns
     "title": "Stitch Pattern — N stitch repeat layout",
     "layout": "K2 · P2 · [C4F or C4B] · P2 · K2",
     "note": "Brief explanation of the stitch structure"
@@ -109,20 +106,18 @@ Return a JSON object with this exact structure:
   "sections": [
     {
       "title": "Pattern Instructions",
-      "content": "Numbered step-by-step instructions as a single string, with each step on a new line starting with the step number and period. E.g.:\\n1. Cast on: ...\\n2. Setup row: ...\\n3. Row 1 — RS: ..."
-    },
-    {
-      "title": "4-Row Repeat At a Glance",
-      "content": "Quick reference table as text"
-    },
-    {
-      "title": "Finishing",
-      "content": "Finishing instructions"
+      "content": "Numbered step-by-step instructions as a single string, each step on a new line starting with number and period.\n1. Cast on: ...\n2. Setup row: ...\n3. Row 1 — RS: ..."
     }
   ]
 }
 
-Make the pattern genuinely usable — real stitch counts, real gauge, real instructions. Include helpful notes within steps. Return ONLY raw JSON, no markdown, no code fences.`;
+Rules:
+- Make stitch counts, gauge, and yarn amounts genuinely accurate for the specified yarn weight and dimensions
+- Include helpful coaching notes within steps (e.g. why to do something, what to watch out for)
+- Only include extras and stitchPattern if they are relevant to this specific pattern
+- Only include a row repeat reference section in sections[] if the pattern has a repeating row structure
+- All abbreviations used in the instructions must be defined in the abbreviations object
+- Return ONLY raw JSON, no markdown, no code fences, no comments`;
 
     try {
       const res = await fetch(
@@ -169,31 +164,29 @@ Make the pattern genuinely usable — real stitch counts, real gauge, real instr
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
           <div>
             <label style={lbl}>What do you want to knit?</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-              {OBJECTS.map(o => (
+            <input style={{ ...inp, marginBottom: 8 }} value={object} onChange={e => setObject(e.target.value)}
+              placeholder="e.g. Scarf, Baby booties, Fingerless gloves…" />
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {SUGGESTED_OBJECTS.map(o => (
                 <button key={o} onClick={() => setObject(o)} style={{
-                  padding: '5px 12px', borderRadius: 16, border: '1px solid',
-                  borderColor: object === o ? '#7C3AED' : '#374151',
+                  padding: '3px 10px', borderRadius: 16, border: '1px solid #374151',
                   background: object === o ? '#7C3AED' : 'transparent',
-                  color: object === o ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12,
+                  color: object === o ? '#fff' : '#6B7280', cursor: 'pointer', fontSize: 11,
                 }}>{o}</button>
               ))}
             </div>
-            {object === 'Other' && (
-              <input style={inp} value={customObject} onChange={e => setCustomObject(e.target.value)}
-                placeholder="e.g. Baby booties, fingerless gloves…" />
-            )}
           </div>
 
           <div>
             <label style={lbl}>Style</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {STYLES.map(s => (
+            <input style={{ ...inp, marginBottom: 8 }} value={style} onChange={e => setStyle(e.target.value)}
+              placeholder="e.g. Cables, Lace, Fair Isle, leave blank for Claude to decide…" />
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {SUGGESTED_STYLES.map(s => (
                 <button key={s} onClick={() => setStyle(s)} style={{
-                  padding: '5px 12px', borderRadius: 16, border: '1px solid',
-                  borderColor: style === s ? '#7C3AED' : '#374151',
+                  padding: '3px 10px', borderRadius: 16, border: '1px solid #374151',
                   background: style === s ? '#7C3AED' : 'transparent',
-                  color: style === s ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12,
+                  color: style === s ? '#fff' : '#6B7280', cursor: 'pointer', fontSize: 11,
                 }}>{s}</button>
               ))}
             </div>
