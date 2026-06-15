@@ -438,7 +438,26 @@ export default function PatternsPage() {
     return (
       <div>
         <button className="btn btn-secondary" onClick={() => setView('list')} style={{ marginBottom: 20 }}>← Back</button>
-        <h1 style={{ marginBottom: 4 }}>{selected.name}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          <input
+            defaultValue={selected.name}
+            onBlur={async (e) => {
+              const newName = e.target.value.trim();
+              if (newName && newName !== selected.name) {
+                await supabase.from('patterns').update({ name: newName }).eq('id', selected.id);
+                setSelected({ ...selected, name: newName });
+              }
+            }}
+            style={{
+              background: 'none', border: 'none', borderBottom: '1px solid transparent',
+              color: '#F9FAFB', fontSize: 28, fontWeight: 700, padding: '2px 0',
+              fontFamily: 'inherit', outline: 'none', flex: 1,
+              cursor: 'text',
+            }}
+            onFocus={e => e.target.style.borderBottomColor = '#7C3AED'}
+            onBlurCapture={e => e.currentTarget.style.borderBottomColor = 'transparent'}
+          />
+        </div>
         {selected.designer && <p style={{ color: '#9CA3AF', marginBottom: 12 }}>by {selected.designer}</p>}
 
         {/* Meta grid */}

@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType>({
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() =>
-    sessionStorage.getItem(TOKEN_KEY)
+    localStorage.getItem(TOKEN_KEY)
   );
 
   const unlocked = !!token;
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setToken(data.token);
-      sessionStorage.setItem(TOKEN_KEY, data.token);
+      localStorage.setItem(TOKEN_KEY, data.token);
       return { success: true };
     } catch {
       return { success: false, error: 'Connection error. Try again.' };
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function lock() {
     setToken(null);
-    sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);
   }
 
   return (

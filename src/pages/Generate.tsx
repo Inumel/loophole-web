@@ -50,7 +50,7 @@ export default function GeneratePage() {
   }
 
   async function generate() {
-    const token = sessionStorage.getItem('loophole_token');
+    const token = localStorage.getItem('loophole_token');
     if (!token) {
       setError('Session expired. Please go to Settings and unlock again.');
       return;

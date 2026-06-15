@@ -2,7 +2,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const PROXY_URL = `${SUPABASE_URL}/functions/v1/claude-proxy`;
 
 function getToken(): string | null {
-  return sessionStorage.getItem('loophole_token');
+  return localStorage.getItem('loophole_token');
 }
 
 async function callClaude(body: object): Promise<{ content: Array<{ text: string }> }> {
