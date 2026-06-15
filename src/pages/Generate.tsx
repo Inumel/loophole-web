@@ -117,6 +117,12 @@ Return a JSON object with this exact structure (omit optional fields if not rele
 
 Rules:
 - Make stitch counts, gauge, and yarn amounts genuinely accurate for the specified yarn weight and dimensions
+- For yarn needed: calculate a realistic estimate based on the object type, finished dimensions, and yarn weight. Use these approximate yardage references as a baseline and adjust for dimensions:
+  * Scarf (6x60in, worsted): ~400 yds | Hat (adult, worsted): ~200 yds | Mittens (pair, worsted): ~200 yds
+  * Socks (pair, fingering): ~400 yds | Cowl (worsted): ~250 yds | Shawl (DK): ~800 yds
+  * Baby blanket (worsted): ~800 yds | Sweater (adult M, worsted): ~1200 yds
+  * Lighter yarn weights need more yards for the same area; heavier weights need fewer
+  * Always err on the side of slightly more rather than less, and note it as approximate
 - Include helpful coaching notes within steps (e.g. why to do something, what to watch out for)
 - Only include extras and stitchPattern if they are relevant to this specific pattern
 - Only include a row repeat reference section in sections[] if the pattern has a repeating row structure
@@ -380,7 +386,28 @@ Rules:
                   yarn_weight: pattern.metadata?.['Yarn weight'] ?? null,
                   needle_size: pattern.metadata?.['Needle size'] ?? null,
                   notes: pattern.tagline ?? null,
+                  gauge_stitches: (() => {
+                    const g = pattern.metadata?.['Gauge'] ?? '';
+                    const m = g.match(/(\d+(?:\.\d+)?)\s*sts/);
+                    return m ? parseFloat(m[1]) : null;
+                  })(),
+                  gauge_rows: (() => {
+                    const g = pattern.metadata?.['Gauge'] ?? '';
+                    const m = g.match(/(\d+(?:\.\d+)?)\s*rows/);
+                    return m ? parseFloat(m[1]) : null;
+                  })(),
+                  gauge_unit: (() => {
+                    const g = pattern.metadata?.['Gauge'] ?? '';
+                    if (g.includes('10cm') || g.includes('10 cm')) return 'per 10cm';
+                    if (g.includes('4in') || g.includes('4 in') || g.includes('4"')) return 'per 4in';
+                    return 'per 4in';
+                  })(),
                   parsed_guide: {
+                    generated: true,
+                    metadata: pattern.metadata,
+                    abbreviations: pattern.abbreviations,
+                    extras: pattern.extras ?? [],
+                    stitchPattern: pattern.stitchPattern ?? null,
                     sections: pattern.sections.map(s => ({
                       title: s.title,
                       steps: s.content.split('\n').filter(Boolean),

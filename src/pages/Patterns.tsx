@@ -21,7 +21,7 @@ type RavelryResult = {
 type View = 'list' | 'detail' | 'new' | 'new-project';
 type Mode = 'manual' | 'ravelry' | 'pdf';
 
-const sourceIcon: Record<string, string> = { ravelry: '🧶', pdf: '📄', manual: '✏️' };
+const sourceIcon: Record<string, string> = { ravelry: '🧶', pdf: '📄', manual: '✏️', generated: '✨' };
 
 function getSteps(sec: { steps?: unknown; steps_by_size?: Record<string, unknown> }): string[] {
   if (sec.steps_by_size && Object.keys(sec.steps_by_size).length > 0) {
@@ -428,6 +428,13 @@ export default function PatternsPage() {
       : null;
     const safeStitchPatterns = Array.isArray(selected.stitch_patterns) ? selected.stitch_patterns : [];
     const safeYarnQuantity = Array.isArray(selected.yarn_quantity) ? selected.yarn_quantity : [];
+
+    // Generated pattern extras from parsed_guide
+    const isGenerated = selected.source === 'generated';
+    const genMetadata = isGenerated ? selected.parsed_guide?.metadata as Record<string, string> | null : null;
+    const genAbbreviations = isGenerated ? selected.parsed_guide?.abbreviations as Record<string, string> | null : null;
+    const genExtras = isGenerated ? selected.parsed_guide?.extras as Array<{ title: string; rows: [string, string][] }> | null : null;
+    const genStitchPattern = isGenerated ? selected.parsed_guide?.stitchPattern as { title: string; layout: string; note: string } | null : null;
     return (
       <div>
         <button className="btn btn-secondary" onClick={() => setView('list')} style={{ marginBottom: 20 }}>← Back</button>
@@ -499,6 +506,62 @@ export default function PatternsPage() {
           <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
             <p className="card-title" style={{ marginBottom: 8 }}>Notes</p>
             <p style={{ color: '#D1D5DB', fontSize: 14, lineHeight: 1.6 }}>{selected.notes}</p>
+          </div>
+        )}
+
+        {/* Generated pattern — extra metadata from parsed_guide */}
+        {genMetadata && Object.keys(genMetadata).length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: 16 }}>
+            {Object.entries(genMetadata)
+              .filter(([k]) => !['Difficulty', 'Yarn weight', 'Needle size'].includes(k))
+              .filter(([, v]) => v)
+              .map(([k, v]) => (
+                <div key={k} style={{ background: '#1F2937', borderRadius: 8, padding: '10px 12px' }}>
+                  <p style={{ color: '#6B7280', fontSize: 11, fontWeight: 500, marginBottom: 3 }}>{k}</p>
+                  <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 700 }}>{v}</p>
+                </div>
+              ))}
+          </div>
+        )}
+
+        {/* Generated pattern abbreviations */}
+        {genAbbreviations && Object.keys(genAbbreviations).length > 0 && (
+          <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
+            <p className="card-title" style={{ marginBottom: 10 }}>Abbreviations</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 6 }}>
+              {Object.entries(genAbbreviations).map(([abbrev, explanation]) => (
+                <div key={abbrev} style={{ background: '#374151', borderRadius: 6, padding: '7px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: '#7C3AED', fontWeight: 700, fontSize: 13, fontFamily: 'monospace', minWidth: 36 }}>{abbrev}</span>
+                  <span style={{ color: '#D1D5DB', fontSize: 13 }}>— {explanation}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Generated pattern extras (cable definitions etc.) */}
+        {genExtras && genExtras.map((extra, i) => (
+          <div key={i} className="card" style={{ cursor: 'default', marginBottom: 16 }}>
+            <p className="card-title" style={{ marginBottom: 10 }}>{extra.title}</p>
+            {extra.rows.map(([term, def], j) => (
+              <div key={j} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 12, paddingTop: j > 0 ? 8 : 0, borderTop: j > 0 ? '1px solid #374151' : 'none' }}>
+                <span style={{ color: '#A78BFA', fontWeight: 700, fontSize: 14, fontFamily: 'monospace' }}>{term}</span>
+                <span style={{ color: '#D1D5DB', fontSize: 14 }}>{def}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        {/* Generated pattern stitch layout */}
+        {genStitchPattern && (
+          <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
+            <p className="card-title" style={{ marginBottom: 10 }}>{genStitchPattern.title}</p>
+            <div style={{ background: '#374151', borderRadius: 8, padding: 14, marginBottom: 10, fontFamily: 'monospace', fontSize: 14, lineHeight: 1.8, wordBreak: 'break-word', color: '#D1D5DB' }}>
+              {genStitchPattern.layout}
+            </div>
+            {genStitchPattern.note && (
+              <p style={{ color: '#9CA3AF', fontSize: 13, lineHeight: 1.6, borderLeft: '3px solid #7C3AED', paddingLeft: 12 }}>{genStitchPattern.note}</p>
+            )}
           </div>
         )}
 
