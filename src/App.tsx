@@ -28,7 +28,7 @@ export default function App() {
         <NavLink to="/settings" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
           {unlocked ? '🔓 Settings' : '🔒 Unlock'}
         </NavLink>
-        <div style={{ padding: '12px 16px', color: '#374151', fontSize: 11, textAlign: 'center' }}>
+        <div style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, textAlign: 'center' }}>
           v{APP_VERSION}
         </div>
       </nav>
