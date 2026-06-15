@@ -9,6 +9,7 @@ import GaugePage from './pages/Gauge';
 import AbbreviationsPage from './pages/Abbreviations';
 import SettingsPage from './pages/Settings';
 import GeneratePage from './pages/Generate';
+import TimelinePage from './pages/Timeline';
 
 export default function App() {
   const { unlocked } = useAuth();
@@ -25,6 +26,7 @@ export default function App() {
           <NavLink to="/gauge" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Gauge</NavLink>
           <NavLink to="/abbreviations" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Abbreviations</NavLink>
           <NavLink to="/generate" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>✨ Generate</NavLink>
+          <NavLink to="/timeline" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>📅 Timeline</NavLink>
         </>}
         <div style={{ flex: 1 }} />
         <NavLink to="/settings" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
@@ -45,6 +47,7 @@ export default function App() {
             <Route path="/gauge" element={<GaugePage />} />
             <Route path="/abbreviations" element={<AbbreviationsPage />} />
             <Route path="/generate" element={<GeneratePage />} />
+            <Route path="/timeline" element={<TimelinePage />} />
           </>}
         </Routes>
       </main>

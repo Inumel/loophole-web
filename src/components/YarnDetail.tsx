@@ -240,10 +240,16 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
         </div>
 
         <div style={{ flex: 1 }}>
-          <input value={name} onChange={e => setName(e.target.value)} onBlur={save}
-            style={fi.title} placeholder="Yarn name" />
-          <input value={brand} onChange={e => setBrand(e.target.value)} onBlur={save}
-            style={{ ...fi.subtitle, display: 'block', marginTop: 4 }} placeholder="Brand" />
+          <input value={colorway} onChange={e => setColorway(e.target.value)} onBlur={save}
+            style={fi.title} placeholder="Colorway" />
+          <input value={`${name}${brand ? ` · ${brand}` : ''}`} readOnly
+            style={{ ...fi.subtitle, display: 'block', marginTop: 4, cursor: 'default' }} />
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <input value={name} onChange={e => setName(e.target.value)} onBlur={save}
+              style={{ ...fi.subtitle, flex: 1 }} placeholder="Yarn name" />
+            <input value={brand} onChange={e => setBrand(e.target.value)} onBlur={save}
+              style={{ ...fi.subtitle, flex: 1 }} placeholder="Brand" />
+          </div>
           {!photoUrl && (
             <button
               onClick={() => fileInputRef.current?.click()}

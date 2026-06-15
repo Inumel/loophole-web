@@ -208,9 +208,8 @@ export default function StashPage() {
                   : <div className="color-dot" style={{ background: y.color_hex ?? '#6B7280' }} />
                 }
                 <div style={{ flex: 1 }}>
-                  <p className="card-title">{y.name}</p>
-                  {y.brand && <p className="card-sub">{y.brand}</p>}
-                  {y.colorway && <p className="card-meta">{y.colorway}</p>}
+                  <p className="card-title">{y.colorway ?? y.name}</p>
+                  <p className="card-sub">{y.name}{y.brand ? ` · ${y.brand}` : ''}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   {total > 0 && <p className="card-title">{total} {unit}</p>}
