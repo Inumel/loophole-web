@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
+import { supabase } from '../lib/supabase';
 
 const YARN_WEIGHTS = ['Lace', 'Fingering', 'Sport', 'DK', 'Worsted', 'Aran', 'Bulky', 'Super Bulky'];
 const DIFFICULTIES = ['Beginner', 'Easy', 'Intermediate', 'Advanced'];
@@ -50,7 +51,10 @@ export default function GeneratePage() {
 
   async function generate() {
     const token = sessionStorage.getItem('loophole_token');
-    if (!token) { setError('Not authenticated. Please unlock first.'); return; }
+    if (!token) {
+      setError('Session expired. Please go to Settings and unlock again.');
+      return;
+    }
 
     const objectName = object.trim();
     if (!objectName) { setError('Please specify what you want to knit.'); return; }
@@ -138,7 +142,11 @@ Rules:
       );
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
+      if (!res.ok) {
+        const errMsg = data.error ?? `Error ${res.status}`;
+        if (res.status === 401) throw new Error('Session expired — please go to Settings and unlock again.');
+        throw new Error(errMsg);
+      }
 
       let text = data.content?.[0]?.text ?? '{}';
       text = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
@@ -234,7 +242,12 @@ Rules:
 
       {error && (
         <div style={{ background: '#1a1020', border: '1px solid #EF4444', borderRadius: 10, padding: 14, marginBottom: 16 }}>
-          <p style={{ color: '#EF4444', fontSize: 14 }}>{error}</p>
+          <p style={{ color: '#EF4444', fontSize: 14 }}>
+            {error}
+            {error.includes('expired') && (
+              <> <a href="/settings" style={{ color: '#A78BFA', textDecoration: 'underline' }}>Go to Settings →</a></>
+            )}
+          </p>
         </div>
       )}
 
@@ -360,13 +373,12 @@ Rules:
             <button
               className="btn btn-primary"
               onClick={async () => {
-                const token = sessionStorage.getItem('loophole_token');
-                if (!token) return;
-                const { createClient } = await import('@supabase/supabase-js');
-                const sb = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
-                await sb.from('patterns').insert({
+                const { error } = await supabase.from('patterns').insert({
                   name: pattern.name,
                   source: 'generated',
+                  difficulty: pattern.metadata?.['Difficulty'] ?? null,
+                  yarn_weight: pattern.metadata?.['Yarn weight'] ?? null,
+                  needle_size: pattern.metadata?.['Needle size'] ?? null,
                   notes: pattern.tagline ?? null,
                   parsed_guide: {
                     sections: pattern.sections.map(s => ({
@@ -375,7 +387,11 @@ Rules:
                     })),
                   },
                 });
-                alert(`"${pattern.name}" saved to your patterns!`);
+                if (error) {
+                  alert(`Failed to save: ${error.message}`);
+                } else {
+                  alert(`“${pattern.name}” saved to your patterns!`);
+                }
               }}
             >
               💾 Save to Patterns
