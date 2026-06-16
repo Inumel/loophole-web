@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { getPref, setPref, PREF_KEYS } from '../lib/prefs';
+import { useTheme } from '../lib/useTheme';
 
 type PrefKey = keyof typeof PREF_KEYS;
 
 export default function SettingsPage() {
   const { unlocked, unlock, lock } = useAuth();
+  const { dark, toggleDark } = useTheme();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,7 +52,7 @@ export default function SettingsPage() {
       {/* ── Preferences ──────────────────────────────────────────────────── */}
       {unlocked && (
         <div style={{ marginBottom: 32 }}>
-          <p style={{ color: '#7C3AED', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
+          <p style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
             Preferences
           </p>
 
@@ -84,6 +86,33 @@ export default function SettingsPage() {
             value={dateFormat}
             onChange={setDateFormat}
           />
+
+          {/* Dark mode toggle */}
+          <div style={card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <p style={label}>{dark ? '🌙 Dark mode' : '☀️ Light mode'}</p>
+                <p style={hint_s}>Twilight Rose dark theme</p>
+              </div>
+              <button
+                onClick={toggleDark}
+                style={{
+                  width: 52, height: 28, borderRadius: 14,
+                  background: dark ? 'var(--primary)' : 'var(--border-medium)',
+                  border: 'none', cursor: 'pointer', position: 'relative',
+                  transition: 'background 0.2s',
+                }}
+              >
+                <div style={{
+                  width: 22, height: 22, borderRadius: 11, background: '#fff',
+                  position: 'absolute', top: 3,
+                  left: dark ? 27 : 3,
+                  transition: 'left 0.2s',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                }} />
+              </button>
+            </div>
+          </div>
 
           <div style={card}>
             <p style={label}>Row counter increment</p>
@@ -140,30 +169,30 @@ export default function SettingsPage() {
       )}
 
       {/* ── Access control ───────────────────────────────────────────────── */}
-      <p style={{ color: '#7C3AED', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
+      <p style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
         Access
       </p>
 
       {unlocked ? (
         <div>
-          <div style={{ background: '#1F2937', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 20, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <span style={{ fontSize: 32 }}>🔓</span>
               <div>
-                <p style={{ color: '#F9FAFB', fontSize: 16, fontWeight: 600 }}>Full access unlocked</p>
-                <p style={{ color: '#9CA3AF', fontSize: 13 }}>All features are available this session.</p>
+                <p style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 600 }}>Full access unlocked</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>All features are available this session.</p>
               </div>
             </div>
             <button onClick={lock} style={{
               width: '100%', padding: '10px 16px', borderRadius: 8,
-              border: '1px solid #374151', background: 'transparent',
-              color: '#9CA3AF', cursor: 'pointer', fontSize: 14,
+              border: '1px solid var(--border-medium)', background: 'transparent',
+              color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14,
             }}>
               🔒 Lock & restrict access
             </button>
           </div>
-          <div style={{ background: '#1a2540', borderRadius: 12, padding: 16, borderLeft: '3px solid #7C3AED' }}>
-            <p style={{ color: '#9CA3AF', fontSize: 13, lineHeight: 1.6 }}>
+          <div style={{ background: 'var(--bg-accent)', borderRadius: 12, padding: 16, borderLeft: '3px solid var(--border-accent)' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
               Locking hides all pages except Projects, which becomes read-only.
               The session stays locked until the password is entered again.
             </p>
@@ -171,12 +200,12 @@ export default function SettingsPage() {
         </div>
       ) : (
         <div>
-          <div style={{ background: '#1F2937', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 20, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
               <span style={{ fontSize: 32 }}>🔒</span>
               <div>
-                <p style={{ color: '#F9FAFB', fontSize: 16, fontWeight: 600 }}>Restricted access</p>
-                <p style={{ color: '#9CA3AF', fontSize: 13 }}>Enter the password to unlock all features.</p>
+                <p style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 600 }}>Restricted access</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Enter the password to unlock all features.</p>
               </div>
             </div>
             <div style={{ animation: shake ? 'shake 0.4s ease' : 'none' }}>
@@ -188,9 +217,9 @@ export default function SettingsPage() {
                 placeholder="Enter password"
                 autoFocus
                 style={{
-                  width: '100%', background: '#374151',
-                  border: `1px solid ${error ? '#EF4444' : '#4B5563'}`,
-                  borderRadius: 8, padding: '12px 14px', color: '#F9FAFB',
+                  width: '100%', background: 'var(--bg-input)',
+                  border: `1px solid ${error ? '#EF4444' : 'var(--border-input)'}`,
+                  borderRadius: 8, padding: '12px 14px', color: 'var(--text-body)',
                   fontSize: 16, boxSizing: 'border-box', marginBottom: 8, outline: 'none',
                 }}
               />
@@ -206,8 +235,8 @@ export default function SettingsPage() {
               {loading ? 'Checking…' : 'Unlock'}
             </button>
           </div>
-          <div style={{ background: '#1a2540', borderRadius: 12, padding: 16, borderLeft: '3px solid #374151' }}>
-            <p style={{ color: '#6B7280', fontSize: 13, lineHeight: 1.6 }}>
+          <div style={{ background: 'var(--bg-accent)', borderRadius: 12, padding: 16, borderLeft: '3px solid var(--border-medium)' }}>
+            <p style={{ color: 'var(--text-faint)', fontSize: 13, lineHeight: 1.6 }}>
               Without a password, you can view existing projects but cannot edit them,
               create new ones, or access other sections of the app.
             </p>
@@ -240,9 +269,9 @@ function OptionRow({ label: l, hint, options, value, onChange }: {
         {options.map(o => (
           <button key={o} onClick={() => onChange(o)} style={{
             padding: '6px 14px', borderRadius: 16, border: '1px solid',
-            borderColor: value === o ? '#7C3AED' : '#374151',
-            background: value === o ? '#7C3AED' : 'transparent',
-            color: value === o ? '#fff' : '#9CA3AF',
+            borderColor: value === o ? 'var(--primary)' : 'var(--border-medium)',
+            background: value === o ? 'var(--primary)' : 'transparent',
+            color: value === o ? 'var(--primary-text)' : 'var(--text-muted)',
             cursor: 'pointer', fontSize: 13,
           }}>{o}</button>
         ))}
@@ -252,12 +281,13 @@ function OptionRow({ label: l, hint, options, value, onChange }: {
 }
 
 const card: React.CSSProperties = {
-  background: '#1F2937', borderRadius: 12, padding: 16, marginBottom: 10,
+  background: 'var(--bg-card)', borderRadius: 12, padding: 16, marginBottom: 10,
+  border: '1px solid var(--border-light)',
 };
 const label: React.CSSProperties = {
-  color: '#F9FAFB', fontSize: 15, fontWeight: 600, marginBottom: 2,
+  color: 'var(--text-primary)', fontSize: 15, fontWeight: 600, marginBottom: 2,
 };
 const hint: React.CSSProperties = {
-  color: '#6B7280', fontSize: 13,
+  color: 'var(--text-muted)', fontSize: 13,
 };
 const hint_s = hint;
