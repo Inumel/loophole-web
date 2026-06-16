@@ -31,10 +31,6 @@ function formatDuration(minutes: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-function parseDate(s: string): Date {
-  return new Date(s);
-}
-
 export default function TimelinePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,14 +60,10 @@ export default function TimelinePage() {
       return acc;
     }, {});
 
-    setProjects(projectData.map(p => ({
-      ...p,
-      sessions: sessionsByProject[p.id] ?? [],
-    })));
+    setProjects(projectData.map(p => ({ ...p, sessions: sessionsByProject[p.id] ?? [] })));
     setLoading(false);
   }
 
-  // Date range for timeline
   const allDates = projects.flatMap(p => [
     p.started_at ? new Date(p.started_at) : null,
     p.completed_at ? new Date(p.completed_at) : null,
@@ -79,11 +71,11 @@ export default function TimelinePage() {
   ]).filter((d): d is Date => d !== null);
 
   const minDate = allDates.length > 0 ? new Date(Math.min(...allDates.map(d => d.getTime()))) : new Date();
-  const maxDate = new Date(); // always extend to today
+  const maxDate = new Date();
   const totalDays = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
 
   function dayOffset(dateStr: string): number {
-    const d = parseDate(dateStr);
+    const d = new Date(dateStr);
     return Math.max(0, Math.floor((d.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
   }
 
@@ -91,7 +83,6 @@ export default function TimelinePage() {
     return `${(days / totalDays) * 100}%`;
   }
 
-  // Stats
   const totalSessionMinutes = projects.reduce((sum, p) =>
     sum + p.sessions.reduce((s2, s) => s2 + (s.duration_minutes ?? 0), 0), 0);
   const totalSessions = projects.reduce((sum, p) => sum + p.sessions.length, 0);
@@ -103,20 +94,16 @@ export default function TimelinePage() {
     sessionCount: p.sessions.length,
   })).sort((a, b) => b.totalMinutes - a.totalMinutes);
 
-  // Month labels for timeline
   const monthLabels: { label: string; pct: string }[] = [];
   const cur = new Date(minDate);
   cur.setDate(1);
   while (cur <= maxDate) {
     const offset = Math.floor((cur.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
-    monthLabels.push({
-      label: cur.toLocaleString('default', { month: 'short', year: '2-digit' }),
-      pct: pct(offset),
-    });
+    monthLabels.push({ label: cur.toLocaleString('default', { month: 'short', year: '2-digit' }), pct: pct(offset) });
     cur.setMonth(cur.getMonth() + 1);
   }
 
-  if (loading) return <p style={{ color: '#9CA3AF' }}>Loading…</p>;
+  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
 
   if (projects.length === 0) {
     return (
@@ -135,9 +122,10 @@ export default function TimelinePage() {
           {(['timeline', 'stats'] as const).map(v => (
             <button key={v} onClick={() => setView(v)} style={{
               padding: '7px 16px', borderRadius: 8, border: '1px solid',
-              borderColor: view === v ? '#7C3AED' : '#374151',
-              background: view === v ? '#7C3AED' : 'transparent',
-              color: view === v ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+              borderColor: view === v ? 'var(--primary)' : 'var(--border-medium)',
+              background: view === v ? 'var(--primary)' : 'transparent',
+              color: view === v ? 'var(--primary-text)' : 'var(--text-muted)',
+              cursor: 'pointer', fontSize: 13, fontWeight: 600,
             }}>{v === 'timeline' ? '📅 Timeline' : '📊 Stats'}</button>
           ))}
         </div>
@@ -148,31 +136,30 @@ export default function TimelinePage() {
           {/* Summary strip */}
           <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
             {[
-              ['Projects', projects.length, '#A78BFA'],
+              ['Projects', projects.length, STATUS_COLORS.completed],
               ['Completed', completedProjects, '#10B981'],
               ['Sessions', totalSessions, '#F59E0B'],
-              ['Time knitted', formatDuration(totalSessionMinutes), '#7C3AED'],
+              ['Time knitted', formatDuration(totalSessionMinutes), 'var(--primary)'],
             ].map(([label, value, color]) => (
-              <div key={label as string} style={{ background: '#1F2937', borderRadius: 10, padding: '12px 18px', flex: 1, minWidth: 120 }}>
+              <div key={label as string} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, padding: '12px 18px', flex: 1, minWidth: 120 }}>
                 <p style={{ color: color as string, fontSize: 22, fontWeight: 700 }}>{value}</p>
-                <p style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>{label}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>{label}</p>
               </div>
             ))}
           </div>
 
-          {/* Timeline */}
-          <div style={{ background: '#1F2937', borderRadius: 16, padding: 24, overflowX: 'auto' }}>
+          {/* Timeline chart */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 16, padding: 24, overflowX: 'auto' }}>
             {/* Month labels */}
             <div style={{ position: 'relative', height: 24, marginLeft: 180, marginBottom: 8, minWidth: 600 }}>
               {monthLabels.map((m, i) => (
                 <span key={i} style={{
                   position: 'absolute', left: m.pct, transform: 'translateX(-50%)',
-                  color: '#4B5563', fontSize: 11, whiteSpace: 'nowrap',
+                  color: 'var(--text-faint)', fontSize: 11, whiteSpace: 'nowrap',
                 }}>{m.label}</span>
               ))}
             </div>
 
-            {/* Project rows */}
             <div style={{ minWidth: 600 }}>
               {projects.map(p => {
                 const start = p.started_at ? dayOffset(p.started_at) : 0;
@@ -180,46 +167,31 @@ export default function TimelinePage() {
                   ? dayOffset(p.completed_at)
                   : Math.floor((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
                 const barWidth = Math.max(0.5, end - start);
-                const color = STATUS_COLORS[p.status] ?? '#6B7280';
+                const color = STATUS_COLORS[p.status] ?? 'var(--text-muted)';
                 const totalMins = p.sessions.reduce((s, sess) => s + (sess.duration_minutes ?? 0), 0);
                 const isSelected = selectedProject === p.id;
 
                 return (
                   <div key={p.id}>
-                    <div
-                      style={{ display: 'flex', alignItems: 'center', marginBottom: 4, cursor: 'pointer' }}
-                      onClick={() => setSelectedProject(isSelected ? null : p.id)}
-                    >
-                      {/* Project label */}
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4, cursor: 'pointer' }}
+                      onClick={() => setSelectedProject(isSelected ? null : p.id)}>
                       <div style={{ width: 180, flexShrink: 0, paddingRight: 12 }}>
-                        <p style={{ color: '#F9FAFB', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
-                        <p style={{ color: '#6B7280', fontSize: 11 }}>{totalMins > 0 ? formatDuration(totalMins) : 'no sessions'}</p>
+                        <p style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
+                        <p style={{ color: 'var(--text-faint)', fontSize: 11 }}>{totalMins > 0 ? formatDuration(totalMins) : 'no sessions'}</p>
                       </div>
-
-                      {/* Bar track */}
-                      <div style={{ flex: 1, position: 'relative', height: 28, background: '#374151', borderRadius: 6 }}>
-                        {/* Main bar */}
+                      <div style={{ flex: 1, position: 'relative', height: 28, background: 'var(--bg-muted)', borderRadius: 6, border: '1px solid var(--border-light)' }}>
                         <div style={{
-                          position: 'absolute',
-                          left: pct(start), width: pct(barWidth),
-                          top: 0, bottom: 0,
-                          background: color + '44',
-                          borderRadius: 6,
+                          position: 'absolute', left: pct(start), width: pct(barWidth),
+                          top: 0, bottom: 0, background: color + '44', borderRadius: 6,
                           border: `1px solid ${color}66`,
                         }} />
-                        {/* Session dots */}
                         {p.sessions.map(s => (
                           <div key={s.id} style={{
-                            position: 'absolute',
-                            left: pct(dayOffset(s.started_at)),
+                            position: 'absolute', left: pct(dayOffset(s.started_at)),
                             top: '50%', transform: 'translate(-50%, -50%)',
-                            width: 8, height: 8,
-                            borderRadius: 4,
-                            background: color,
-                            opacity: 0.9,
+                            width: 8, height: 8, borderRadius: 4, background: color, opacity: 0.9,
                           }} title={`${new Date(s.started_at).toLocaleDateString()} — ${s.duration_minutes ? formatDuration(s.duration_minutes) : '?'}`} />
                         ))}
-                        {/* Status badge */}
                         <div style={{
                           position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
                           background: color + '22', color, borderRadius: 4,
@@ -228,28 +200,27 @@ export default function TimelinePage() {
                       </div>
                     </div>
 
-                    {/* Expanded session list */}
                     {isSelected && p.sessions.length > 0 && (
-                      <div style={{ marginLeft: 180, marginBottom: 8, background: '#111827', borderRadius: 8, padding: 12 }}>
-                        <p style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Sessions</p>
+                      <div style={{ marginLeft: 180, marginBottom: 8, background: 'var(--bg-muted)', border: '1px solid var(--border-light)', borderRadius: 8, padding: 12 }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Sessions</p>
                         {p.sessions.map(s => (
-                          <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 6, marginBottom: 6, borderBottom: '1px solid #1F2937' }}>
-                            <span style={{ color: '#D1D5DB', fontSize: 13 }}>
+                          <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 6, marginBottom: 6, borderBottom: '1px solid var(--border-light)' }}>
+                            <span style={{ color: 'var(--text-body)', fontSize: 13 }}>
                               {new Date(s.started_at).toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
-                            <span style={{ color: STATUS_COLORS[p.status] ?? '#A78BFA', fontSize: 13, fontWeight: 600 }}>
+                            <span style={{ color: STATUS_COLORS[p.status] ?? 'var(--text-accent)', fontSize: 13, fontWeight: 600 }}>
                               {s.duration_minutes ? formatDuration(s.duration_minutes) : '—'}
                             </span>
                           </div>
                         ))}
-                        <p style={{ color: '#6B7280', fontSize: 12, marginTop: 4 }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
                           Total: {formatDuration(p.sessions.reduce((s, sess) => s + (sess.duration_minutes ?? 0), 0))} across {p.sessions.length} session{p.sessions.length !== 1 ? 's' : ''}
                         </p>
                       </div>
                     )}
                     {isSelected && p.sessions.length === 0 && (
                       <div style={{ marginLeft: 180, marginBottom: 8, padding: '8px 12px' }}>
-                        <p style={{ color: '#4B5563', fontSize: 13 }}>No timed sessions recorded for this project.</p>
+                        <p style={{ color: 'var(--text-faint)', fontSize: 13 }}>No timed sessions recorded for this project.</p>
                       </div>
                     )}
                   </div>
@@ -257,62 +228,58 @@ export default function TimelinePage() {
               })}
             </div>
 
-            {/* Legend */}
-            <div style={{ display: 'flex', gap: 16, marginTop: 20, paddingTop: 16, borderTop: '1px solid #374151', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 16, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
               {Object.entries(STATUS_COLORS).map(([status, color]) => (
                 <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{ width: 10, height: 10, borderRadius: 5, background: color }} />
-                  <span style={{ color: '#6B7280', fontSize: 12 }}>{status}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{status}</span>
                 </div>
               ))}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 8, height: 8, borderRadius: 4, background: '#7C3AED' }} />
-                <span style={{ color: '#6B7280', fontSize: 12 }}>session dot</span>
+                <div style={{ width: 8, height: 8, borderRadius: 4, background: 'var(--primary)' }} />
+                <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>session dot</span>
               </div>
-              <span style={{ color: '#4B5563', fontSize: 12, marginLeft: 'auto' }}>Click a row to expand sessions</span>
+              <span style={{ color: 'var(--text-faint)', fontSize: 12, marginLeft: 'auto' }}>Click a row to expand sessions</span>
             </div>
           </div>
         </>
       ) : (
-        /* Stats view */
         <>
-          {/* Overall stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
             {[
-              ['Total projects', projects.length, '#A78BFA'],
+              ['Total projects', projects.length, STATUS_COLORS.completed],
               ['Completed', completedProjects, '#10B981'],
               ['Active', projects.filter(p => p.status === 'active').length, '#F59E0B'],
               ['Frogged', projects.filter(p => p.status === 'frogged').length, '#EF4444'],
-              ['Total sessions', totalSessions, '#7C3AED'],
-              ['Total time', formatDuration(totalSessionMinutes), '#7C3AED'],
-              ['Avg session', totalSessions > 0 ? formatDuration(totalSessionMinutes / totalSessions) : '—', '#9CA3AF'],
+              ['Total sessions', totalSessions, 'var(--primary)'],
+              ['Total time', formatDuration(totalSessionMinutes), 'var(--primary)'],
+              ['Avg session', totalSessions > 0 ? formatDuration(totalSessionMinutes / totalSessions) : '—', 'var(--text-muted)'],
             ].map(([label, value, color]) => (
-              <div key={label as string} style={{ background: '#1F2937', borderRadius: 10, padding: '14px 16px' }}>
+              <div key={label as string} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, padding: '14px 16px' }}>
                 <p style={{ color: color as string, fontSize: 24, fontWeight: 700 }}>{value}</p>
-                <p style={{ color: '#6B7280', fontSize: 12, marginTop: 4 }}>{label}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>{label}</p>
               </div>
             ))}
           </div>
 
-          {/* Per-project breakdown */}
-          <div style={{ background: '#1F2937', borderRadius: 16, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 100px', padding: '10px 16px', background: '#374151' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 16, overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 100px', padding: '10px 16px', background: 'var(--bg-accent)' }}>
               {['Project', 'Sessions', 'Time', 'Status'].map(h => (
-                <span key={h} style={{ color: '#9CA3AF', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>{h}</span>
+                <span key={h} style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>{h}</span>
               ))}
             </div>
             {projectStats.map((p, i) => (
               <div key={p.id} style={{
                 display: 'grid', gridTemplateColumns: '1fr 80px 80px 100px',
-                padding: '12px 16px', borderTop: i > 0 ? '1px solid #374151' : 'none',
-                background: i % 2 === 0 ? 'transparent' : '#1a1f2e',
+                padding: '12px 16px', borderTop: i > 0 ? '1px solid var(--border-light)' : 'none',
+                background: i % 2 === 0 ? 'transparent' : 'var(--bg-muted)',
               }}>
-                <span style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{p.name}</span>
-                <span style={{ color: '#9CA3AF', fontSize: 14 }}>{p.sessionCount}</span>
-                <span style={{ color: '#A78BFA', fontSize: 14, fontWeight: 600 }}>
+                <span style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{p.name}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>{p.sessionCount}</span>
+                <span style={{ color: 'var(--text-accent)', fontSize: 14, fontWeight: 600 }}>
                   {p.totalMinutes > 0 ? formatDuration(p.totalMinutes) : '—'}
                 </span>
-                <span style={{ color: STATUS_COLORS[p.status] ?? '#6B7280', fontSize: 12, fontWeight: 600 }}>{p.status}</span>
+                <span style={{ color: STATUS_COLORS[p.status] ?? 'var(--text-muted)', fontSize: 12, fontWeight: 600 }}>{p.status}</span>
               </div>
             ))}
           </div>
