@@ -94,7 +94,7 @@ export default function StashPage() {
         <button className="btn btn-secondary" onClick={() => setView('list')} style={{ marginBottom: 20 }}>← Back</button>
         <h1>Add Yarn</h1>
 
-        <p style={{ color: '#7C3AED', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginTop: 20, marginBottom: 8 }}>Yarn Details</p>
+        <p style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginTop: 20, marginBottom: 8 }}>Yarn Details</p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           {[
@@ -127,7 +127,7 @@ export default function StashPage() {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {WEIGHTS.map(w => (
               <button key={w} onClick={() => setWeight(w)} className="btn"
-                style={{ background: weight === w ? '#7C3AED' : '#374151', color: weight === w ? '#fff' : '#9CA3AF', padding: '6px 12px', fontSize: 13 }}>
+                style={{ background: weight === w ? 'var(--primary)' : 'var(--bg-input)', color: weight === w ? 'var(--primary-text)' : 'var(--text-muted)', border: `1px solid ${weight === w ? 'var(--primary)' : 'var(--border-medium)'}`, padding: '6px 12px', fontSize: 13 }}>
                 {w}
               </button>
             ))}
@@ -140,7 +140,7 @@ export default function StashPage() {
             value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any notes..." />
         </div>
 
-        <p style={{ color: '#7C3AED', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginTop: 24, marginBottom: 8 }}>Initial Stock (optional)</p>
+        <p style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginTop: 24, marginBottom: 8 }}>Initial Stock (optional)</p>
 
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div style={{ ...f.field, marginBottom: 0 }}>
@@ -154,9 +154,9 @@ export default function StashPage() {
               {UNITS.map(u => (
                 <button key={u} onClick={() => setUnit(u)} style={{
                   padding: '6px 12px', borderRadius: 16, border: '1px solid',
-                  borderColor: unit === u ? '#7C3AED' : '#374151',
-                  background: unit === u ? '#7C3AED' : 'transparent',
-                  color: unit === u ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 13,
+                  borderColor: unit === u ? 'var(--primary)' : 'var(--border-medium)',
+                  background: unit === u ? 'var(--primary)' : 'transparent',
+                  color: unit === u ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 13,
                 }}>{u}</button>
               ))}
             </div>
@@ -186,9 +186,9 @@ export default function StashPage() {
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Search stash…"
-        style={{ width: '100%', background: '#1F2937', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+        style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-body)', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
       />
-      {loading ? <p style={{ color: '#9CA3AF' }}>Loading…</p> : yarns.length === 0 ? (
+      {loading ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : yarns.length === 0 ? (
         <p className="empty">Your stash is empty.</p>
       ) : (
         yarns.filter(y =>
@@ -228,10 +228,10 @@ export default function StashPage() {
 
 const f = {
   field: { marginBottom: 16 } as React.CSSProperties,
-  label: { display: 'block', color: '#9CA3AF', fontSize: 13, fontWeight: 500, marginBottom: 6 } as React.CSSProperties,
+  label: { display: 'block', color: 'var(--text-muted)', fontSize: 13, fontWeight: 500, marginBottom: 6 } as React.CSSProperties,
   input: {
-    width: '100%', background: '#1F2937', border: '1px solid #374151',
-    borderRadius: 8, padding: '10px 12px', color: '#F9FAFB', fontSize: 15,
+    width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)',
+    borderRadius: 8, padding: '10px 12px', color: 'var(--text-body)', fontSize: 15,
     boxSizing: 'border-box',
   } as React.CSSProperties,
 };

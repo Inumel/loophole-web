@@ -183,35 +183,35 @@ export default function ProjectsPage() {
         </div>
 
         {/* Yarn selection */}
-        <p style={{ color: '#7C3AED', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+        <p style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
           Yarn from Stash (optional)
         </p>
 
         {selectedYarns.map((yarn, index) => (
-          <div key={index} style={{ background: '#1F2937', borderRadius: 10, padding: 14, marginBottom: 10, border: '1px solid #374151' }}>
+          <div key={index} style={{ background: 'var(--bg-card)', borderRadius: 10, padding: 14, marginBottom: 10, border: '1px solid var(--border-light)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <input
                 value={yarn.role}
                 onChange={e => setSelectedYarns(prev => prev.map((y, i) => i === index ? { ...y, role: e.target.value } : y))}
                 placeholder="MC / CC1…"
-                style={{ background: '#374151', border: 'none', borderRadius: 6, padding: '4px 10px', color: '#F9FAFB', fontSize: 13, width: 100 }}
+                style={{ background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 6, padding: '4px 10px', color: 'var(--text-body)', fontSize: 13, width: 100 }}
               />
               {selectedYarns.length > 1 && (
                 <button onClick={() => setSelectedYarns(prev => prev.filter((_, i) => i !== index))}
-                  style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', fontSize: 18 }}>✕</button>
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 18 }}>✕</button>
               )}
             </div>
 
             {yarn.name ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#374151', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                <div style={{ width: 20, height: 20, borderRadius: 10, background: yarn.colorHex ?? '#6B7280', flexShrink: 0 }} />
-                <span style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600, flex: 1 }}>{yarn.name}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-accent)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <div style={{ width: 20, height: 20, borderRadius: 10, background: yarn.colorHex ?? 'var(--text-faint)', flexShrink: 0 }} />
+                <span style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, flex: 1 }}>{yarn.name}</span>
                 <button onClick={() => { setPickingIndex(index); setShowYarnPicker(true); }}
-                  style={{ background: 'none', border: 'none', color: '#A78BFA', cursor: 'pointer', fontSize: 13 }}>Change</button>
+                  style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: 13 }}>Change</button>
               </div>
             ) : (
               <button onClick={() => { setPickingIndex(index); setShowYarnPicker(true); }}
-                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px dashed #374151', background: 'transparent', color: '#7C3AED', cursor: 'pointer', fontSize: 14, marginBottom: 10 }}>
+                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px dashed var(--border-medium)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer', fontSize: 14, marginBottom: 10 }}>
                 + Pick from stash
               </button>
             )}
@@ -227,7 +227,7 @@ export default function ProjectsPage() {
                 />
                 {UNITS.map(u => (
                   <button key={u} onClick={() => setSelectedYarns(prev => prev.map((y, i) => i === index ? { ...y, unit: u } : y))}
-                    style={{ padding: '6px 10px', borderRadius: 16, border: '1px solid', borderColor: yarn.unit === u ? '#7C3AED' : '#374151', background: yarn.unit === u ? '#7C3AED' : 'transparent', color: yarn.unit === u ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12 }}>
+                    style={{ padding: '6px 10px', borderRadius: 16, border: '1px solid', borderColor: yarn.unit === u ? 'var(--primary)' : 'var(--border-medium)', background: yarn.unit === u ? 'var(--primary)' : 'transparent', color: yarn.unit === u ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 12 }}>
                     {u}
                   </button>
                 ))}
@@ -237,7 +237,7 @@ export default function ProjectsPage() {
         ))}
 
         <button onClick={() => setSelectedYarns(prev => [...prev, { catalogId: '', stashId: null, name: '', colorHex: null, quantity: '', unit: 'yards', role: `CC${prev.length}` }])}
-          style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #374151', background: 'transparent', color: '#9CA3AF', cursor: 'pointer', fontSize: 14, marginBottom: 24 }}>
+          style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid var(--border-medium)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14, marginBottom: 24 }}>
           + Add another yarn
         </button>
 
@@ -248,12 +248,12 @@ export default function ProjectsPage() {
 
         {/* Yarn picker modal */}
         {showYarnPicker && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-            <div style={{ background: '#1F2937', borderRadius: 16, padding: 24, width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+            <div style={{ background: 'var(--bg-sidebar)', border: '1px solid var(--border-light)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <p style={{ color: '#F9FAFB', fontSize: 18, fontWeight: 700 }}>Pick a Yarn</p>
+                <p style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700 }}>Pick a Yarn</p>
                 <button onClick={() => { setShowYarnPicker(false); setPickingIndex(null); setYarnSearch(''); }}
-                  style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 20, cursor: 'pointer' }}>✕</button>
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 20, cursor: 'pointer' }}>✕</button>
               </div>
               <input value={yarnSearch} onChange={e => setYarnSearch(e.target.value)}
                 placeholder="Search…"
@@ -265,11 +265,11 @@ export default function ProjectsPage() {
                   const unit = inStock?.unit ?? y.stash?.[0]?.unit ?? 'g';
                   return (
                     <div key={y.id} onClick={() => pickYarn(y)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', borderBottom: '1px solid #374151', cursor: 'pointer' }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 12, background: y.color_hex ?? '#6B7280', flexShrink: 0 }} />
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', borderBottom: '1px solid var(--border-light)', cursor: 'pointer' }}>
+                      <div style={{ width: 24, height: 24, borderRadius: 12, background: y.color_hex ?? 'var(--text-faint)', flexShrink: 0 }} />
                       <div style={{ flex: 1 }}>
-                        <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{y.name}</p>
-                        {y.brand && <p style={{ color: '#9CA3AF', fontSize: 12 }}>{y.brand}</p>}
+                        <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{y.name}</p>
+                        {y.brand && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>{y.brand}</p>}
                       </div>
                       {qty != null && (
                         <span style={{ color: inStock ? '#10B981' : '#EF4444', fontSize: 13 }}>
@@ -296,32 +296,32 @@ export default function ProjectsPage() {
         )}
       </div>
       {!unlocked && (
-        <div style={{ background: '#1a2540', borderRadius: 10, padding: '10px 14px', marginBottom: 16, borderLeft: '3px solid #374151', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span>🔒</span>
-          <p style={{ color: '#6B7280', fontSize: 13 }}>
-            View only. <a href="/settings" style={{ color: '#7C3AED', textDecoration: 'none' }}>Unlock</a> for full access.
-          </p>
-        </div>
+      <div style={{ background: 'var(--bg-accent)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, borderLeft: '3px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span>🔒</span>
+        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+          View only. <a href="/settings" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Unlock</a> for full access.
+        </p>
+      </div>
       )}
       <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search projects…"
-          style={{ flex: 1, minWidth: 200, background: '#1F2937', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 14 }}
+          style={{ flex: 1, minWidth: 200, background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-body)', fontSize: 14 }}
         />
         <div style={{ display: 'flex', gap: 6 }}>
           {(['all', 'active', 'paused', 'completed', 'frogged'] as const).map(s => (
             <button key={s} onClick={() => setStatusFilter(s)} style={{
               padding: '6px 12px', borderRadius: 16, border: '1px solid',
-              borderColor: statusFilter === s ? '#7C3AED' : '#374151',
-              background: statusFilter === s ? '#7C3AED' : 'transparent',
-              color: statusFilter === s ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12,
+              borderColor: statusFilter === s ? 'var(--primary)' : 'var(--border-medium)',
+              background: statusFilter === s ? 'var(--primary)' : 'transparent',
+              color: statusFilter === s ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
             }}>{s}</button>
           ))}
         </div>
       </div>
-      {loading ? <p style={{ color: '#9CA3AF' }}>Loading…</p> : filteredProjects.length === 0 ? (
+      {loading ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : filteredProjects.length === 0 ? (
         <p className="empty">{search || statusFilter !== 'all' ? 'No matching projects.' : 'No projects yet.'}</p>
       ) : (
         filteredProjects.map(p => (

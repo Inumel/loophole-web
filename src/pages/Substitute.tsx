@@ -232,12 +232,12 @@ export default function SubstitutePage() {
   const ratingColor = { excellent: '#10B981', good: '#F59E0B', possible: '#6B7280' };
   const ratingLabel = { excellent: '✓ Excellent match', good: '~ Good match', possible: '? Possible' };
 
-  if (loading) return <p style={{ color: '#9CA3AF' }}>Loading…</p>;
+  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
 
   return (
     <div>
       <h1>Yarn Substitution</h1>
-      <p style={{ color: '#9CA3AF', marginBottom: 24, fontSize: 14 }}>
+      <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: 14 }}>
         Find yarns in your stash that could substitute for a pattern's requirements.
       </p>
 
@@ -247,13 +247,13 @@ export default function SubstitutePage() {
         {selectedPattern ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ flex: 1 }}>
-              <p style={{ color: '#F9FAFB', fontSize: 15, fontWeight: 600 }}>{selectedPattern.name}</p>
-              <p style={{ color: '#9CA3AF', fontSize: 13 }}>
+              <p style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 600 }}>{selectedPattern.name}</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
                 {[selectedPattern.yarn_weight, selectedPattern.needle_size].filter(Boolean).join(' · ')}
               </p>
             </div>
             <button onClick={() => { setSelectedPattern(null); setResult(null); }}
-              style={{ background: '#374151', border: 'none', color: '#9CA3AF', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}>
+              style={{ background: 'var(--bg-input)', border: 'none', color: 'var(--text-body)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}>
               Change
             </button>
           </div>
@@ -266,18 +266,18 @@ export default function SubstitutePage() {
               <div>
                 <input value={patternSearch} onChange={e => setPatternSearch(e.target.value)}
                   placeholder="Search patterns…"
-                  style={{ width: '100%', background: '#374151', border: '1px solid #4B5563', borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 14, boxSizing: 'border-box', marginBottom: 8 }} />
-                <div style={{ maxHeight: 240, overflowY: 'auto', background: '#111827', borderRadius: 8 }}>
+                  style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-body)', fontSize: 14, boxSizing: 'border-box', marginBottom: 8 }} />
+                <div style={{ maxHeight: 240, overflowY: 'auto', background: 'var(--bg-muted)', borderRadius: 8 }}>
                   {filteredPatterns.length === 0
-                    ? <p style={{ color: '#6B7280', padding: 12, fontSize: 13 }}>No patterns found.</p>
+                    ? <p style={{ color: 'var(--text-muted)', padding: 12, fontSize: 13 }}>No patterns found.</p>
                     : filteredPatterns.map(p => (
                       <div key={p.id} onClick={() => { setSelectedPattern(p); setShowPatternPicker(false); setPatternSearch(''); setResult(null); }}
-                        style={{ padding: '10px 14px', borderBottom: '1px solid #1F2937', cursor: 'pointer' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#1F2937')}
+                        style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-light)', cursor: 'pointer' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-accent)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                        <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{p.name}</p>
+                        <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{p.name}</p>
                         {(p.yarn_weight || p.yarn_quantity) && (
-                          <p style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
+                          <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>
                             {[p.yarn_weight, totalYardageNeeded(p.yarn_quantity) ? `~${totalYardageNeeded(p.yarn_quantity)} yds` : null].filter(Boolean).join(' · ')}
                           </p>
                         )}
@@ -293,7 +293,7 @@ export default function SubstitutePage() {
       {/* Manual requirements */}
       <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
         <p className="card-title" style={{ marginBottom: 4 }}>Requirements</p>
-        <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 14 }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 14 }}>
           {selectedPattern ? 'Override the pattern values if needed.' : 'Enter yarn requirements manually.'}
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -327,10 +327,10 @@ export default function SubstitutePage() {
       </div>
 
       {/* Stash summary */}
-      <div style={{ background: '#1a2540', borderRadius: 10, padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ color: '#A78BFA', fontSize: 13 }}>🧶</span>
-        <p style={{ color: '#9CA3AF', fontSize: 13 }}>
-          Searching across <span style={{ color: '#F9FAFB', fontWeight: 600 }}>{stash.length}</span> in-stock yarn{stash.length !== 1 ? 's' : ''} in your stash.
+      <div style={{ background: 'var(--bg-accent)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--border-light)' }}>
+        <span style={{ color: 'var(--primary)', fontSize: 13 }}>🧶</span>
+        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+          Searching across <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{stash.length}</span> in-stock yarn{stash.length !== 1 ? 's' : ''} in your stash.
         </p>
       </div>
 
@@ -349,11 +349,11 @@ export default function SubstitutePage() {
       {result && (
         <div>
           {/* Summary */}
-          <div style={{ background: '#1F2937', borderRadius: 12, padding: 16, marginBottom: 20, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, marginBottom: 20, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <span style={{ fontSize: 24 }}>🧶</span>
             <div>
-              <p style={{ color: '#F9FAFB', fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{result.summary}</p>
-              <p style={{ color: '#6B7280', fontSize: 13 }}>{result.notes}</p>
+              <p style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{result.summary}</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{result.notes}</p>
             </div>
           </div>
 
@@ -364,16 +364,16 @@ export default function SubstitutePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {result.suggestions.map(s => (
                 <div key={s.yarn_id} style={{
-                  background: '#1F2937', borderRadius: 12, padding: 16,
+                  background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16,
                   borderLeft: `3px solid ${ratingColor[s.rating]}`,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: s.color_hex ?? '#374151', flexShrink: 0 }} />
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: s.color_hex ?? 'var(--bg-muted)', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
-                      <p style={{ color: '#F9FAFB', fontSize: 15, fontWeight: 700 }}>
+                      <p style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 700 }}>
                         {s.colorway ?? s.yarn_name}
                       </p>
-                      <p style={{ color: '#9CA3AF', fontSize: 13 }}>
+                      <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
                         {s.yarn_name}{s.brand ? ` · ${s.brand}` : ''}
                       </p>
                     </div>
@@ -382,7 +382,7 @@ export default function SubstitutePage() {
                         {ratingLabel[s.rating]}
                       </span>
                       {s.quantity_available != null && (
-                        <span style={{ color: s.quantity_sufficient === false ? '#EF4444' : s.quantity_sufficient === true ? '#10B981' : '#9CA3AF', fontSize: 12 }}>
+                        <span style={{ color: s.quantity_sufficient === false ? '#EF4444' : s.quantity_sufficient === true ? '#10B981' : 'var(--text-muted)', fontSize: 12 }}>
                           {s.quantity_available} {s.quantity_unit}
                         </span>
                       )}
@@ -408,9 +408,9 @@ export default function SubstitutePage() {
             </div>
           )}
 
-          <div style={{ background: '#1a2540', borderRadius: 12, padding: 16, borderLeft: '3px solid #7C3AED', marginTop: 20 }}>
-            <p style={{ color: '#F9FAFB', fontWeight: 600, marginBottom: 6 }}>💡 Remember</p>
-            <p style={{ color: '#D1D5DB', fontSize: 14, lineHeight: 1.6 }}>
+          <div style={{ background: 'var(--bg-accent)', borderRadius: 12, padding: 16, borderLeft: '3px solid var(--border-accent)', marginTop: 20 }}>
+            <p style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: 6 }}>💡 Remember</p>
+            <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6 }}>
               Always knit a gauge swatch with your substitute yarn before starting. Even yarns of the same weight can knit up differently depending on fiber, twist, and your tension. A 10cm swatch can save hours of frustration later.
             </p>
           </div>

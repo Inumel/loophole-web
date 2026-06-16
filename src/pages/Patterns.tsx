@@ -274,7 +274,7 @@ export default function PatternsPage() {
       <div style={{ maxWidth: 500 }}>
         <button className="btn btn-secondary" onClick={() => setView('detail')} style={{ marginBottom: 20 }}>← Back</button>
         <h1>Start a Project</h1>
-        <p style={{ color: '#9CA3AF', marginBottom: 20, fontSize: 14 }}>Pattern: {selected.name}</p>
+        <p style={{ color: 'var(--text-muted)', marginBottom: 20, fontSize: 14 }}>Pattern: {selected.name}</p>
 
         <div style={fi.field}>
           <label style={fi.label}>Project Name *</label>
@@ -292,9 +292,9 @@ export default function PatternsPage() {
                   setNewProjectName(`${selected.name}${suffix}`);
                 }} style={{
                   padding: '8px 16px', borderRadius: 20, border: '1px solid',
-                  borderColor: chosenSize === s ? '#7C3AED' : '#374151',
-                  background: chosenSize === s ? '#7C3AED' : 'transparent',
-                  color: chosenSize === s ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 14,
+                  borderColor: chosenSize === s ? 'var(--primary)' : 'var(--border-medium)',
+                  background: chosenSize === s ? 'var(--primary)' : 'transparent',
+                  color: chosenSize === s ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 14,
                 }}>{s}</button>
               ))}
             </div>
@@ -308,9 +308,9 @@ export default function PatternsPage() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button onClick={() => setChosenVariation(null)} style={{
                 padding: '8px 16px', borderRadius: 20, border: '1px solid',
-                borderColor: chosenVariation === null ? '#7C3AED' : '#374151',
-                background: chosenVariation === null ? '#7C3AED' : 'transparent',
-                color: chosenVariation === null ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 14,
+                borderColor: chosenVariation === null ? 'var(--primary)' : 'var(--border-medium)',
+                background: chosenVariation === null ? 'var(--primary)' : 'transparent',
+                color: chosenVariation === null ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 14,
               }}>None</button>
               {availableVariations.map(v => (
                 <button key={v} onClick={() => {
@@ -319,9 +319,9 @@ export default function PatternsPage() {
                   setNewProjectName(`${selected.name}${sizeSuffix} (${v})`);
                 }} style={{
                   padding: '8px 16px', borderRadius: 20, border: '1px solid',
-                  borderColor: chosenVariation === v ? '#7C3AED' : '#374151',
-                  background: chosenVariation === v ? '#7C3AED' : 'transparent',
-                  color: chosenVariation === v ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 14,
+                  borderColor: chosenVariation === v ? 'var(--primary)' : 'var(--border-medium)',
+                  background: chosenVariation === v ? 'var(--primary)' : 'transparent',
+                  color: chosenVariation === v ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 14,
                 }}>{v}</button>
               ))}
             </div>
@@ -336,36 +336,36 @@ export default function PatternsPage() {
         </div>
 
         {/* Yarn selection */}
-        <p style={{ color: '#7C3AED', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Yarn from Stash (optional)</p>
+        <p style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Yarn from Stash (optional)</p>
         {newProjectYarns.map((yarn, index) => (
-          <div key={index} style={{ background: '#1F2937', borderRadius: 10, padding: 14, marginBottom: 10, border: '1px solid #374151' }}>
+          <div key={index} style={{ background: 'var(--bg-card)', borderRadius: 10, padding: 14, marginBottom: 10, border: '1px solid var(--border-light)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <input value={yarn.role}
                 onChange={e => setNewProjectYarns(prev => prev.map((y, i) => i === index ? { ...y, role: e.target.value } : y))}
                 placeholder="MC / CC1…"
-                style={{ background: '#374151', border: 'none', borderRadius: 6, padding: '4px 10px', color: '#F9FAFB', fontSize: 13, width: 100 }} />
+                style={{ background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 6, padding: '4px 10px', color: 'var(--text-body)', fontSize: 13, width: 100 }} />
               {newProjectYarns.length > 1 && (
                 <button onClick={() => setNewProjectYarns(prev => prev.filter((_, i) => i !== index))}
-                  style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', fontSize: 18 }}>✕</button>
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 18 }}>✕</button>
               )}
             </div>
             {yarn.name ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#374151', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                <div style={{ width: 20, height: 20, borderRadius: 10, background: yarn.colorHex ?? '#6B7280', flexShrink: 0 }} />
-                <span style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600, flex: 1 }}>{yarn.name}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-accent)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <div style={{ width: 20, height: 20, borderRadius: 10, background: yarn.colorHex ?? 'var(--text-faint)', flexShrink: 0 }} />
+                <span style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, flex: 1 }}>{yarn.name}</span>
                 <button onClick={() => { setPickingYarnIndex(index); setShowYarnPicker(true); }}
-                  style={{ background: 'none', border: 'none', color: '#A78BFA', cursor: 'pointer', fontSize: 13 }}>Change</button>
+                  style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: 13 }}>Change</button>
               </div>
             ) : (
               <button onClick={() => { setPickingYarnIndex(index); setShowYarnPicker(true); }}
-                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px dashed #374151', background: 'transparent', color: '#7C3AED', cursor: 'pointer', fontSize: 14, marginBottom: 10 }}>
+                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px dashed var(--border-medium)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer', fontSize: 14, marginBottom: 10 }}>
                 + Pick from stash
               </button>
             )}
           </div>
         ))}
         <button onClick={() => setNewProjectYarns(prev => [...prev, { stashId: null, name: '', colorHex: null, quantity: '', unit: 'yards', role: `CC${prev.length}` }])}
-          style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #374151', background: 'transparent', color: '#9CA3AF', cursor: 'pointer', fontSize: 14, marginBottom: 24 }}>
+          style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid var(--border-medium)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14, marginBottom: 24 }}>
           + Add another yarn
         </button>
 
@@ -377,12 +377,12 @@ export default function PatternsPage() {
 
         {/* Yarn picker modal */}
         {showYarnPicker && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-            <div style={{ background: '#1F2937', borderRadius: 16, padding: 24, width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+            <div style={{ background: 'var(--bg-sidebar)', border: '1px solid var(--border-light)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <p style={{ color: '#F9FAFB', fontSize: 18, fontWeight: 700 }}>Pick a Yarn</p>
+                <p style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700 }}>Pick a Yarn</p>
                 <button onClick={() => { setShowYarnPicker(false); setPickingYarnIndex(null); setYarnSearch(''); }}
-                  style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 20, cursor: 'pointer' }}>✕</button>
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 20, cursor: 'pointer' }}>✕</button>
               </div>
               <input value={yarnSearch} onChange={e => setYarnSearch(e.target.value)}
                 placeholder="Search…" style={{ ...fi.input, marginBottom: 12 }} />
@@ -402,11 +402,11 @@ export default function PatternsPage() {
                           colorHex: y.color_hex, unit: unit,
                         } : yarn));
                         setShowYarnPicker(false); setPickingYarnIndex(null); setYarnSearch('');
-                      }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', borderBottom: '1px solid #374151', cursor: 'pointer' }}>
-                        <div style={{ width: 24, height: 24, borderRadius: 12, background: y.color_hex ?? '#6B7280', flexShrink: 0 }} />
+                      }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', borderBottom: '1px solid var(--border-light)', cursor: 'pointer' }}>
+                        <div style={{ width: 24, height: 24, borderRadius: 12, background: y.color_hex ?? 'var(--text-faint)', flexShrink: 0 }} />
                         <div style={{ flex: 1 }}>
-                          <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{y.name}</p>
-                          {y.brand && <p style={{ color: '#9CA3AF', fontSize: 12 }}>{y.brand}</p>}
+                          <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{y.name}</p>
+                          {y.brand && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>{y.brand}</p>}
                         </div>
                         {qty != null && <span style={{ color: inStock ? '#10B981' : '#EF4444', fontSize: 13 }}>{qty} {unit}{!inStock ? ' (out)' : ''}</span>}
                       </div>
@@ -450,15 +450,14 @@ export default function PatternsPage() {
             }}
             style={{
               background: 'none', border: 'none', borderBottom: '1px solid transparent',
-              color: '#F9FAFB', fontSize: 28, fontWeight: 700, padding: '2px 0',
-              fontFamily: 'inherit', outline: 'none', flex: 1,
-              cursor: 'text',
+              color: 'var(--text-primary)', fontSize: 28, fontWeight: 700, padding: '2px 0',
+              fontFamily: 'inherit', outline: 'none', flex: 1, cursor: 'text',
             }}
-            onFocus={e => e.target.style.borderBottomColor = '#7C3AED'}
+            onFocus={e => e.target.style.borderBottomColor = 'var(--primary)'}
             onBlurCapture={e => e.currentTarget.style.borderBottomColor = 'transparent'}
           />
         </div>
-        {selected.designer && <p style={{ color: '#9CA3AF', marginBottom: 12 }}>by {selected.designer}</p>}
+        {selected.designer && <p style={{ color: 'var(--text-muted)', marginBottom: 12 }}>by {selected.designer}</p>}
 
         {/* Meta grid */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -474,9 +473,9 @@ export default function PatternsPage() {
             ] as ([string, string | null] | null)[]
           ).filter((item): item is [string, string | null] => item !== null && item[1] !== null)
             .map(([k, v]) => (
-            <div key={k} style={{ background: '#1F2937', borderRadius: 8, padding: '8px 12px', minWidth: 120 }}>
-              <p style={{ color: '#6B7280', fontSize: 11, marginBottom: 2 }}>{k}</p>
-              <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{v}</p>
+            <div key={k} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '8px 12px', minWidth: 120 }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 2 }}>{k}</p>
+              <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{v}</p>
             </div>
           ))}
         </div>
@@ -485,7 +484,7 @@ export default function PatternsPage() {
         {safeStitchPatterns.length > 0 && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
             {safeStitchPatterns.map((sp, i) => (
-              <span key={i} style={{ background: '#2D1B6B', color: '#A78BFA', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 }}>{sp}</span>
+              <span key={i} style={{ background: 'var(--bg-accent)', color: 'var(--primary)', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 }}>{sp}</span>
             ))}
           </div>
         )}
@@ -512,10 +511,10 @@ export default function PatternsPage() {
           <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
             <p className="card-title" style={{ marginBottom: 12 }}>Yarn Required</p>
             {safeYarnQuantity.filter(y => y.amount != null).map((y, i) => (
-              <div key={i} style={{ display: 'flex', gap: 16, paddingTop: 8, borderTop: i > 0 ? '1px solid #374151' : 'none', flexWrap: 'wrap' }}>
-                <span style={{ color: '#F9FAFB', fontWeight: 700, minWidth: 100 }}>{y.amount} {y.unit}</span>
-                {y.size && <span style={{ color: '#7C3AED', fontSize: 13, fontWeight: 600 }}>{y.size}</span>}
-                {(y.color || y.note) && <span style={{ color: '#9CA3AF', fontSize: 13 }}>{[y.color, y.note].filter(Boolean).join(' — ')}</span>}
+              <div key={i} style={{ display: 'flex', gap: 16, paddingTop: 8, borderTop: i > 0 ? '1px solid var(--border-light)' : 'none', flexWrap: 'wrap' }}>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 700, minWidth: 100 }}>{y.amount} {y.unit}</span>
+                {y.size && <span style={{ color: 'var(--primary)', fontSize: 13, fontWeight: 600 }}>{y.size}</span>}
+                {(y.color || y.note) && <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{[y.color, y.note].filter(Boolean).join(' — ')}</span>}
               </div>
             ))}
           </div>
@@ -524,7 +523,7 @@ export default function PatternsPage() {
         {selected.notes && (
           <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
             <p className="card-title" style={{ marginBottom: 8 }}>Notes</p>
-            <p style={{ color: '#D1D5DB', fontSize: 14, lineHeight: 1.6 }}>{selected.notes}</p>
+            <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6 }}>{selected.notes}</p>
           </div>
         )}
 
@@ -535,9 +534,9 @@ export default function PatternsPage() {
               .filter(([k]) => !['Difficulty', 'Yarn weight', 'Needle size'].includes(k))
               .filter(([, v]) => v)
               .map(([k, v]) => (
-                <div key={k} style={{ background: '#1F2937', borderRadius: 8, padding: '10px 12px' }}>
-                  <p style={{ color: '#6B7280', fontSize: 11, fontWeight: 500, marginBottom: 3 }}>{k}</p>
-                  <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 700 }}>{v}</p>
+                <div key={k} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '10px 12px' }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 500, marginBottom: 3 }}>{k}</p>
+                  <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 700 }}>{v}</p>
                 </div>
               ))}
           </div>
@@ -549,9 +548,9 @@ export default function PatternsPage() {
             <p className="card-title" style={{ marginBottom: 10 }}>Abbreviations</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 6 }}>
               {Object.entries(genAbbreviations).map(([abbrev, explanation]) => (
-                <div key={abbrev} style={{ background: '#374151', borderRadius: 6, padding: '7px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: '#7C3AED', fontWeight: 700, fontSize: 13, fontFamily: 'monospace', minWidth: 36 }}>{abbrev}</span>
-                  <span style={{ color: '#D1D5DB', fontSize: 13 }}>— {explanation}</span>
+                <div key={abbrev} style={{ background: 'var(--bg-input)', borderRadius: 6, padding: '7px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 13, fontFamily: 'monospace', minWidth: 36 }}>{abbrev}</span>
+                  <span style={{ color: 'var(--text-body)', fontSize: 13 }}>— {explanation}</span>
                 </div>
               ))}
             </div>
@@ -563,9 +562,9 @@ export default function PatternsPage() {
           <div key={i} className="card" style={{ cursor: 'default', marginBottom: 16 }}>
             <p className="card-title" style={{ marginBottom: 10 }}>{extra.title}</p>
             {extra.rows.map(([term, def], j) => (
-              <div key={j} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 12, paddingTop: j > 0 ? 8 : 0, borderTop: j > 0 ? '1px solid #374151' : 'none' }}>
-                <span style={{ color: '#A78BFA', fontWeight: 700, fontSize: 14, fontFamily: 'monospace' }}>{term}</span>
-                <span style={{ color: '#D1D5DB', fontSize: 14 }}>{def}</span>
+              <div key={j} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 12, paddingTop: j > 0 ? 8 : 0, borderTop: j > 0 ? '1px solid var(--border-light)' : 'none' }}>
+                <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 14, fontFamily: 'monospace' }}>{term}</span>
+                <span style={{ color: 'var(--text-body)', fontSize: 14 }}>{def}</span>
               </div>
             ))}
           </div>
@@ -575,11 +574,11 @@ export default function PatternsPage() {
         {genStitchPattern && (
           <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
             <p className="card-title" style={{ marginBottom: 10 }}>{genStitchPattern.title}</p>
-            <div style={{ background: '#374151', borderRadius: 8, padding: 14, marginBottom: 10, fontFamily: 'monospace', fontSize: 14, lineHeight: 1.8, wordBreak: 'break-word', color: '#D1D5DB' }}>
+            <div style={{ background: 'var(--bg-input)', borderRadius: 8, padding: 14, marginBottom: 10, fontFamily: 'monospace', fontSize: 14, lineHeight: 1.8, wordBreak: 'break-word', color: 'var(--text-body)' }}>
               {genStitchPattern.layout}
             </div>
             {genStitchPattern.note && (
-              <p style={{ color: '#9CA3AF', fontSize: 13, lineHeight: 1.6, borderLeft: '3px solid #7C3AED', paddingLeft: 12 }}>{genStitchPattern.note}</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6, borderLeft: '3px solid var(--primary)', paddingLeft: 12 }}>{genStitchPattern.note}</p>
             )}
           </div>
         )}
@@ -594,21 +593,21 @@ export default function PatternsPage() {
               {sections.map((sec, i) => (
                 <button key={i} onClick={() => setActiveSection(i)} style={{
                   padding: '6px 14px', borderRadius: 8, border: '1px solid',
-                  borderColor: activeSection === i ? '#7C3AED' : '#374151',
-                  background: activeSection === i ? '#7C3AED' : 'transparent',
-                  color: activeSection === i ? '#fff' : '#9CA3AF',
+                  borderColor: activeSection === i ? 'var(--primary)' : 'var(--border-medium)',
+                  background: activeSection === i ? 'var(--primary)' : 'transparent',
+                  color: activeSection === i ? 'var(--primary-text)' : 'var(--text-muted)',
                   cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0,
                 }}>{sec.title}</button>
               ))}
             </div>
 
-            <p style={{ color: '#4B5563', fontSize: 11, fontStyle: 'italic', marginBottom: 12 }}>
+            <p style={{ color: 'var(--text-faint)', fontSize: 11, fontStyle: 'italic', marginBottom: 12 }}>
               Hover over highlighted abbreviations for definitions
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {getSteps(sections[activeSection]).map((step, j) => (
-                <div key={j} style={{ background: '#374151', borderRadius: 8, padding: '10px 14px', fontSize: 14, lineHeight: 1.6, color: '#D1D5DB' }}>
+                <div key={j} style={{ background: 'var(--bg-input)', borderRadius: 8, padding: '10px 14px', fontSize: 14, lineHeight: 1.6, color: 'var(--text-body)' }}>
                   <StepText step={step} index={j} />
                 </div>
               ))}
@@ -663,7 +662,7 @@ export default function PatternsPage() {
         <div style={{ display: 'flex', gap: 8, margin: '20px 0' }}>
           {(['manual', 'ravelry', 'pdf'] as Mode[]).map(m => (
             <button key={m} onClick={() => setMode(m)} className="btn"
-              style={{ background: mode === m ? '#7C3AED' : '#374151', color: '#fff' }}>
+              style={{ background: mode === m ? 'var(--primary)' : 'var(--bg-input)', color: mode === m ? 'var(--primary-text)' : 'var(--text-muted)', border: `1px solid ${mode === m ? 'var(--primary)' : 'var(--border-medium)'}` }}>
               {m === 'manual' ? '✏️ Manual' : m === 'ravelry' ? '🧶 Ravelry' : '📄 PDF'}
             </button>
           ))}
@@ -682,12 +681,12 @@ export default function PatternsPage() {
             </div>
             {searchResults.map(r => (
               <div key={r.id} onClick={() => pickRavelry(r)} style={{
-                background: selectedRavelry?.id === r.id ? '#2D1B6B' : '#1F2937',
-                border: `1px solid ${selectedRavelry?.id === r.id ? '#7C3AED' : 'transparent'}`,
+                background: selectedRavelry?.id === r.id ? 'var(--bg-accent)' : 'var(--bg-card)',
+                border: `1px solid ${selectedRavelry?.id === r.id ? 'var(--primary)' : 'var(--border-light)'}`,
                 borderRadius: 8, padding: 12, marginBottom: 6, cursor: 'pointer',
               }}>
-                <p style={{ color: '#F9FAFB', fontWeight: 600 }}>{r.name}</p>
-                {r.designer && <p style={{ color: '#9CA3AF', fontSize: 13 }}>by {r.designer.name}</p>}
+                <p style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{r.name}</p>
+                {r.designer && <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>by {r.designer.name}</p>}
               </div>
             ))}
             {ravelryMapped && <p style={{ color: '#10B981', fontSize: 13, marginTop: 8 }}>✓ Metadata loaded from Ravelry</p>}
@@ -699,20 +698,20 @@ export default function PatternsPage() {
             <input ref={fileInputRef} type="file" accept="application/pdf"
               style={{ display: 'none' }} onChange={handlePdfUpload} />
             <div onClick={() => !parsing && fileInputRef.current?.click()} style={{
-              border: '2px dashed #374151', borderRadius: 12, padding: 40,
+              border: '2px dashed var(--border-medium)', borderRadius: 12, padding: 40,
               textAlign: 'center', cursor: parsing ? 'default' : 'pointer',
-              background: '#1F2937', marginBottom: 12,
+              background: 'var(--bg-card)', marginBottom: 12,
             }}>
               {parsing ? (
-                <><p style={{ color: '#A78BFA', fontSize: 15, fontWeight: 600 }}>Parsing with Claude…</p>
-                  <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>This may take a moment</p></>
+                <><p style={{ color: 'var(--primary)', fontSize: 15, fontWeight: 600 }}>Parsing with Claude…</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>This may take a moment</p></>
               ) : pdfName ? (
                 <><p style={{ color: '#10B981', fontSize: 15, fontWeight: 600 }}>✓ {pdfName}</p>
-                  <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>Click to choose a different file</p></>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Click to choose a different file</p></>
               ) : (
-                <><p style={{ color: '#9CA3AF', fontSize: 20, marginBottom: 8 }}>📄</p>
-                  <p style={{ color: '#9CA3AF', fontSize: 15 }}>Click to upload a PDF pattern</p>
-                  <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>Claude will parse the instructions automatically</p></>
+                <><p style={{ color: 'var(--text-muted)', fontSize: 20, marginBottom: 8 }}>📄</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Click to upload a PDF pattern</p>
+                  <p style={{ color: 'var(--text-faint)', fontSize: 13, marginTop: 4 }}>Claude will parse the instructions automatically</p></>
               )}
             </div>
             {parsedGuide && <p style={{ color: '#10B981', fontSize: 13 }}>✓ Pattern parsed — review the fields below and save</p>}
@@ -767,9 +766,9 @@ export default function PatternsPage() {
         value={listSearch}
         onChange={e => setListSearch(e.target.value)}
         placeholder="Search patterns…"
-        style={{ width: '100%', background: '#1F2937', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+        style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-body)', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
       />
-      {loading ? <p style={{ color: '#9CA3AF' }}>Loading…</p> : filteredPatterns.length === 0 ? (
+      {loading ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : filteredPatterns.length === 0 ? (
         <p className="empty">{listSearch ? 'No matching patterns.' : 'No patterns yet.'}</p>
       ) : (
         filteredPatterns.map(p => (
@@ -796,10 +795,10 @@ export default function PatternsPage() {
 
 const fi = {
   field: { marginBottom: 16 } as React.CSSProperties,
-  label: { display: 'block', color: '#9CA3AF', fontSize: 13, fontWeight: 500, marginBottom: 6 } as React.CSSProperties,
+  label: { display: 'block', color: 'var(--text-muted)', fontSize: 13, fontWeight: 500, marginBottom: 6 } as React.CSSProperties,
   input: {
-    width: '100%', background: '#1F2937', border: '1px solid #374151',
-    borderRadius: 8, padding: '10px 12px', color: '#F9FAFB', fontSize: 15,
+    width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)',
+    borderRadius: 8, padding: '10px 12px', color: 'var(--text-body)', fontSize: 15,
     boxSizing: 'border-box',
   } as React.CSSProperties,
 };

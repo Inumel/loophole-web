@@ -63,7 +63,7 @@ export default function ToolsPage() {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {TOOL_TYPES.map(t => (
               <button key={t} onClick={() => setType(t)} className="btn"
-                style={{ background: type === t ? '#7C3AED' : '#374151', color: type === t ? '#fff' : '#9CA3AF', padding: '6px 12px', fontSize: 13 }}>
+                style={{ background: type === t ? 'var(--primary)' : 'var(--bg-input)', color: type === t ? 'var(--primary-text)' : 'var(--text-muted)', border: `1px solid ${type === t ? 'var(--primary)' : 'var(--border-medium)'}`, padding: '6px 12px', fontSize: 13 }}>
                 {t}
               </button>
             ))}
@@ -103,9 +103,9 @@ export default function ToolsPage() {
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Search tools…"
-        style={{ width: '100%', background: '#1F2937', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+        style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-body)', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
       />
-      {loading ? <p style={{ color: '#9CA3AF' }}>Loading…</p> : tools.length === 0 ? (
+      {loading ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : tools.length === 0 ? (
         <p className="empty">No tools yet.</p>
       ) : (
         tools.filter(t =>
@@ -126,10 +126,10 @@ export default function ToolsPage() {
 
 const f = {
   field: { marginBottom: 16 } as React.CSSProperties,
-  label: { display: 'block', color: '#9CA3AF', fontSize: 13, fontWeight: 500, marginBottom: 6 } as React.CSSProperties,
+  label: { display: 'block', color: 'var(--text-muted)', fontSize: 13, fontWeight: 500, marginBottom: 6 } as React.CSSProperties,
   input: {
-    width: '100%', background: '#1F2937', border: '1px solid #374151',
-    borderRadius: 8, padding: '10px 12px', color: '#F9FAFB', fontSize: 15,
+    width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)',
+    borderRadius: 8, padding: '10px 12px', color: 'var(--text-body)', fontSize: 15,
     boxSizing: 'border-box',
   } as React.CSSProperties,
 };

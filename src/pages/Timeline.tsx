@@ -45,21 +45,17 @@ export default function TimelinePage() {
       .from('projects')
       .select('id, name, status, started_at, completed_at')
       .order('started_at', { ascending: true });
-
     if (!projectData) { setLoading(false); return; }
-
     const { data: sessionData } = await supabase
       .from('knitting_sessions')
       .select('id, project_id, started_at, ended_at, duration_minutes')
       .not('ended_at', 'is', null)
       .order('started_at', { ascending: true });
-
     const sessionsByProject = (sessionData ?? []).reduce<Record<string, Session[]>>((acc, s) => {
       if (!acc[s.project_id]) acc[s.project_id] = [];
       acc[s.project_id].push(s);
       return acc;
     }, {});
-
     setProjects(projectData.map(p => ({ ...p, sessions: sessionsByProject[p.id] ?? [] })));
     setLoading(false);
   }
@@ -78,16 +74,12 @@ export default function TimelinePage() {
     const d = new Date(dateStr);
     return Math.max(0, Math.floor((d.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
   }
-
-  function pct(days: number): string {
-    return `${(days / totalDays) * 100}%`;
-  }
+  function pct(days: number): string { return `${(days / totalDays) * 100}%`; }
 
   const totalSessionMinutes = projects.reduce((sum, p) =>
     sum + p.sessions.reduce((s2, s) => s2 + (s.duration_minutes ?? 0), 0), 0);
   const totalSessions = projects.reduce((sum, p) => sum + p.sessions.length, 0);
   const completedProjects = projects.filter(p => p.status === 'completed').length;
-
   const projectStats = projects.map(p => ({
     ...p,
     totalMinutes: p.sessions.reduce((s, sess) => s + (sess.duration_minutes ?? 0), 0),
@@ -95,8 +87,7 @@ export default function TimelinePage() {
   })).sort((a, b) => b.totalMinutes - a.totalMinutes);
 
   const monthLabels: { label: string; pct: string }[] = [];
-  const cur = new Date(minDate);
-  cur.setDate(1);
+  const cur = new Date(minDate); cur.setDate(1);
   while (cur <= maxDate) {
     const offset = Math.floor((cur.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
     monthLabels.push({ label: cur.toLocaleString('default', { month: 'short', year: '2-digit' }), pct: pct(offset) });
@@ -104,15 +95,7 @@ export default function TimelinePage() {
   }
 
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
-
-  if (projects.length === 0) {
-    return (
-      <div>
-        <h1>Timeline</h1>
-        <p className="empty">No projects yet — start a project to see your timeline.</p>
-      </div>
-    );
-  }
+  if (projects.length === 0) return <div><h1>Timeline</h1><p className="empty">No projects yet.</p></div>;
 
   return (
     <div>
@@ -133,7 +116,6 @@ export default function TimelinePage() {
 
       {view === 'timeline' ? (
         <>
-          {/* Summary strip */}
           <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
             {[
               ['Projects', projects.length, STATUS_COLORS.completed],
@@ -148,29 +130,20 @@ export default function TimelinePage() {
             ))}
           </div>
 
-          {/* Timeline chart */}
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 16, padding: 24, overflowX: 'auto' }}>
-            {/* Month labels */}
             <div style={{ position: 'relative', height: 24, marginLeft: 180, marginBottom: 8, minWidth: 600 }}>
               {monthLabels.map((m, i) => (
-                <span key={i} style={{
-                  position: 'absolute', left: m.pct, transform: 'translateX(-50%)',
-                  color: 'var(--text-faint)', fontSize: 11, whiteSpace: 'nowrap',
-                }}>{m.label}</span>
+                <span key={i} style={{ position: 'absolute', left: m.pct, transform: 'translateX(-50%)', color: 'var(--text-faint)', fontSize: 11, whiteSpace: 'nowrap' }}>{m.label}</span>
               ))}
             </div>
-
             <div style={{ minWidth: 600 }}>
               {projects.map(p => {
                 const start = p.started_at ? dayOffset(p.started_at) : 0;
-                const end = p.completed_at
-                  ? dayOffset(p.completed_at)
-                  : Math.floor((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
+                const end = p.completed_at ? dayOffset(p.completed_at) : Math.floor((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
                 const barWidth = Math.max(0.5, end - start);
                 const color = STATUS_COLORS[p.status] ?? 'var(--text-muted)';
                 const totalMins = p.sessions.reduce((s, sess) => s + (sess.duration_minutes ?? 0), 0);
                 const isSelected = selectedProject === p.id;
-
                 return (
                   <div key={p.id}>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4, cursor: 'pointer' }}
@@ -180,37 +153,21 @@ export default function TimelinePage() {
                         <p style={{ color: 'var(--text-faint)', fontSize: 11 }}>{totalMins > 0 ? formatDuration(totalMins) : 'no sessions'}</p>
                       </div>
                       <div style={{ flex: 1, position: 'relative', height: 28, background: 'var(--bg-muted)', borderRadius: 6, border: '1px solid var(--border-light)' }}>
-                        <div style={{
-                          position: 'absolute', left: pct(start), width: pct(barWidth),
-                          top: 0, bottom: 0, background: color + '44', borderRadius: 6,
-                          border: `1px solid ${color}66`,
-                        }} />
+                        <div style={{ position: 'absolute', left: pct(start), width: pct(barWidth), top: 0, bottom: 0, background: color + '44', borderRadius: 6, border: `1px solid ${color}66` }} />
                         {p.sessions.map(s => (
-                          <div key={s.id} style={{
-                            position: 'absolute', left: pct(dayOffset(s.started_at)),
-                            top: '50%', transform: 'translate(-50%, -50%)',
-                            width: 8, height: 8, borderRadius: 4, background: color, opacity: 0.9,
-                          }} title={`${new Date(s.started_at).toLocaleDateString()} — ${s.duration_minutes ? formatDuration(s.duration_minutes) : '?'}`} />
+                          <div key={s.id} style={{ position: 'absolute', left: pct(dayOffset(s.started_at)), top: '50%', transform: 'translate(-50%, -50%)', width: 8, height: 8, borderRadius: 4, background: color, opacity: 0.9 }}
+                            title={`${new Date(s.started_at).toLocaleDateString()} — ${s.duration_minutes ? formatDuration(s.duration_minutes) : '?'}`} />
                         ))}
-                        <div style={{
-                          position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-                          background: color + '22', color, borderRadius: 4,
-                          padding: '1px 6px', fontSize: 10, fontWeight: 600,
-                        }}>{p.status}</div>
+                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: color + '22', color, borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 600 }}>{p.status}</div>
                       </div>
                     </div>
-
                     {isSelected && p.sessions.length > 0 && (
                       <div style={{ marginLeft: 180, marginBottom: 8, background: 'var(--bg-muted)', border: '1px solid var(--border-light)', borderRadius: 8, padding: 12 }}>
                         <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Sessions</p>
                         {p.sessions.map(s => (
                           <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 6, marginBottom: 6, borderBottom: '1px solid var(--border-light)' }}>
-                            <span style={{ color: 'var(--text-body)', fontSize: 13 }}>
-                              {new Date(s.started_at).toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            </span>
-                            <span style={{ color: STATUS_COLORS[p.status] ?? 'var(--text-accent)', fontSize: 13, fontWeight: 600 }}>
-                              {s.duration_minutes ? formatDuration(s.duration_minutes) : '—'}
-                            </span>
+                            <span style={{ color: 'var(--text-body)', fontSize: 13 }}>{new Date(s.started_at).toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            <span style={{ color: STATUS_COLORS[p.status] ?? 'var(--text-accent)', fontSize: 13, fontWeight: 600 }}>{s.duration_minutes ? formatDuration(s.duration_minutes) : '—'}</span>
                           </div>
                         ))}
                         <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
@@ -227,7 +184,6 @@ export default function TimelinePage() {
                 );
               })}
             </div>
-
             <div style={{ display: 'flex', gap: 16, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
               {Object.entries(STATUS_COLORS).map(([status, color]) => (
                 <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -235,10 +191,6 @@ export default function TimelinePage() {
                   <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{status}</span>
                 </div>
               ))}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 8, height: 8, borderRadius: 4, background: 'var(--primary)' }} />
-                <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>session dot</span>
-              </div>
               <span style={{ color: 'var(--text-faint)', fontSize: 12, marginLeft: 'auto' }}>Click a row to expand sessions</span>
             </div>
           </div>
@@ -261,7 +213,6 @@ export default function TimelinePage() {
               </div>
             ))}
           </div>
-
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 16, overflow: 'hidden' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 100px', padding: '10px 16px', background: 'var(--bg-accent)' }}>
               {['Project', 'Sessions', 'Time', 'Status'].map(h => (
@@ -269,16 +220,10 @@ export default function TimelinePage() {
               ))}
             </div>
             {projectStats.map((p, i) => (
-              <div key={p.id} style={{
-                display: 'grid', gridTemplateColumns: '1fr 80px 80px 100px',
-                padding: '12px 16px', borderTop: i > 0 ? '1px solid var(--border-light)' : 'none',
-                background: i % 2 === 0 ? 'transparent' : 'var(--bg-muted)',
-              }}>
+              <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 100px', padding: '12px 16px', borderTop: i > 0 ? '1px solid var(--border-light)' : 'none', background: i % 2 === 0 ? 'transparent' : 'var(--bg-muted)' }}>
                 <span style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{p.name}</span>
                 <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>{p.sessionCount}</span>
-                <span style={{ color: 'var(--text-accent)', fontSize: 14, fontWeight: 600 }}>
-                  {p.totalMinutes > 0 ? formatDuration(p.totalMinutes) : '—'}
-                </span>
+                <span style={{ color: 'var(--text-accent)', fontSize: 14, fontWeight: 600 }}>{p.totalMinutes > 0 ? formatDuration(p.totalMinutes) : '—'}</span>
                 <span style={{ color: STATUS_COLORS[p.status] ?? 'var(--text-muted)', fontSize: 12, fontWeight: 600 }}>{p.status}</span>
               </div>
             ))}

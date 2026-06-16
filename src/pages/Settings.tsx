@@ -121,9 +121,9 @@ export default function SettingsPage() {
               {['1', '2', '4', '6', '8', '10'].map(n => (
                 <button key={n} onClick={() => setRowIncrement(n)} style={{
                   padding: '6px 14px', borderRadius: 16, border: '1px solid',
-                  borderColor: rowIncrement === n ? '#7C3AED' : '#374151',
-                  background: rowIncrement === n ? '#7C3AED' : 'transparent',
-                  color: rowIncrement === n ? '#fff' : '#9CA3AF',
+                  borderColor: rowIncrement === n ? 'var(--primary)' : 'var(--border-medium)',
+                  background: rowIncrement === n ? 'var(--primary)' : 'transparent',
+                  color: rowIncrement === n ? 'var(--primary-text)' : 'var(--text-muted)',
                   cursor: 'pointer', fontSize: 13,
                 }}>{n}</button>
               ))}
@@ -133,9 +133,9 @@ export default function SettingsPage() {
                 placeholder="custom"
                 type="number"
                 style={{
-                  width: 80, background: '#374151', border: '1px solid',
-                  borderColor: !['1','2','4','6','8','10'].includes(rowIncrement) ? '#7C3AED' : '#374151',
-                  borderRadius: 16, padding: '6px 12px', color: '#F9FAFB',
+                  width: 80, background: 'var(--bg-input)', border: '1px solid',
+                  borderColor: !['1','2','4','6','8','10'].includes(rowIncrement) ? 'var(--primary)' : 'var(--border-input)',
+                  borderRadius: 16, padding: '6px 12px', color: 'var(--text-body)',
                   fontSize: 13, textAlign: 'center',
                 }}
               />
@@ -149,9 +149,9 @@ export default function SettingsPage() {
               {['0', '2', '4', '6', '8'].map(h => (
                 <button key={h} onClick={() => setTimerReminder(h)} style={{
                   padding: '6px 14px', borderRadius: 16, border: '1px solid',
-                  borderColor: timerReminder === h ? '#7C3AED' : '#374151',
-                  background: timerReminder === h ? '#7C3AED' : 'transparent',
-                  color: timerReminder === h ? '#fff' : '#9CA3AF',
+                  borderColor: timerReminder === h ? 'var(--primary)' : 'var(--border-medium)',
+                  background: timerReminder === h ? 'var(--primary)' : 'transparent',
+                  color: timerReminder === h ? 'var(--primary-text)' : 'var(--text-muted)',
                   cursor: 'pointer', fontSize: 13,
                 }}>{h === '0' ? 'Off' : `${h}h`}</button>
               ))}

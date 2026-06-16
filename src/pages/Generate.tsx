@@ -41,9 +41,9 @@ export default function GeneratePage() {
     return (
       <div style={{ maxWidth: 500 }}>
         <h1>Pattern Generator</h1>
-        <div style={{ background: '#1a2540', borderRadius: 12, padding: 20, borderLeft: '3px solid #374151' }}>
-          <p style={{ color: '#6B7280', fontSize: 14 }}>
-            🔒 This feature requires full access. <a href="/settings" style={{ color: '#7C3AED', textDecoration: 'none' }}>Unlock</a> to use the pattern generator.
+        <div style={{ background: 'var(--bg-accent)', borderRadius: 12, padding: 20, borderLeft: '3px solid var(--border-medium)' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
+            🔒 This feature requires full access. <a href="/settings" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Unlock</a> to use the pattern generator.
           </p>
         </div>
       </div>
@@ -170,12 +170,12 @@ Rules:
   return (
     <div style={{ maxWidth: 860 }}>
       <h1>Pattern Generator</h1>
-      <p style={{ color: '#9CA3AF', marginBottom: 24, fontSize: 14 }}>
+      <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: 14 }}>
         Describe what you want to knit and Claude will generate a complete pattern for you.
       </p>
 
       {/* Input form */}
-      <div style={{ background: '#1F2937', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
           <div>
             <label style={lbl}>What do you want to knit?</label>
@@ -184,9 +184,9 @@ Rules:
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {SUGGESTED_OBJECTS.map(o => (
                 <button key={o} onClick={() => setObject(o)} style={{
-                  padding: '3px 10px', borderRadius: 16, border: '1px solid #374151',
-                  background: object === o ? '#7C3AED' : 'transparent',
-                  color: object === o ? '#fff' : '#6B7280', cursor: 'pointer', fontSize: 11,
+                  padding: '3px 10px', borderRadius: 16, border: '1px solid var(--border-medium)',
+                  background: object === o ? 'var(--primary)' : 'transparent',
+                  color: object === o ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 11,
                 }}>{o}</button>
               ))}
             </div>
@@ -199,9 +199,9 @@ Rules:
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {SUGGESTED_STYLES.map(s => (
                 <button key={s} onClick={() => setStyle(s)} style={{
-                  padding: '3px 10px', borderRadius: 16, border: '1px solid #374151',
-                  background: style === s ? '#7C3AED' : 'transparent',
-                  color: style === s ? '#fff' : '#6B7280', cursor: 'pointer', fontSize: 11,
+                  padding: '3px 10px', borderRadius: 16, border: '1px solid var(--border-medium)',
+                  background: style === s ? 'var(--primary)' : 'transparent',
+                  color: style === s ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 11,
                 }}>{s}</button>
               ))}
             </div>
@@ -259,7 +259,7 @@ Rules:
       )}
 
       {generating && (
-        <div style={{ textAlign: 'center', padding: 40, color: '#9CA3AF' }}>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
           <p style={{ fontSize: 18, marginBottom: 8 }}>✨ Crafting your pattern…</p>
           <p style={{ fontSize: 13 }}>This usually takes 10–20 seconds</p>
         </div>
@@ -268,16 +268,16 @@ Rules:
       {/* Generated pattern output */}
       {pattern && (
         <div>
-          <h2 style={{ fontSize: 28, fontWeight: 700, color: '#F9FAFB', marginBottom: 4 }}>{pattern.name}</h2>
-          {pattern.tagline && <p style={{ color: '#9CA3AF', fontSize: 14, marginBottom: 20 }}>{pattern.tagline}</p>}
+          <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{pattern.name}</h2>
+          {pattern.tagline && <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>{pattern.tagline}</p>}
 
           {/* Metadata grid */}
           {pattern.metadata && Object.keys(pattern.metadata).length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: 20 }}>
               {Object.entries(pattern.metadata).map(([k, v]) => v ? (
-                <div key={k} style={{ background: '#1F2937', borderRadius: 8, padding: '10px 12px' }}>
-                  <p style={{ color: '#6B7280', fontSize: 11, fontWeight: 500, marginBottom: 3 }}>{k}</p>
-                  <p style={{ color: '#F9FAFB', fontSize: 15, fontWeight: 700 }}>{v}</p>
+                <div key={k} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '10px 12px' }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 500, marginBottom: 3 }}>{k}</p>
+                  <p style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 700 }}>{v}</p>
                 </div>
               ) : null)}
             </div>
@@ -286,12 +286,12 @@ Rules:
           {/* Abbreviations */}
           {pattern.abbreviations && Object.keys(pattern.abbreviations).length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <p style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Abbreviations</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Abbreviations</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6 }}>
                 {Object.entries(pattern.abbreviations).map(([abbrev, explanation]) => (
-                  <div key={abbrev} style={{ background: '#1F2937', borderRadius: 6, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: '#7C3AED', fontWeight: 700, fontSize: 13, fontFamily: 'monospace', minWidth: 40 }}>{abbrev}</span>
-                    <span style={{ color: '#D1D5DB', fontSize: 13 }}>— {explanation}</span>
+                  <div key={abbrev} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 6, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 13, fontFamily: 'monospace', minWidth: 40 }}>{abbrev}</span>
+                    <span style={{ color: 'var(--text-body)', fontSize: 13 }}>— {explanation}</span>
                   </div>
                 ))}
               </div>
@@ -301,12 +301,12 @@ Rules:
           {/* Extras (cable definitions etc.) */}
           {pattern.extras && pattern.extras.map((extra, i) => (
             <div key={i} style={{ marginBottom: 20 }}>
-              <p style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>{extra.title}</p>
-              <div style={{ background: '#1F2937', borderRadius: 10, overflow: 'hidden' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>{extra.title}</p>
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, overflow: 'hidden' }}>
                 {extra.rows.map(([term, def], j) => (
-                  <div key={j} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 16, padding: '12px 16px', borderTop: j > 0 ? '1px solid #374151' : 'none' }}>
-                    <span style={{ color: '#A78BFA', fontWeight: 700, fontSize: 14, fontFamily: 'monospace' }}>{term}</span>
-                    <span style={{ color: '#D1D5DB', fontSize: 14 }}>{def}</span>
+                  <div key={j} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 16, padding: '12px 16px', borderTop: j > 0 ? '1px solid var(--border-light)' : 'none' }}>
+                    <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 14, fontFamily: 'monospace' }}>{term}</span>
+                    <span style={{ color: 'var(--text-body)', fontSize: 14 }}>{def}</span>
                   </div>
                 ))}
               </div>
@@ -316,26 +316,26 @@ Rules:
           {/* Stitch pattern layout */}
           {pattern.stitchPattern && (
             <div style={{ marginBottom: 20 }}>
-              <p style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>{pattern.stitchPattern.title}</p>
-              <div style={{ background: '#1F2937', borderRadius: 10, padding: 16, marginBottom: 10 }}>
-                <p style={{ fontFamily: 'monospace', color: '#D1D5DB', fontSize: 14, lineHeight: 1.8, wordBreak: 'break-word' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>{pattern.stitchPattern.title}</p>
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, padding: 16, marginBottom: 10 }}>
+                <p style={{ fontFamily: 'monospace', color: 'var(--text-body)', fontSize: 14, lineHeight: 1.8, wordBreak: 'break-word' }}>
                   {pattern.stitchPattern.layout.split('·').map((part, i, arr) => (
                     <span key={i}>
                       {part.trim().startsWith('[') ? (
-                        <span style={{ color: '#7C3AED', fontWeight: 700 }}>{part.trim()}</span>
+                        <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{part.trim()}</span>
                       ) : part.trim().match(/^[A-Z][0-9]/) ? (
-                        <span style={{ color: '#F9FAFB', fontWeight: 700 }}>{part.trim()}</span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{part.trim()}</span>
                       ) : (
-                        <span style={{ color: '#9CA3AF' }}>{part.trim()}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>{part.trim()}</span>
                       )}
-                      {i < arr.length - 1 && <span style={{ color: '#374151' }}> · </span>}
+                      {i < arr.length - 1 && <span style={{ color: 'var(--border-medium)' }}> · </span>}
                     </span>
                   ))}
                 </p>
               </div>
               {pattern.stitchPattern.note && (
-                <div style={{ background: '#1a2540', borderRadius: 8, padding: '12px 16px', borderLeft: '3px solid #7C3AED' }}>
-                  <p style={{ color: '#D1D5DB', fontSize: 14, lineHeight: 1.6 }}>{pattern.stitchPattern.note}</p>
+                <div style={{ background: 'var(--bg-accent)', borderRadius: 8, padding: '12px 16px', borderLeft: '3px solid var(--border-accent)' }}>
+                  <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6 }}>{pattern.stitchPattern.note}</p>
                 </div>
               )}
             </div>
@@ -344,28 +344,22 @@ Rules:
           {/* Pattern sections */}
           {pattern.sections && pattern.sections.map((sec, i) => (
             <div key={i} style={{ marginBottom: 24 }}>
-              <p style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>{sec.title}</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>{sec.title}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {sec.content.split('\n').filter(Boolean).map((line, j) => {
                   const stepMatch = line.match(/^(\d+)\.\s+(.+)/);
                   if (stepMatch) {
                     return (
-                      <div key={j} style={{ display: 'flex', gap: 12, background: '#1F2937', borderRadius: 8, padding: '12px 14px' }}>
-                        <span style={{
-                          background: '#7C3AED', color: '#fff', borderRadius: '50%',
-                          width: 24, height: 24, display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0,
-                        }}>{stepMatch[1]}</span>
-                        <p style={{ color: '#D1D5DB', fontSize: 14, lineHeight: 1.6, margin: 0 }}
-                          dangerouslySetInnerHTML={{ __html: stepMatch[2].replace(/\*\*(.+?)\*\*/g, '<strong style="color:#F9FAFB">$1</strong>') }}
+                      <div key={j} style={{ display: 'flex', gap: 12, background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '12px 14px' }}>
+                        <span style={{ background: 'var(--primary)', color: 'var(--primary-text)', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{stepMatch[1]}</span>
+                        <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, margin: 0 }}
+                          dangerouslySetInnerHTML={{ __html: stepMatch[2].replace(/\*\*(.+?)\*\*/g, `<strong style="color:var(--text-primary)">$1</strong>`) }}
                         />
                       </div>
                     );
                   }
                   return (
-                    <p key={j} style={{ color: '#D1D5DB', fontSize: 14, lineHeight: 1.6, padding: '4px 14px' }}>
-                      {line}
-                    </p>
+                    <p key={j} style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, padding: '4px 14px' }}>{line}</p>
                   );
                 })}
               </div>
@@ -373,8 +367,8 @@ Rules:
           ))}
 
           {/* Save to patterns button */}
-          <div style={{ borderTop: '1px solid #374151', paddingTop: 20, marginTop: 8 }}>
-            <p style={{ color: '#6B7280', fontSize: 13, marginBottom: 12 }}>
+          <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 20, marginTop: 8 }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 12 }}>
               Happy with this pattern? You can save it to your pattern library.
             </p>
             <button
