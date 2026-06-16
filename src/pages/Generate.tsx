@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import { inputStyle, selectStyle, labelStyle } from '../lib/theme';
 
 const YARN_WEIGHTS = ['Lace', 'Fingering', 'Sport', 'DK', 'Worsted', 'Aran', 'Bulky', 'Super Bulky'];
 const DIFFICULTIES = ['Beginner', 'Easy', 'Intermediate', 'Advanced'];
@@ -430,14 +431,6 @@ Rules:
   );
 }
 
-const lbl: React.CSSProperties = { display: 'block', color: '#9CA3AF', fontSize: 12, fontWeight: 500, marginBottom: 8 };
-const inp: React.CSSProperties = {
-  width: '100%', background: '#374151', border: '1px solid #4B5563',
-  borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 14,
-  boxSizing: 'border-box',
-};
-const sel: React.CSSProperties = {
-  width: '100%', background: '#374151', border: '1px solid #4B5563',
-  borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 14,
-  cursor: 'pointer',
-};
+const lbl = labelStyle;
+const inp = inputStyle;
+const sel = selectStyle;

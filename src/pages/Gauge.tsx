@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getPref } from '../lib/prefs';
+import { colors, radii, inputStyle, labelStyle } from '../lib/theme';
 
 type Result = {
   stitchScale: number;
@@ -533,9 +534,5 @@ export default function GaugePage() {
   );
 }
 
-const lbl: React.CSSProperties = { display: 'block', color: '#9CA3AF', fontSize: 12, fontWeight: 500, marginBottom: 6 };
-const inp: React.CSSProperties = {
-  width: '100%', background: '#374151', border: '1px solid #4B5563',
-  borderRadius: 8, padding: '10px 12px', color: '#F9FAFB', fontSize: 15,
-  boxSizing: 'border-box', textAlign: 'center',
-};
+const lbl: React.CSSProperties = labelStyle;
+const inp: React.CSSProperties = { ...inputStyle, textAlign: 'center' };

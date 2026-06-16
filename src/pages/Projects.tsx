@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import ProjectDetail from '../components/ProjectDetail';
+import { inputStyle, labelStyle } from '../lib/theme';
 
 type Project = {
   id: string;
@@ -339,10 +340,6 @@ export default function ProjectsPage() {
 
 const f = {
   field: { marginBottom: 16 } as React.CSSProperties,
-  label: { display: 'block', color: '#9CA3AF', fontSize: 13, fontWeight: 500, marginBottom: 6 } as React.CSSProperties,
-  input: {
-    width: '100%', background: '#1F2937', border: '1px solid #374151',
-    borderRadius: 8, padding: '10px 12px', color: '#F9FAFB', fontSize: 15,
-    boxSizing: 'border-box',
-  } as React.CSSProperties,
+  label: labelStyle,
+  input: inputStyle,
 };
