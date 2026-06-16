@@ -10,6 +10,7 @@ import AbbreviationsPage from './pages/Abbreviations';
 import SettingsPage from './pages/Settings';
 import GeneratePage from './pages/Generate';
 import TimelinePage from './pages/Timeline';
+import SubstitutePage from './pages/Substitute';
 
 export default function App() {
   const { unlocked } = useAuth();
@@ -27,6 +28,7 @@ export default function App() {
           <NavLink to="/abbreviations" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Abbreviations</NavLink>
           <NavLink to="/generate" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>✨ Generate</NavLink>
           <NavLink to="/timeline" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>📅 Timeline</NavLink>
+          <NavLink to="/substitute" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>🧶 Substitute</NavLink>
         </>}
         <div style={{ flex: 1 }} />
         <NavLink to="/settings" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
@@ -48,6 +50,7 @@ export default function App() {
             <Route path="/abbreviations" element={<AbbreviationsPage />} />
             <Route path="/generate" element={<GeneratePage />} />
             <Route path="/timeline" element={<TimelinePage />} />
+            <Route path="/substitute" element={<SubstitutePage />} />
           </>}
         </Routes>
       </main>
