@@ -44,7 +44,7 @@ export default function App() {
               background: 'none', border: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               width: '100%', padding: '8px 16px', borderRadius: 8,
-              color: isWorkshopActive ? '#A78BFA' : '#9CA3AF',
+              color: isWorkshopActive ? '#9b6b8a' : '#a08070',
               fontSize: 14, fontWeight: isWorkshopActive ? 600 : 500,
               marginTop: 4,
             }}
@@ -67,7 +67,7 @@ export default function App() {
         <NavLink to="/settings" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
           {unlocked ? '🔓 Settings' : '🔒 Unlock'}
         </NavLink>
-        <div style={{ padding: '8px 16px', color: '#6B7280', fontSize: 11, textAlign: 'center' }}>
+        <div style={{ padding: '8px 16px', color: '#b8a090', fontSize: 11, textAlign: 'center' }}>
           v{APP_VERSION}
         </div>
       </nav>
