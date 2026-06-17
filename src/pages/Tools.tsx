@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import ToolDetail from '../components/ToolDetail';
 
-type Tool = { id: string; name: string; type: string | null; size: string | null; material: string | null; notes: string | null };
+type Tool = { id: string; name: string; type: string | null; size: string | null; material: string | null; notes: string | null; checked_out_project_id: string | null };
 type View = 'list' | 'detail' | 'new';
 
 const TOOL_TYPES = ['Needle', 'Circular Needle', 'DPN', 'Crochet Hook', 'Stitch Marker',
@@ -26,7 +26,7 @@ export default function ToolsPage() {
   async function fetchTools() {
     setLoading(true);
     const { data } = await supabase.from('tools')
-      .select('id, name, type, size, material, notes')
+      .select('id, name, type, size, material, notes, checked_out_project_id')
       .order('type', { ascending: true });
     if (data) setTools(data);
     setLoading(false);
@@ -115,7 +115,12 @@ export default function ToolsPage() {
           (t.size ?? '').toLowerCase().includes(search.toLowerCase())
         ).map(t => (
           <div key={t.id} className="card" onClick={() => { setSelectedId(t.id); setView('detail'); }}>
-            <p className="card-title">{t.name}</p>
+            <div className="card-row">
+              <p className="card-title">{t.name}</p>
+              {t.checked_out_project_id && (
+                <span className="badge" style={{ background: 'var(--bg-accent)', color: 'var(--text-accent)', border: '1px solid var(--border-accent)' }}>in use</span>
+              )}
+            </div>
             <p className="card-sub">{[t.type, t.size, t.material].filter(Boolean).join(' · ')}</p>
           </div>
         ))
