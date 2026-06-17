@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import YarnDetail from '../components/YarnDetail';
+import YarnWeightReference from '../components/YarnWeightReference';
 import { getPref } from '../lib/prefs';
 
 type YarnCatalog = {
@@ -172,6 +173,10 @@ export default function StashPage() {
           style={{ marginTop: 24, opacity: saving ? 0.6 : 1 }}>
           {saving ? 'Saving…' : 'Add to Catalog'}
         </button>
+
+        <div style={{ marginTop: 32 }}>
+          <YarnWeightReference />
+        </div>
       </div>
     );
   }
@@ -188,6 +193,7 @@ export default function StashPage() {
         placeholder="Search stash…"
         style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-body)', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
       />
+      <YarnWeightReference />
       {loading ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : yarns.length === 0 ? (
         <p className="empty">Your stash is empty.</p>
       ) : (

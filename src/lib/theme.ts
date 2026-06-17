@@ -170,3 +170,29 @@ export function stepDifficulty(
   const key = `${sectionTitle}|${stepNumber}`;
   return stepDifficultyMap?.[key] ?? patternDifficulty ?? null;
 }
+
+// ── Yarn weight reference table ───────────────────────────────────────────────
+// Static reference data (Craft Yarn Council standard weight system, ply,
+// wraps-per-inch ranges, and recommended knitting needle sizes). Independent
+// of the app's existing yarn weight chip labels (Lace/Fingering/.../Super
+// Bulky used elsewhere) since this groups Worsted/Aran together and adds
+// Jumbo, matching the conventional published chart rather than this app's
+// own weight picker. Used purely for reference display, not data entry.
+export type YarnWeightRefRow = {
+  name: string;
+  standard: string;
+  ply: string;
+  wpi: string;
+  needles: string;
+};
+
+export const YARN_WEIGHT_REFERENCE: YarnWeightRefRow[] = [
+  { name: 'Lace',           standard: '0 – Lace',        ply: '2 ply',  wpi: '16+ wpi', needles: '1.5 – 2.25mm' },
+  { name: 'Sock / Fingering', standard: '1 – Super Fine', ply: '3–4 ply', wpi: '14–16 wpi', needles: '2.25 – 3.25mm' },
+  { name: 'Sport',          standard: '2 – Fine',        ply: '5 ply',  wpi: '12 wpi',  needles: '3.25 – 3.75mm' },
+  { name: 'DK',              standard: '3 – Light',       ply: '8 ply',  wpi: '11 wpi',  needles: '3.75 – 4.5mm' },
+  { name: 'Worsted / Aran', standard: '4 – Medium',      ply: '10 ply', wpi: '8–9 wpi', needles: '4.5 – 5.5mm' },
+  { name: 'Bulky / Chunky', standard: '5 – Bulky',       ply: '12 ply', wpi: '7 wpi',   needles: '5.5 – 8.0mm' },
+  { name: 'Super Bulky',    standard: '6 – Super Bulky', ply: '14 ply', wpi: '5–6 wpi', needles: '8.0 – 12.0mm' },
+  { name: 'Jumbo',           standard: '7 – Jumbo',       ply: '16 ply', wpi: '1–4 wpi', needles: '12.0mm+' },
+];
