@@ -254,3 +254,64 @@ input, select, textarea {
   font-family: var(--font-body);
 }
 input::placeholder, textarea::placeholder { color: var(--text-faint); }
+
+/* ── Reveal-in animation (generated pattern output, etc.) ── */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal {
+  animation: reveal-up 0.4s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { animation: none; }
+}
+
+/* ── Sticky section nav (pattern generator output) ── */
+.section-nav-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg-page);
+  padding: 10px 0;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-light);
+}
+.section-nav-sticky::-webkit-scrollbar { display: none; }
+
+.section-nav-pill {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+}
+.section-nav-pill:hover {
+  border-color: var(--border-accent);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+.section-nav-pill.active {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-color: var(--primary);
+}
+
+/* ── Pattern step card ── */
+.step-card {
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.step-card:hover {
+  transform: translateX(2px);
+  box-shadow: var(--shadow-hover);
+}

@@ -9,6 +9,19 @@ const DIFFICULTIES = ['Beginner', 'Easy', 'Intermediate', 'Advanced'];
 const SUGGESTED_OBJECTS = ['Scarf', 'Hat', 'Cowl', 'Shawl', 'Mittens', 'Socks', 'Sweater', 'Cardigan', 'Baby Blanket', 'Dishcloth', 'Fingerless Gloves', 'Headband', 'Bag', 'Toy'];
 const SUGGESTED_STYLES = ['Stockinette', 'Garter', 'Ribbing', 'Seed stitch', 'Moss stitch', 'Ribbing with cabling', 'Lace', 'Colorwork', 'Cables', 'Textured', 'Brioche', 'Slip stitch', 'Fair Isle'];
 
+// Difficulty → accent color, used for the left border on each numbered step
+// so the whole instructions list carries a subtle signal of how involved it is.
+const DIFFICULTY_COLOR: Record<string, string> = {
+  Beginner: 'var(--success-vivid)',
+  Easy: 'var(--success-vivid)',
+  Intermediate: 'var(--warning-vivid)',
+  Advanced: 'var(--danger-vivid)',
+};
+function difficultyColor(difficulty?: string | null): string {
+  if (!difficulty) return 'var(--primary)';
+  return DIFFICULTY_COLOR[difficulty] ?? 'var(--primary)';
+}
+
 type PatternSection = {
   title: string;
   content: string;
@@ -36,6 +49,7 @@ export default function GeneratePage() {
   const [generating, setGenerating] = useState(false);
   const [pattern, setPattern] = useState<GeneratedPattern | null>(null);
   const [error, setError] = useState('');
+  const [activeOutputSection, setActiveOutputSection] = useState(0);
 
   if (!unlocked) {
     return (
@@ -63,6 +77,7 @@ export default function GeneratePage() {
     setGenerating(true);
     setPattern(null);
     setError('');
+    setActiveOutputSection(0);
 
     const dimensions = [
       length && `length: ${length}`,
@@ -268,12 +283,14 @@ Rules:
       {/* Generated pattern output */}
       {pattern && (
         <div>
-          <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{pattern.name}</h2>
-          {pattern.tagline && <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>{pattern.tagline}</p>}
+          <div className="reveal">
+            <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{pattern.name}</h2>
+            {pattern.tagline && <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>{pattern.tagline}</p>}
+          </div>
 
           {/* Metadata grid */}
           {pattern.metadata && Object.keys(pattern.metadata).length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: 20 }}>
+            <div className="reveal" style={{ animationDelay: '0.05s', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: 20 }}>
               {Object.entries(pattern.metadata).map(([k, v]) => v ? (
                 <div key={k} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '10px 12px' }}>
                   <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 500, marginBottom: 3 }}>{k}</p>
@@ -283,9 +300,27 @@ Rules:
             </div>
           )}
 
+          {/* Sticky section nav — only worth showing once there's more than one section to jump between */}
+          {pattern.sections && pattern.sections.length > 1 && (
+            <div className="section-nav-sticky reveal" style={{ animationDelay: '0.08s' }}>
+              {pattern.sections.map((sec, i) => (
+                <button
+                  key={i}
+                  className={`section-nav-pill ${activeOutputSection === i ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveOutputSection(i);
+                    document.getElementById(`gen-section-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                >
+                  {sec.title}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Abbreviations */}
           {pattern.abbreviations && Object.keys(pattern.abbreviations).length > 0 && (
-            <div style={{ marginBottom: 20 }}>
+            <div className="reveal" style={{ animationDelay: '0.1s', marginBottom: 20 }}>
               <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Abbreviations</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6 }}>
                 {Object.entries(pattern.abbreviations).map(([abbrev, explanation]) => (
@@ -300,7 +335,7 @@ Rules:
 
           {/* Extras (cable definitions etc.) */}
           {pattern.extras && pattern.extras.map((extra, i) => (
-            <div key={i} style={{ marginBottom: 20 }}>
+            <div key={i} className="reveal" style={{ animationDelay: `${0.12 + i * 0.04}s`, marginBottom: 20 }}>
               <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>{extra.title}</p>
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, overflow: 'hidden' }}>
                 {extra.rows.map(([term, def], j) => (
@@ -315,7 +350,7 @@ Rules:
 
           {/* Stitch pattern layout */}
           {pattern.stitchPattern && (
-            <div style={{ marginBottom: 20 }}>
+            <div className="reveal" style={{ animationDelay: '0.16s', marginBottom: 20 }}>
               <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>{pattern.stitchPattern.title}</p>
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, padding: 16, marginBottom: 10 }}>
                 <p style={{ fontFamily: 'monospace', color: 'var(--text-body)', fontSize: 14, lineHeight: 1.8, wordBreak: 'break-word' }}>
@@ -343,14 +378,20 @@ Rules:
 
           {/* Pattern sections */}
           {pattern.sections && pattern.sections.map((sec, i) => (
-            <div key={i} style={{ marginBottom: 24 }}>
+            <div key={i} id={`gen-section-${i}`} className="reveal" style={{ animationDelay: `${0.2 + i * 0.05}s`, marginBottom: 24, scrollMarginTop: 60 }}>
               <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>{sec.title}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {sec.content.split('\n').filter(Boolean).map((line, j) => {
                   const stepMatch = line.match(/^(\d+)\.\s+(.+)/);
                   if (stepMatch) {
                     return (
-                      <div key={j} style={{ display: 'flex', gap: 12, background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '12px 14px' }}>
+                      <div key={j} className="step-card reveal" style={{
+                        animationDelay: `${0.22 + i * 0.05 + j * 0.025}s`,
+                        display: 'flex', gap: 12, background: 'var(--bg-card)',
+                        border: '1px solid var(--border-light)',
+                        borderLeft: `3px solid ${difficultyColor(pattern.metadata?.['Difficulty'])}`,
+                        borderRadius: 8, padding: '12px 14px',
+                      }}>
                         <span style={{ background: 'var(--primary)', color: 'var(--primary-text)', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{stepMatch[1]}</span>
                         <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, margin: 0 }}
                           dangerouslySetInnerHTML={{ __html: stepMatch[2].replace(/\*\*(.+?)\*\*/g, `<strong style="color:var(--text-primary)">$1</strong>`) }}
@@ -367,7 +408,7 @@ Rules:
           ))}
 
           {/* Save to patterns button */}
-          <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 20, marginTop: 8 }}>
+          <div className="reveal" style={{ animationDelay: '0.1s', borderTop: '1px solid var(--border-light)', paddingTop: 20, marginTop: 8 }}>
             <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 12 }}>
               Happy with this pattern? You can save it to your pattern library.
             </p>
