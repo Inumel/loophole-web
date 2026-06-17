@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import StepText from './StepText';
+import ProjectPhotos from './ProjectPhotos';
 import { difficultyColor, stepDifficulty } from '../lib/theme';
 
 type Project = {
@@ -480,6 +481,9 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
           </div>
         ))}
       </div>
+
+      {/* Photos */}
+      <ProjectPhotos projectId={projectId} readOnly={readOnly} />
 
       {/* Notes */}
       <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
