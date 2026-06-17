@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import StepText from './StepText';
 import { getPref } from '../lib/prefs';
+import { difficultyColor } from '../lib/theme';
 
 type Project = {
   id: string;
@@ -13,7 +14,7 @@ type Project = {
   notes: string | null;
   chosen_size: string | null;
   chosen_color_variation: string | null;
-  pattern: { name: string; parsed_guide: Record<string, unknown> | null } | null;
+  pattern: { name: string; difficulty: string | null; parsed_guide: Record<string, unknown> | null } | null;
 };
 
 type Session = {
@@ -123,7 +124,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
   async function fetchProject() {
     const { data } = await supabase
       .from('projects')
-      .select('*, pattern:patterns(name, parsed_guide)')
+      .select('*, pattern:patterns(name, difficulty, parsed_guide)')
       .eq('id', projectId).single();
     if (data) { setProject(data); setNotes(data.notes ?? ''); }
     setLoading(false);
@@ -422,6 +423,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
                 <div key={si} onClick={() => toggleStep(activeSection, si)} style={{
                   display: 'flex', gap: 12, alignItems: 'flex-start',
                   background: done ? 'var(--success-vivid-bg)' : 'var(--bg-muted)',
+                  borderLeft: `3px solid ${done ? 'var(--success-vivid)' : difficultyColor(project.pattern?.difficulty)}`,
                   borderRadius: 10, padding: 12, cursor: 'pointer', opacity: done ? 0.8 : 1,
                 }}>
                   <div style={{

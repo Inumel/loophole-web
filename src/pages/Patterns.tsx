@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { searchRavelryPatterns, getRavelryPattern, mapRavelryPattern } from '../lib/ravelry';
 import { parsePatternWithClaude } from '../lib/claude';
 import StepText from '../components/StepText';
+import { difficultyColor } from '../lib/theme';
 
 type Pattern = {
   id: string; name: string; designer: string | null; source: string;
@@ -607,7 +608,11 @@ export default function PatternsPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {getSteps(sections[activeSection]).map((step, j) => (
-                <div key={j} style={{ background: 'var(--bg-input)', borderRadius: 8, padding: '10px 14px', fontSize: 14, lineHeight: 1.6, color: 'var(--text-body)' }}>
+                <div key={j} style={{
+                  background: 'var(--bg-input)', borderRadius: 8, padding: '10px 14px',
+                  fontSize: 14, lineHeight: 1.6, color: 'var(--text-body)',
+                  borderLeft: `3px solid ${difficultyColor(selected.difficulty)}`,
+                }}>
                   <StepText step={step} index={j} />
                 </div>
               ))}

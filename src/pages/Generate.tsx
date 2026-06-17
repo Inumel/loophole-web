@@ -1,26 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { inputStyle, selectStyle, labelStyle } from '../lib/theme';
+import { inputStyle, selectStyle, labelStyle, difficultyColor } from '../lib/theme';
 
 const YARN_WEIGHTS = ['Lace', 'Fingering', 'Sport', 'DK', 'Worsted', 'Aran', 'Bulky', 'Super Bulky'];
 const DIFFICULTIES = ['Beginner', 'Easy', 'Intermediate', 'Advanced'];
 
 const SUGGESTED_OBJECTS = ['Scarf', 'Hat', 'Cowl', 'Shawl', 'Mittens', 'Socks', 'Sweater', 'Cardigan', 'Baby Blanket', 'Dishcloth', 'Fingerless Gloves', 'Headband', 'Bag', 'Toy'];
 const SUGGESTED_STYLES = ['Stockinette', 'Garter', 'Ribbing', 'Seed stitch', 'Moss stitch', 'Ribbing with cabling', 'Lace', 'Colorwork', 'Cables', 'Textured', 'Brioche', 'Slip stitch', 'Fair Isle'];
-
-// Difficulty → accent color, used for the left border on each numbered step
-// so the whole instructions list carries a subtle signal of how involved it is.
-const DIFFICULTY_COLOR: Record<string, string> = {
-  Beginner: 'var(--success-vivid)',
-  Easy: 'var(--success-vivid)',
-  Intermediate: 'var(--warning-vivid)',
-  Advanced: 'var(--danger-vivid)',
-};
-function difficultyColor(difficulty?: string | null): string {
-  if (!difficulty) return 'var(--primary)';
-  return DIFFICULTY_COLOR[difficulty] ?? 'var(--primary)';
-}
 
 type PatternSection = {
   title: string;

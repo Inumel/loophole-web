@@ -138,3 +138,20 @@ export const metaItemStyle: React.CSSProperties = {
   borderRadius: radii.md,
   padding:      '10px 12px',
 };
+
+// ── Difficulty accent color ────────────────────────────────────────────────
+// Maps a pattern/step difficulty label to a semantic vivid color.
+// Used as a left-border accent on step cards so the instructions list
+// carries an at-a-glance signal of how involved the pattern is. Shared
+// between the live Pattern Generator output and saved/parsed pattern
+// detail views so both stay visually consistent.
+const DIFFICULTY_COLOR: Record<string, string> = {
+  Beginner: 'var(--success-vivid)',
+  Easy: 'var(--success-vivid)',
+  Intermediate: 'var(--warning-vivid)',
+  Advanced: 'var(--danger-vivid)',
+};
+export function difficultyColor(difficulty?: string | null): string {
+  if (!difficulty) return 'var(--primary)';
+  return DIFFICULTY_COLOR[difficulty] ?? 'var(--primary)';
+}
