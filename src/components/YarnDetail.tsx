@@ -47,6 +47,7 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
   const [newLot, setNewLot] = useState('');
   const [savingStash, setSavingStash] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,6 +61,18 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
   const [notes, setNotes] = useState('');
 
   useEffect(() => { fetchAll(); }, [yarnId]);
+
+  // Without this, a drop that misses the photo zone falls through to the
+  // browser default of navigating to the file, silently aborting the upload.
+  useEffect(() => {
+    function preventNav(e: DragEvent) { e.preventDefault(); }
+    window.addEventListener('dragover', preventNav);
+    window.addEventListener('drop', preventNav);
+    return () => {
+      window.removeEventListener('dragover', preventNav);
+      window.removeEventListener('drop', preventNav);
+    };
+  }, []);
 
   async function fetchAll() {
     const [catalogRes, stashRes, projectsRes] = await Promise.all([
@@ -105,11 +118,8 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
     await supabase.from('yarn_catalog').update({ weight: w }).eq('id', yarnId);
   }
 
-  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function uploadPhoto(file: File) {
     setUploadingPhoto(true);
-
     try {
       const ext = file.name.split('.').pop() ?? 'jpg';
       const path = `${yarnId}/photo.${ext}`;
@@ -127,6 +137,7 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
 
       // Save path to catalog
       await supabase.from('yarn_catalog').update({ photo_url: path }).eq('id', yarnId);
+      setYarn(prev => prev ? { ...prev, photo_url: path } : prev);
 
       // Get signed URL for display
       const { data: urlData } = await supabase.storage
@@ -138,8 +149,22 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
       alert('Photo upload failed. Please try again.');
     }
     setUploadingPhoto(false);
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await uploadPhoto(file);
     // Reset file input
     if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  function handlePhotoDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) uploadPhoto(file);
   }
 
   async function removePhoto() {
@@ -195,7 +220,22 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
       {/* Header */}
       <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 24 }}>
         {/* Photo / color swatch */}
-        <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div
+          onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+          onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+          onDragLeave={e => {
+            e.preventDefault();
+            if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+            setDragOver(false);
+          }}
+          onDrop={handlePhotoDrop}
+          style={{
+            position: 'relative', flexShrink: 0, borderRadius: 12,
+            outline: dragOver ? '2px dashed var(--primary)' : 'none',
+            outlineOffset: 2,
+            transition: 'outline-color 0.15s',
+          }}
+        >
           {photoUrl ? (
             <img
               src={photoUrl}
@@ -203,8 +243,8 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
               style={{ width: 96, height: 96, borderRadius: 12, objectFit: 'cover', display: 'block' }}
             />
           ) : (
-            <div style={{ width: 96, height: 96, borderRadius: 12, background: colorHex || 'var(--neutral-vivid)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>No photo</span>
+            <div style={{ width: 96, height: 96, borderRadius: 12, background: colorHex || 'var(--neutral-vivid)', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 4 }}>
+              <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, lineHeight: 1.3 }}>{dragOver ? 'Drop to upload' : 'No photo'}</span>
             </div>
           )}
           {/* Upload overlay */}
@@ -257,7 +297,7 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
               disabled={uploadingPhoto}
               style={{ marginTop: 8, background: 'none', border: '1px dashed var(--border-medium)', color: 'var(--text-faint)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}
             >
-              {uploadingPhoto ? 'Uploading…' : '+ Add photo'}
+              {uploadingPhoto ? 'Uploading…' : '+ Add photo, or drag one onto the swatch'}
             </button>
           )}
         </div>
