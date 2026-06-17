@@ -189,11 +189,7 @@ export default function ToolDetail({ toolId, onBack }: Props) {
                   </p>
                 )}
               </div>
-              <span style={{
-                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6,
-                background: checkedOutProject.status === 'active' ? '#d4edda' : '#fdecc8',
-                color: checkedOutProject.status === 'active' ? '#2d6a4f' : '#92600a',
-              }}>
+              <span className={checkedOutProject.status === 'active' ? 'badge badge-active' : 'badge badge-paused'}>
                 {checkedOutProject.status}
               </span>
             </div>
@@ -241,8 +237,8 @@ export default function ToolDetail({ toolId, onBack }: Props) {
         onBack();
       }} style={{
         marginTop: 4, width: '100%', padding: 12, borderRadius: 10,
-        border: '1px solid var(--danger, #dc2626)',
-        background: 'transparent', color: 'var(--danger, #dc2626)',
+        border: '1px solid var(--danger-vivid)',
+        background: 'transparent', color: 'var(--danger-vivid)',
         cursor: 'pointer', fontSize: 14,
       }}>
         Delete Tool

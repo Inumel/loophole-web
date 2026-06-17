@@ -298,7 +298,7 @@ export default function PatternsPage() {
                 }}>{s}</button>
               ))}
             </div>
-            {chosenSize && <p style={{ color: '#10B981', fontSize: 12, marginTop: 8 }}>✓ Steps will be shown for size: {chosenSize}</p>}
+            {chosenSize && <p style={{ color: 'var(--success-vivid)', fontSize: 12, marginTop: 8 }}>✓ Steps will be shown for size: {chosenSize}</p>}
           </div>
         )}
 
@@ -325,7 +325,7 @@ export default function PatternsPage() {
                 }}>{v}</button>
               ))}
             </div>
-            {chosenVariation && <p style={{ color: '#10B981', fontSize: 12, marginTop: 8 }}>✓ Variation: {chosenVariation}</p>}
+            {chosenVariation && <p style={{ color: 'var(--success-vivid)', fontSize: 12, marginTop: 8 }}>✓ Variation: {chosenVariation}</p>}
           </div>
         )}
 
@@ -408,7 +408,7 @@ export default function PatternsPage() {
                           <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{y.name}</p>
                           {y.brand && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>{y.brand}</p>}
                         </div>
-                        {qty != null && <span style={{ color: inStock ? '#10B981' : '#EF4444', fontSize: 13 }}>{qty} {unit}{!inStock ? ' (out)' : ''}</span>}
+                        {qty != null && <span style={{ color: inStock ? 'var(--success-vivid)' : 'var(--danger-vivid)', fontSize: 13 }}>{qty} {unit}{!inStock ? ' (out)' : ''}</span>}
                       </div>
                     );
                   })}
@@ -499,7 +499,7 @@ export default function PatternsPage() {
               <p className="card-title" style={{ marginBottom: 10 }}>Colour Variations</p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {variations.map((v, i) => (
-                  <span key={i} style={{ background: '#1a2e1a', color: '#10B981', borderRadius: 6, padding: '4px 12px', fontSize: 13, fontWeight: 600, border: '1px solid #10B981' }}>🎨 {v}</span>
+                  <span key={i} style={{ background: 'var(--success-vivid-bg)', color: 'var(--success-vivid)', borderRadius: 6, padding: '4px 12px', fontSize: 13, fontWeight: 600, border: '1px solid var(--success-vivid)' }}>🎨 {v}</span>
                 ))}
               </div>
             </div>
@@ -645,7 +645,7 @@ export default function PatternsPage() {
           if (!confirm('Delete this pattern?')) return;
           await supabase.from('patterns').delete().eq('id', selected.id);
           setView('list');
-        }} style={{ padding: '12px 20px', borderRadius: 10, border: '1px solid #EF4444', background: 'transparent', color: '#EF4444', cursor: 'pointer' }}>
+        }} style={{ padding: '12px 20px', borderRadius: 10, border: '1px solid var(--danger-vivid)', background: 'transparent', color: 'var(--danger-vivid)', cursor: 'pointer' }}>
           Delete Pattern
         </button>
       </div>
@@ -689,7 +689,7 @@ export default function PatternsPage() {
                 {r.designer && <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>by {r.designer.name}</p>}
               </div>
             ))}
-            {ravelryMapped && <p style={{ color: '#10B981', fontSize: 13, marginTop: 8 }}>✓ Metadata loaded from Ravelry</p>}
+            {ravelryMapped && <p style={{ color: 'var(--success-vivid)', fontSize: 13, marginTop: 8 }}>✓ Metadata loaded from Ravelry</p>}
           </div>
         )}
 
@@ -706,7 +706,7 @@ export default function PatternsPage() {
                 <><p style={{ color: 'var(--primary)', fontSize: 15, fontWeight: 600 }}>Parsing with Claude…</p>
                   <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>This may take a moment</p></>
               ) : pdfName ? (
-                <><p style={{ color: '#10B981', fontSize: 15, fontWeight: 600 }}>✓ {pdfName}</p>
+                <><p style={{ color: 'var(--success-vivid)', fontSize: 15, fontWeight: 600 }}>✓ {pdfName}</p>
                   <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Click to choose a different file</p></>
               ) : (
                 <><p style={{ color: 'var(--text-muted)', fontSize: 20, marginBottom: 8 }}>📄</p>
@@ -714,7 +714,7 @@ export default function PatternsPage() {
                   <p style={{ color: 'var(--text-faint)', fontSize: 13, marginTop: 4 }}>Claude will parse the instructions automatically</p></>
               )}
             </div>
-            {parsedGuide && <p style={{ color: '#10B981', fontSize: 13 }}>✓ Pattern parsed — review the fields below and save</p>}
+            {parsedGuide && <p style={{ color: 'var(--success-vivid)', fontSize: 13 }}>✓ Pattern parsed — review the fields below and save</p>}
           </div>
         )}
 
@@ -779,7 +779,7 @@ export default function PatternsPage() {
                 <p className="card-title">{p.name}</p>
                 {p.designer && <p className="card-sub">by {p.designer}</p>}
                 <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-                  {p.difficulty && <span style={{ color: '#A78BFA', fontSize: 12 }}>{p.difficulty}</span>}
+                  {p.difficulty && <span style={{ color: 'var(--text-accent)', fontSize: 12 }}>{p.difficulty}</span>}
                   {(p.category || p.yarn_weight) && (
                     <span className="card-meta">{[p.category, p.yarn_weight].filter(Boolean).join(' · ')}</span>
                   )}

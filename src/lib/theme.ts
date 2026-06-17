@@ -48,6 +48,17 @@ export const colors = {
   dangerBg:      '#fdd5d5',
   info:          '#9b6b8a',
   infoBg:        '#f0dff0',
+
+  // Vivid semantic accents (used for live status dots, stat highlights, in-stock indicators)
+  // These read well on both light and dark surfaces, unlike the muted badge tones above
+  successVivid:    '#10B981',
+  successVividBg:  'rgba(16,185,129,0.13)',
+  warningVivid:    '#F59E0B',
+  warningVividBg:  'rgba(245,158,11,0.13)',
+  dangerVivid:     '#EF4444',
+  dangerVividBg:   'rgba(239,68,68,0.13)',
+  neutralVivid:    '#6B7280',
+  neutralVividBg:  'rgba(107,114,128,0.13)',
 } as const;
 
 export const fonts = {
@@ -71,23 +82,29 @@ export const shadows = {
 
 // ── Convenience style objects ──────────────────────────────────────────────
 // Use these in inline style props to keep pages clean.
+//
+// IMPORTANT: these use CSS custom properties (var(--...)), NOT the `colors`
+// JS object above, so that components using them correctly respond to the
+// dark mode toggle. The `colors` object above is light-mode-only reference
+// data — don't use it directly for component styling, since it won't react
+// to theme changes the way var(--...) does.
 
 export const cardStyle: React.CSSProperties = {
-  background:   colors.bgCard,
-  border:       `1px solid ${colors.borderLight}`,
+  background:   'var(--bg-card)',
+  border:       '1px solid var(--border-light)',
   borderRadius: radii.lg,
   padding:      '16px 20px',
   marginBottom: 10,
-  boxShadow:    shadows.card,
+  boxShadow:    'var(--shadow-card)',
 };
 
 export const inputStyle: React.CSSProperties = {
   width:        '100%',
-  background:   colors.bgInput,
-  border:       `1px solid ${colors.borderInput}`,
+  background:   'var(--bg-input)',
+  border:       '1px solid var(--border-input)',
   borderRadius: radii.md,
   padding:      '9px 12px',
-  color:        colors.textBody,
+  color:        'var(--text-body)',
   fontSize:     14,
   fontFamily:   fonts.body,
   boxSizing:    'border-box',
@@ -100,14 +117,14 @@ export const selectStyle: React.CSSProperties = {
 
 export const labelStyle: React.CSSProperties = {
   display:      'block',
-  color:        colors.textMuted,
+  color:        'var(--text-muted)',
   fontSize:     12,
   fontWeight:   500,
   marginBottom: 6,
 };
 
 export const sectionHeaderStyle: React.CSSProperties = {
-  color:          colors.primary,
+  color:          'var(--primary)',
   fontSize:       11,
   fontWeight:     700,
   textTransform:  'uppercase',
@@ -116,8 +133,8 @@ export const sectionHeaderStyle: React.CSSProperties = {
 };
 
 export const metaItemStyle: React.CSSProperties = {
-  background:   colors.bgMuted,
-  border:       `1px solid ${colors.borderLight}`,
+  background:   'var(--bg-muted)',
+  border:       '1px solid var(--border-light)',
   borderRadius: radii.md,
   padding:      '10px 12px',
 };

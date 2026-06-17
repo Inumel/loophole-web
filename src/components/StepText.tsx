@@ -113,7 +113,7 @@ export default function StepText({ step, index }: Props) {
 
   return (
     <span style={{ position: 'relative' }}>
-      <strong style={{ color: '#7C3AED' }}>{index + 1}. </strong>
+      <strong style={{ color: 'var(--primary)' }}>{index + 1}. </strong>
       {tokens.map((token, i) => {
         if (!token.isAbbrev) return <span key={i}>{token.text}</span>;
         const definition = abbrevs[token.key];
@@ -127,9 +127,9 @@ export default function StepText({ step, index }: Props) {
               }}
               onMouseLeave={() => setTooltip(null)}
               style={{
-                color: definition ? '#A78BFA' : 'inherit',
+                color: definition ? 'var(--text-accent)' : 'inherit',
                 fontWeight: definition ? 700 : 'inherit',
-                borderBottom: definition ? '1px dashed #7C3AED' : 'none',
+                borderBottom: definition ? '1px dashed var(--primary)' : 'none',
                 cursor: definition ? 'help' : 'default',
               }}
             >
@@ -141,20 +141,20 @@ export default function StepText({ step, index }: Props) {
                 left: Math.min(tooltip.x, window.innerWidth - 300),
                 top: tooltip.y - 8,
                 transform: 'translateY(-100%)',
-                background: '#1F2937',
-                border: '1px solid #7C3AED',
+                background: 'var(--bg-sidebar)',
+                border: '1px solid var(--primary)',
                 borderRadius: 8,
                 padding: '8px 12px',
                 fontSize: 13,
-                color: '#D1D5DB',
+                color: 'var(--text-body)',
                 maxWidth: 280,
                 zIndex: 9999,
                 pointerEvents: 'none',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                 lineHeight: 1.5,
                 whiteSpace: 'normal',
               }}>
-                <strong style={{ color: '#A78BFA', display: 'block', marginBottom: 4 }}>
+                <strong style={{ color: 'var(--text-accent)', display: 'block', marginBottom: 4 }}>
                   {token.text.toUpperCase()}
                 </strong>
                 {definition}

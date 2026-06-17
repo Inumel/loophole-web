@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { inputStyle, labelStyle } from '../lib/theme';
 
 type YarnCatalog = {
   id: string;
@@ -184,8 +185,8 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
   const totalInStock = stash.filter(s => s.status === 'in_stock').reduce((sum, s) => sum + (s.quantity ?? 0), 0);
   const totalUsed = projects.reduce((sum, p) => sum + (p.quantity_used ?? 0), 0);
 
-  if (loading) return <p style={{ color: '#9CA3AF' }}>Loading…</p>;
-  if (!yarn) return <p style={{ color: '#9CA3AF' }}>Not found.</p>;
+  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
+  if (!yarn) return <p style={{ color: 'var(--text-muted)' }}>Not found.</p>;
 
   return (
     <div>
@@ -202,7 +203,7 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
               style={{ width: 96, height: 96, borderRadius: 12, objectFit: 'cover', display: 'block' }}
             />
           ) : (
-            <div style={{ width: 96, height: 96, borderRadius: 12, background: colorHex || '#6B7280', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 96, height: 96, borderRadius: 12, background: colorHex || 'var(--neutral-vivid)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>No photo</span>
             </div>
           )}
@@ -254,7 +255,7 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingPhoto}
-              style={{ marginTop: 8, background: 'none', border: '1px dashed #374151', color: '#6B7280', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}
+              style={{ marginTop: 8, background: 'none', border: '1px dashed var(--border-medium)', color: 'var(--text-faint)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}
             >
               {uploadingPhoto ? 'Uploading…' : '+ Add photo'}
             </button>
@@ -263,15 +264,15 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
       </div>
 
       {/* Stock summary */}
-      <div style={{ display: 'flex', background: '#1F2937', borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center' }}>
+      <div style={{ display: 'flex', background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center' }}>
         {[
-          ['In Stock', `${totalInStock} ${stash[0]?.unit ?? 'g'}`, '#10B981'],
-          ['Used in Projects', `${totalUsed}`, '#EF4444'],
-          ['Batches', String(stash.length), '#A78BFA'],
+          ['In Stock', `${totalInStock} ${stash[0]?.unit ?? 'g'}`, 'var(--success-vivid)'],
+          ['Used in Projects', `${totalUsed}`, 'var(--danger-vivid)'],
+          ['Batches', String(stash.length), 'var(--text-accent)'],
         ].map(([label, value, color], i) => (
-          <div key={label} style={{ flex: 1, borderLeft: i > 0 ? '1px solid #374151' : 'none', padding: '0 8px' }}>
+          <div key={label} style={{ flex: 1, borderLeft: i > 0 ? '1px solid var(--border-light)' : 'none', padding: '0 8px' }}>
             <p style={{ color: color as string, fontSize: 20, fontWeight: 700 }}>{value}</p>
-            <p style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>{label}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>{label}</p>
           </div>
         ))}
       </div>
@@ -287,7 +288,7 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
               ['Fiber', fiber, setFiber, 'e.g. 100% Merino Wool'],
             ].map(([label, value, setter, placeholder]) => (
               <Field key={label as string} label={label as string}>
-                <input style={fi.input} value={value as string}
+                <input style={inputStyle} value={value as string}
                   onChange={e => (setter as (v: string) => void)(e.target.value)}
                   onBlur={save} placeholder={placeholder as string} />
               </Field>
@@ -295,7 +296,7 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
 
             <Field label="Color Hex">
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input style={{ ...fi.input, flex: 1 }} value={colorHex}
+                <input style={{ ...inputStyle, flex: 1 }} value={colorHex}
                   onChange={e => setColorHex(e.target.value)} onBlur={save}
                   placeholder="#3B82F6" maxLength={7} />
                 {colorHex.length === 7 && (
@@ -309,9 +310,9 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
                 {WEIGHTS.map(w => (
                   <button key={w} onClick={() => saveWeight(w)} style={{
                     padding: '4px 10px', borderRadius: 16, border: '1px solid',
-                    borderColor: weight === w ? '#7C3AED' : '#374151',
-                    background: weight === w ? '#7C3AED' : 'transparent',
-                    color: weight === w ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12,
+                    borderColor: weight === w ? 'var(--primary)' : 'var(--border-medium)',
+                    background: weight === w ? 'var(--primary)' : 'transparent',
+                    color: weight === w ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
                   }}>{w}</button>
                 ))}
               </div>
@@ -319,12 +320,12 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
 
             <Field label="Shop URL">
               <div style={{ display: 'flex', gap: 8 }}>
-                <input style={{ ...fi.input, flex: 1 }} value={shopUrl}
+                <input style={{ ...inputStyle, flex: 1 }} value={shopUrl}
                   onChange={e => setShopUrl(e.target.value)} onBlur={save}
                   placeholder="https://..." />
                 {shopUrl && (
                   <a href={shopUrl} target="_blank" rel="noreferrer"
-                    style={{ background: '#374151', borderRadius: 8, padding: '8px 14px', color: '#A78BFA', fontSize: 13, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+                    style={{ background: 'var(--bg-muted)', borderRadius: 8, padding: '8px 14px', color: 'var(--text-accent)', fontSize: 13, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
                     Open ↗
                   </a>
                 )}
@@ -332,7 +333,7 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
             </Field>
 
             <Field label="Notes">
-              <textarea style={{ ...fi.input, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }}
+              <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }}
                 value={notes} onChange={e => setNotes(e.target.value)} onBlur={save}
                 placeholder="Any notes..." />
             </Field>
@@ -345,34 +346,34 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <p className="card-title">Stash Entries</p>
               <button onClick={() => setShowAddStash(!showAddStash)}
-                style={{ background: '#374151', border: 'none', color: '#A78BFA', padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
+                style={{ background: 'var(--bg-muted)', border: 'none', color: 'var(--text-accent)', padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
                 + Restock
               </button>
             </div>
 
             {stash.length === 0 && !showAddStash && (
-              <p style={{ color: '#6B7280', fontSize: 13, fontStyle: 'italic' }}>No stash entries yet.</p>
+              <p style={{ color: 'var(--text-faint)', fontSize: 13, fontStyle: 'italic' }}>No stash entries yet.</p>
             )}
 
             {stash.map(s => (
-              <div key={s.id} style={{ paddingTop: 10, borderTop: '1px solid #374151' }}>
+              <div key={s.id} style={{ paddingTop: 10, borderTop: '1px solid var(--border-light)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <p style={{ color: '#F9FAFB', fontSize: 16, fontWeight: 700 }}>{s.quantity ?? 0} {s.unit}</p>
-                    {s.lot && <p style={{ color: '#6B7280', fontSize: 12 }}>Lot: {s.lot}</p>}
-                    {s.date_acquired && <p style={{ color: '#6B7280', fontSize: 12 }}>Acquired: {s.date_acquired}</p>}
+                    <p style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 700 }}>{s.quantity ?? 0} {s.unit}</p>
+                    {s.lot && <p style={{ color: 'var(--text-faint)', fontSize: 12 }}>Lot: {s.lot}</p>}
+                    {s.date_acquired && <p style={{ color: 'var(--text-faint)', fontSize: 12 }}>Acquired: {s.date_acquired}</p>}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
                     <button onClick={() => toggleStatus(s)} style={{
-                      background: s.status === 'in_stock' ? '#10B98122' : '#EF444422',
-                      color: s.status === 'in_stock' ? '#10B981' : '#EF4444',
+                      background: s.status === 'in_stock' ? 'var(--success-vivid-bg)' : 'var(--danger-vivid-bg)',
+                      color: s.status === 'in_stock' ? 'var(--success-vivid)' : 'var(--danger-vivid)',
                       border: 'none', borderRadius: 6, padding: '3px 10px',
                       fontSize: 12, fontWeight: 600, cursor: 'pointer',
                     }}>
                       {s.status === 'in_stock' ? 'In Stock' : 'Out of Stock'}
                     </button>
                     <button onClick={() => deleteStash(s.id)}
-                      style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: 12, cursor: 'pointer' }}>
+                      style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 12, cursor: 'pointer' }}>
                       Remove
                     </button>
                   </div>
@@ -381,22 +382,22 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
             ))}
 
             {showAddStash && (
-              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #374151' }}>
-                <p style={{ color: '#9CA3AF', fontSize: 13, marginBottom: 8 }}>Add batch / restock</p>
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-light)' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Add batch / restock</p>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   <input value={newQty} onChange={e => setNewQty(e.target.value)} type="number"
-                    placeholder="Qty" style={{ ...fi.input, width: 80 }} />
+                    placeholder="Qty" style={{ ...inputStyle, width: 80 }} />
                   {UNITS.map(u => (
                     <button key={u} onClick={() => setNewUnit(u)} style={{
                       padding: '6px 10px', borderRadius: 16, border: '1px solid',
-                      borderColor: newUnit === u ? '#7C3AED' : '#374151',
-                      background: newUnit === u ? '#7C3AED' : 'transparent',
-                      color: newUnit === u ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12,
+                      borderColor: newUnit === u ? 'var(--primary)' : 'var(--border-medium)',
+                      background: newUnit === u ? 'var(--primary)' : 'transparent',
+                      color: newUnit === u ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
                     }}>{u}</button>
                   ))}
                 </div>
                 <input value={newLot} onChange={e => setNewLot(e.target.value)}
-                  placeholder="Lot number (optional)" style={{ ...fi.input, marginBottom: 8 }} />
+                  placeholder="Lot number (optional)" style={{ ...inputStyle, marginBottom: 8 }} />
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="btn btn-primary" onClick={addStash}
                     disabled={savingStash || !newQty} style={{ flex: 1, opacity: savingStash ? 0.6 : 1 }}>
@@ -414,13 +415,13 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
             <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
               <p className="card-title" style={{ marginBottom: 12 }}>Used in Projects</p>
               {projects.map(p => (
-                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 10, borderTop: '1px solid #374151' }}>
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 10, borderTop: '1px solid var(--border-light)' }}>
                   <div style={{ flex: 1 }}>
-                    <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{p.project?.[0]?.name ?? 'Unknown'}</p>
-                    <p style={{ color: '#9CA3AF', fontSize: 12, marginTop: 2 }}>{p.project?.[0]?.status}</p>
+                    <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{p.project?.[0]?.name ?? 'Unknown'}</p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>{p.project?.[0]?.status}</p>
                   </div>
                   {p.quantity_used != null && (
-                    <span style={{ color: '#A78BFA', fontWeight: 600, fontSize: 13 }}>{p.quantity_used} {p.unit}</span>
+                    <span style={{ color: 'var(--text-accent)', fontWeight: 600, fontSize: 13 }}>{p.quantity_used} {p.unit}</span>
                   )}
                 </div>
               ))}
@@ -433,7 +434,7 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
             await supabase.from('yarn_stash').delete().eq('yarn_catalog_id', yarnId);
             await supabase.from('yarn_catalog').delete().eq('id', yarnId);
             onBack();
-          }} style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid #EF4444', background: 'transparent', color: '#EF4444', cursor: 'pointer', fontSize: 14 }}>
+          }} style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--danger-vivid)', background: 'transparent', color: 'var(--danger-vivid)', cursor: 'pointer', fontSize: 14 }}>
             Delete from Catalog
           </button>
         </div>
@@ -445,18 +446,13 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ display: 'block', color: '#9CA3AF', fontSize: 12, fontWeight: 500, marginBottom: 6 }}>{label}</label>
+      <label style={labelStyle}>{label}</label>
       {children}
     </div>
   );
 }
 
 const fi = {
-  title: { background: 'none', border: 'none', color: '#F9FAFB', fontSize: 22, fontWeight: 700, padding: 0, fontFamily: 'inherit', outline: 'none', width: '100%', display: 'block' } as React.CSSProperties,
-  subtitle: { background: 'none', border: 'none', color: '#9CA3AF', fontSize: 15, padding: 0, fontFamily: 'inherit', outline: 'none', width: '100%' } as React.CSSProperties,
-  input: {
-    width: '100%', background: '#374151', border: '1px solid #4B5563',
-    borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 14,
-    boxSizing: 'border-box', fontFamily: 'inherit',
-  } as React.CSSProperties,
+  title: { background: 'none', border: 'none', color: 'var(--text-primary)', fontSize: 22, fontWeight: 700, padding: 0, fontFamily: 'inherit', outline: 'none', width: '100%', display: 'block' } as React.CSSProperties,
+  subtitle: { background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 15, padding: 0, fontFamily: 'inherit', outline: 'none', width: '100%' } as React.CSSProperties,
 };

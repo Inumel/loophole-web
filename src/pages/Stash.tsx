@@ -56,9 +56,9 @@ export default function StashPage() {
 
   function stockStatus(yarn: YarnCatalog) {
     const hasStock = yarn.stash.some(s => s.status === 'in_stock' && (s.quantity ?? 0) > 0);
-    if (hasStock) return { label: 'In Stock', color: '#10B981' };
-    if (yarn.stash.length > 0) return { label: 'Out of Stock', color: '#EF4444' };
-    return { label: 'No Stock', color: '#6B7280' };
+    if (hasStock) return { label: 'In Stock', color: 'var(--success-vivid)' };
+    if (yarn.stash.length > 0) return { label: 'Out of Stock', color: 'var(--danger-vivid)' };
+    return { label: 'No Stock', color: 'var(--neutral-vivid)' };
   }
 
   async function saveNew() {
@@ -205,7 +205,7 @@ export default function StashPage() {
               <div className="card-row" style={{ alignItems: 'center', gap: 12 }}>
                 {y.photo_url
                   ? <YarnThumb storagePath={y.photo_url} fallback={y.color_hex} />
-                  : <div className="color-dot" style={{ background: y.color_hex ?? '#6B7280' }} />
+                  : <div className="color-dot" style={{ background: y.color_hex ?? 'var(--neutral-vivid)' }} />
                 }
                 <div style={{ flex: 1 }}>
                   <p className="card-title">{y.colorway ?? y.name}</p>
@@ -244,7 +244,7 @@ function YarnThumb({ storagePath, fallback }: { storagePath: string; fallback: s
       .then(({ data }) => { if (data?.signedUrl) setUrl(data.signedUrl); });
   }, [storagePath]);
 
-  if (!url) return <div className="color-dot" style={{ background: fallback ?? '#6B7280' }} />;
+  if (!url) return <div className="color-dot" style={{ background: fallback ?? 'var(--neutral-vivid)' }} />;
 
   return (
     <img

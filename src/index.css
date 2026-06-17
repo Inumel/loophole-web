@@ -24,6 +24,24 @@
   --primary:          #c49bbf;
   --primary-text:     #ffffff;
 
+  --success-vivid:     #10B981;
+  --success-vivid-bg:  rgba(16,185,129,0.13);
+  --warning-vivid:     #F59E0B;
+  --warning-vivid-bg:  rgba(245,158,11,0.13);
+  --danger-vivid:      #EF4444;
+  --danger-vivid-bg:   rgba(239,68,68,0.13);
+  --neutral-vivid:     #6B7280;
+  --neutral-vivid-bg:  rgba(107,114,128,0.13);
+
+  --badge-active-bg:    #d4edda;
+  --badge-active-text:  #2d6a4f;
+  --badge-completed-bg: #e8d5f0;
+  --badge-completed-text: #7b4f9e;
+  --badge-paused-bg:    #fdecc8;
+  --badge-paused-text:  #92600a;
+  --badge-frogged-bg:   #fdd5d5;
+  --badge-frogged-text: #9e2a2a;
+
   --shadow-card:      0 1px 3px rgba(180,120,120,0.08);
   --shadow-hover:     0 4px 12px rgba(180,120,120,0.15);
   --shadow-btn:       0 3px 8px rgba(0,0,0,0.10);
@@ -60,6 +78,24 @@
 
   --primary:          #c47aaa;
   --primary-text:     #ffffff;
+
+  --success-vivid:     #10B981;
+  --success-vivid-bg:  rgba(16,185,129,0.18);
+  --warning-vivid:     #F59E0B;
+  --warning-vivid-bg:  rgba(245,158,11,0.18);
+  --danger-vivid:      #ef4444;
+  --danger-vivid-bg:   rgba(239,68,68,0.18);
+  --neutral-vivid:     #9CA3AF;
+  --neutral-vivid-bg:  rgba(156,163,175,0.18);
+
+  --badge-active-bg:    rgba(16,185,129,0.18);
+  --badge-active-text:  #34D399;
+  --badge-completed-bg: rgba(196,122,170,0.20);
+  --badge-completed-text: #d4a0c0;
+  --badge-paused-bg:    rgba(245,158,11,0.18);
+  --badge-paused-text:  #FBBF24;
+  --badge-frogged-bg:   rgba(239,68,68,0.18);
+  --badge-frogged-text: #f87171;
 
   --shadow-card:      0 1px 3px rgba(0,0,0,0.3);
   --shadow-hover:     0 4px 12px rgba(0,0,0,0.4);
@@ -180,10 +216,10 @@ h2 {
 
 /* ── Badges ── */
 .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--radius-sm); letter-spacing: 0.3px; }
-.badge-active    { background: #d4edda; color: #2d6a4f; }
-.badge-completed { background: #e8d5f0; color: #7b4f9e; }
-.badge-paused    { background: #fdecc8; color: #92600a; }
-.badge-frogged   { background: #fdd5d5; color: #9e2a2a; }
+.badge-active    { background: var(--badge-active-bg); color: var(--badge-active-text); }
+.badge-completed { background: var(--badge-completed-bg); color: var(--badge-completed-text); }
+.badge-paused    { background: var(--badge-paused-bg); color: var(--badge-paused-text); }
+.badge-frogged   { background: var(--badge-frogged-bg); color: var(--badge-frogged-text); }
 
 /* ── Color dot ── */
 .color-dot { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; }

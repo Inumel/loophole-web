@@ -17,6 +17,9 @@ type Project = {
   sessions: Session[];
 };
 
+// Raw hex values (not CSS vars) — these are deliberately not var(...) because they're
+// concatenated with alpha suffixes (e.g. color + '44') for the timeline bars/dots.
+// Keep in sync with --success-vivid / --warning-vivid / --danger-vivid in index.css.
 const STATUS_COLORS: Record<string, string> = {
   active: '#10B981',
   paused: '#F59E0B',
@@ -119,8 +122,8 @@ export default function TimelinePage() {
           <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
             {[
               ['Projects', projects.length, STATUS_COLORS.completed],
-              ['Completed', completedProjects, '#10B981'],
-              ['Sessions', totalSessions, '#F59E0B'],
+              ['Completed', completedProjects, STATUS_COLORS.active],
+              ['Sessions', totalSessions, STATUS_COLORS.paused],
               ['Time knitted', formatDuration(totalSessionMinutes), 'var(--primary)'],
             ].map(([label, value, color]) => (
               <div key={label as string} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, padding: '12px 18px', flex: 1, minWidth: 120 }}>
@@ -200,9 +203,9 @@ export default function TimelinePage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
             {[
               ['Total projects', projects.length, STATUS_COLORS.completed],
-              ['Completed', completedProjects, '#10B981'],
-              ['Active', projects.filter(p => p.status === 'active').length, '#F59E0B'],
-              ['Frogged', projects.filter(p => p.status === 'frogged').length, '#EF4444'],
+              ['Completed', completedProjects, STATUS_COLORS.active],
+              ['Active', projects.filter(p => p.status === 'active').length, STATUS_COLORS.paused],
+              ['Frogged', projects.filter(p => p.status === 'frogged').length, STATUS_COLORS.frogged],
               ['Total sessions', totalSessions, 'var(--primary)'],
               ['Total time', formatDuration(totalSessionMinutes), 'var(--primary)'],
               ['Avg session', totalSessions > 0 ? formatDuration(totalSessionMinutes / totalSessions) : '—', 'var(--text-muted)'],

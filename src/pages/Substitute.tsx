@@ -229,7 +229,8 @@ export default function SubstitutePage() {
     }, 100);
   }
 
-  const ratingColor = { excellent: '#10B981', good: '#F59E0B', possible: '#6B7280' };
+  const ratingColor = { excellent: 'var(--success-vivid)', good: 'var(--warning-vivid)', possible: 'var(--neutral-vivid)' };
+  const ratingBg = { excellent: 'var(--success-vivid-bg)', good: 'var(--warning-vivid-bg)', possible: 'var(--neutral-vivid-bg)' };
   const ratingLabel = { excellent: '✓ Excellent match', good: '~ Good match', possible: '? Possible' };
 
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
@@ -335,8 +336,8 @@ export default function SubstitutePage() {
       </div>
 
       {error && (
-        <div style={{ background: '#1a1020', border: '1px solid #EF4444', borderRadius: 10, padding: 14, marginBottom: 16 }}>
-          <p style={{ color: '#EF4444', fontSize: 14 }}>{error}</p>
+        <div style={{ background: 'var(--danger-vivid-bg)', border: '1px solid var(--danger-vivid)', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+          <p style={{ color: 'var(--danger-vivid)', fontSize: 14 }}>{error}</p>
         </div>
       )}
 
@@ -378,11 +379,11 @@ export default function SubstitutePage() {
                       </p>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <span style={{ background: ratingColor[s.rating] + '22', color: ratingColor[s.rating], borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>
+                      <span style={{ background: ratingBg[s.rating], color: ratingColor[s.rating], borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>
                         {ratingLabel[s.rating]}
                       </span>
                       {s.quantity_available != null && (
-                        <span style={{ color: s.quantity_sufficient === false ? '#EF4444' : s.quantity_sufficient === true ? '#10B981' : 'var(--text-muted)', fontSize: 12 }}>
+                        <span style={{ color: s.quantity_sufficient === false ? 'var(--danger-vivid)' : s.quantity_sufficient === true ? 'var(--success-vivid)' : 'var(--text-muted)', fontSize: 12 }}>
                           {s.quantity_available} {s.quantity_unit}
                         </span>
                       )}
@@ -392,14 +393,14 @@ export default function SubstitutePage() {
                   {s.reasons.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: s.concerns.length > 0 ? 8 : 0 }}>
                       {s.reasons.map((r, i) => (
-                        <p key={i} style={{ color: '#10B981', fontSize: 13 }}>✓ {r}</p>
+                        <p key={i} style={{ color: 'var(--success-vivid)', fontSize: 13 }}>✓ {r}</p>
                       ))}
                     </div>
                   )}
                   {s.concerns.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                       {s.concerns.map((c, i) => (
-                        <p key={i} style={{ color: '#F59E0B', fontSize: 13 }}>⚠ {c}</p>
+                        <p key={i} style={{ color: 'var(--warning-vivid)', fontSize: 13 }}>⚠ {c}</p>
                       ))}
                     </div>
                   )}

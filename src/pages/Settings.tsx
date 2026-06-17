@@ -218,16 +218,16 @@ export default function SettingsPage() {
                 autoFocus
                 style={{
                   width: '100%', background: 'var(--bg-input)',
-                  border: `1px solid ${error ? '#EF4444' : 'var(--border-input)'}`,
+                  border: `1px solid ${error ? 'var(--danger-vivid)' : 'var(--border-input)'}`,
                   borderRadius: 8, padding: '12px 14px', color: 'var(--text-body)',
                   fontSize: 16, boxSizing: 'border-box', marginBottom: 8, outline: 'none',
                 }}
               />
             </div>
-            {error && <p style={{ color: '#EF4444', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+            {error && <p style={{ color: 'var(--danger-vivid)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
             <button onClick={handleUnlock} disabled={!password.trim() || loading} style={{
               width: '100%', padding: '12px 16px', borderRadius: 8,
-              border: 'none', background: '#7C3AED', color: '#fff',
+              border: 'none', background: 'var(--primary)', color: 'var(--primary-text)',
               cursor: password.trim() && !loading ? 'pointer' : 'default',
               fontSize: 15, fontWeight: 600,
               opacity: password.trim() && !loading ? 1 : 0.5,

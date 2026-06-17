@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { getPref } from '../lib/prefs';
-import { colors, radii, inputStyle, labelStyle } from '../lib/theme';
+import { inputStyle, labelStyle } from '../lib/theme';
 
 type Result = {
   stitchScale: number;
@@ -136,7 +136,8 @@ export default function GaugePage() {
     setYardageResult({ yards, meters, skeins50: Math.ceil(yards / 54), skeins100: Math.ceil(yards / 109) });
   }
 
-  const diffColor = (d: number) => Math.abs(d) <= 5 ? '#10B981' : Math.abs(d) <= 15 ? '#F59E0B' : '#EF4444';
+  const diffColor = (d: number) => Math.abs(d) <= 5 ? 'var(--success-vivid)' : Math.abs(d) <= 15 ? 'var(--warning-vivid)' : 'var(--danger-vivid)';
+  const diffBg = (d: number) => Math.abs(d) <= 5 ? 'var(--success-vivid-bg)' : Math.abs(d) <= 15 ? 'var(--warning-vivid-bg)' : 'var(--danger-vivid-bg)';
 
   const filteredNeedles = needleSearch.trim()
     ? NEEDLE_SIZES.filter(n =>
@@ -150,13 +151,13 @@ export default function GaugePage() {
       <h1>Gauge & Needles</h1>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #374151', marginBottom: 24 }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', marginBottom: 24 }}>
         {(Object.keys(TAB_LABELS) as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '10px 16px', border: 'none', background: 'transparent',
-            color: tab === t ? '#7C3AED' : '#9CA3AF', cursor: 'pointer', fontSize: 13,
+            color: tab === t ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 13,
             fontWeight: tab === t ? 700 : 500,
-            borderBottom: `2px solid ${tab === t ? '#7C3AED' : 'transparent'}`,
+            borderBottom: `2px solid ${tab === t ? 'var(--primary)' : 'transparent'}`,
             marginBottom: -1, whiteSpace: 'nowrap',
           }}>{TAB_LABELS[t]}</button>
         ))}
@@ -165,31 +166,31 @@ export default function GaugePage() {
       {/* ── Gauge Calculator ── */}
       {tab === 'gauge' && (
         <div>
-          <p style={{ color: '#9CA3AF', marginBottom: 24, fontSize: 14 }}>
+          <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: 14 }}>
             Enter your gauge swatch measurements to find out how to adjust a pattern for your yarn.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <div className="card" style={{ cursor: 'default' }}>
               <p className="card-title" style={{ marginBottom: 4 }}>Pattern gauge</p>
-              <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 16 }}>What the pattern calls for</p>
+              <p style={{ color: 'var(--text-faint)', fontSize: 12, marginBottom: 16 }}>What the pattern calls for</p>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={lbl}>Stitches</label>
-                  <input style={inp} value={patternSts} onChange={e => setPatternSts(e.target.value)} placeholder="22" type="number" />
+                  <label style={labelStyle}>Stitches</label>
+                  <input style={inputStyle} value={patternSts} onChange={e => setPatternSts(e.target.value)} placeholder="22" type="number" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={lbl}>Rows</label>
-                  <input style={inp} value={patternRows} onChange={e => setPatternRows(e.target.value)} placeholder="30" type="number" />
+                  <label style={labelStyle}>Rows</label>
+                  <input style={inputStyle} value={patternRows} onChange={e => setPatternRows(e.target.value)} placeholder="30" type="number" />
                 </div>
                 <div>
-                  <label style={lbl}>Per</label>
+                  <label style={labelStyle}>Per</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {['10cm', '4in'].map(u => (
                       <button key={u} onClick={() => setPatternUnit(u)} style={{
                         padding: '6px 10px', borderRadius: 6, border: '1px solid',
-                        borderColor: patternUnit === u ? '#7C3AED' : '#374151',
-                        background: patternUnit === u ? '#7C3AED' : 'transparent',
-                        color: patternUnit === u ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12,
+                        borderColor: patternUnit === u ? 'var(--primary)' : 'var(--border-medium)',
+                        background: patternUnit === u ? 'var(--primary)' : 'transparent',
+                        color: patternUnit === u ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
                       }}>{u}</button>
                     ))}
                   </div>
@@ -198,32 +199,32 @@ export default function GaugePage() {
             </div>
             <div className="card" style={{ cursor: 'default' }}>
               <p className="card-title" style={{ marginBottom: 4 }}>Your gauge</p>
-              <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 16 }}>From your actual swatch</p>
+              <p style={{ color: 'var(--text-faint)', fontSize: 12, marginBottom: 16 }}>From your actual swatch</p>
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={{ flex: 1 }}>
-                  <label style={lbl}>Stitches</label>
-                  <input style={inp} value={yourSts} onChange={e => setYourSts(e.target.value)} placeholder="19" type="number" />
+                  <label style={labelStyle}>Stitches</label>
+                  <input style={inputStyle} value={yourSts} onChange={e => setYourSts(e.target.value)} placeholder="19" type="number" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={lbl}>Rows</label>
-                  <input style={inp} value={yourRows} onChange={e => setYourRows(e.target.value)} placeholder="27" type="number" />
+                  <label style={labelStyle}>Rows</label>
+                  <input style={inputStyle} value={yourRows} onChange={e => setYourRows(e.target.value)} placeholder="27" type="number" />
                 </div>
               </div>
             </div>
           </div>
           <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
             <p className="card-title" style={{ marginBottom: 4 }}>
-              Adjust pattern counts <span style={{ color: '#6B7280', fontWeight: 400, fontSize: 13 }}>(optional)</span>
+              Adjust pattern counts <span style={{ color: 'var(--text-faint)', fontWeight: 400, fontSize: 13 }}>(optional)</span>
             </p>
-            <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 16 }}>Enter counts from the pattern to get adjusted numbers</p>
+            <p style={{ color: 'var(--text-faint)', fontSize: 12, marginBottom: 16 }}>Enter counts from the pattern to get adjusted numbers</p>
             <div style={{ display: 'flex', gap: 16 }}>
               <div style={{ flex: 1 }}>
-                <label style={lbl}>Pattern stitches</label>
-                <input style={inp} value={originalSts} onChange={e => setOriginalSts(e.target.value)} placeholder="e.g. 120" type="number" />
+                <label style={labelStyle}>Pattern stitches</label>
+                <input style={inputStyle} value={originalSts} onChange={e => setOriginalSts(e.target.value)} placeholder="e.g. 120" type="number" />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={lbl}>Pattern rows</label>
-                <input style={inp} value={originalRows} onChange={e => setOriginalRows(e.target.value)} placeholder="e.g. 80" type="number" />
+                <label style={labelStyle}>Pattern rows</label>
+                <input style={inputStyle} value={originalRows} onChange={e => setOriginalRows(e.target.value)} placeholder="e.g. 80" type="number" />
               </div>
             </div>
           </div>
@@ -237,18 +238,18 @@ export default function GaugePage() {
               <div className="card" style={{ cursor: 'default' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <p className="card-title">Stitch adjustment</p>
-                  <span style={{ background: diffColor(result.stitchDiff) + '22', color: diffColor(result.stitchDiff), padding: '3px 10px', borderRadius: 6, fontWeight: 700, fontSize: 13 }}>
+                  <span style={{ background: diffBg(result.stitchDiff), color: diffColor(result.stitchDiff), padding: '3px 10px', borderRadius: 6, fontWeight: 700, fontSize: 13 }}>
                     {result.stitchDiff > 0 ? '+' : ''}{result.stitchDiff}%
                   </span>
                 </div>
-                <p style={{ color: '#9CA3AF', fontSize: 13, marginBottom: 4 }}>
-                  Scale factor: <span style={{ color: '#F9FAFB', fontWeight: 600 }}>{result.stitchScale.toFixed(3)}</span>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 4 }}>
+                  Scale factor: <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{result.stitchScale.toFixed(3)}</span>
                 </p>
                 {result.adjustedStitches !== null && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#374151', borderRadius: 8, padding: 12, marginTop: 8 }}>
-                    <span style={{ color: '#9CA3AF', fontSize: 14, flex: 1 }}>Pattern stitches</span>
-                    <span style={{ color: '#7C3AED', fontSize: 18, fontWeight: 700 }}>{'→'}</span>
-                    <span style={{ color: '#F9FAFB', fontSize: 22, fontWeight: 700 }}>{result.adjustedStitches} sts</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-muted)', borderRadius: 8, padding: 12, marginTop: 8 }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 14, flex: 1 }}>Pattern stitches</span>
+                    <span style={{ color: 'var(--primary)', fontSize: 18, fontWeight: 700 }}>{'→'}</span>
+                    <span style={{ color: 'var(--text-primary)', fontSize: 22, fontWeight: 700 }}>{result.adjustedStitches} sts</span>
                   </div>
                 )}
               </div>
@@ -256,25 +257,25 @@ export default function GaugePage() {
                 <div className="card" style={{ cursor: 'default' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <p className="card-title">Row adjustment</p>
-                    <span style={{ background: diffColor(result.rowDiff) + '22', color: diffColor(result.rowDiff), padding: '3px 10px', borderRadius: 6, fontWeight: 700, fontSize: 13 }}>
+                    <span style={{ background: diffBg(result.rowDiff), color: diffColor(result.rowDiff), padding: '3px 10px', borderRadius: 6, fontWeight: 700, fontSize: 13 }}>
                       {result.rowDiff > 0 ? '+' : ''}{result.rowDiff}%
                     </span>
                   </div>
-                  <p style={{ color: '#9CA3AF', fontSize: 13, marginBottom: 4 }}>
-                    Scale factor: <span style={{ color: '#F9FAFB', fontWeight: 600 }}>{result.rowScale.toFixed(3)}</span>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 4 }}>
+                    Scale factor: <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{result.rowScale.toFixed(3)}</span>
                   </p>
                   {result.adjustedRows !== null && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#374151', borderRadius: 8, padding: 12, marginTop: 8 }}>
-                      <span style={{ color: '#9CA3AF', fontSize: 14, flex: 1 }}>Pattern rows</span>
-                      <span style={{ color: '#7C3AED', fontSize: 18, fontWeight: 700 }}>{'→'}</span>
-                      <span style={{ color: '#F9FAFB', fontSize: 22, fontWeight: 700 }}>{result.adjustedRows} rows</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-muted)', borderRadius: 8, padding: 12, marginTop: 8 }}>
+                      <span style={{ color: 'var(--text-muted)', fontSize: 14, flex: 1 }}>Pattern rows</span>
+                      <span style={{ color: 'var(--primary)', fontSize: 18, fontWeight: 700 }}>{'→'}</span>
+                      <span style={{ color: 'var(--text-primary)', fontSize: 22, fontWeight: 700 }}>{result.adjustedRows} rows</span>
                     </div>
                   )}
                 </div>
               )}
-              <div style={{ background: '#1a2540', borderRadius: 12, padding: 16, borderLeft: '3px solid #7C3AED' }}>
-                <p style={{ color: '#F9FAFB', fontWeight: 600, marginBottom: 6 }}>💡 Needle advice</p>
-                <p style={{ color: '#D1D5DB', fontSize: 14, lineHeight: 1.6 }}>
+              <div style={{ background: 'var(--bg-accent)', borderRadius: 12, padding: 16, borderLeft: '3px solid var(--border-accent)' }}>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: 6 }}>💡 Needle advice</p>
+                <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6 }}>
                   {Math.abs(result.stitchDiff) <= 5
                     ? 'Your gauge is very close — you should be fine knitting as written.'
                     : result.stitchDiff > 0
@@ -290,28 +291,28 @@ export default function GaugePage() {
       {/* ── Needle Size Converter ── */}
       {tab === 'needles' && (
         <div>
-          <p style={{ color: '#9CA3AF', marginBottom: 16, fontSize: 14 }}>Search by metric (mm), US, or UK size.</p>
+          <p style={{ color: 'var(--text-muted)', marginBottom: 16, fontSize: 14 }}>Search by metric (mm), US, or UK size.</p>
           <input value={needleSearch} onChange={e => setNeedleSearch(e.target.value)}
             placeholder="e.g. 4, US 6, or UK 8"
-            style={{ ...inp, textAlign: 'left', marginBottom: 16, maxWidth: 300 }} />
-          <div style={{ background: '#1F2937', borderRadius: 12, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '10px 16px', background: '#374151' }}>
+            style={{ ...inputStyle, textAlign: 'left', marginBottom: 16, maxWidth: 300 }} />
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '10px 16px', background: 'var(--bg-accent)' }}>
               {[['Metric (mm)', 'metric'], ['US', 'US'], ['UK / Canadian', 'UK']].map(([h, sys]) => (
-                <span key={h} style={{ color: needleSystem === sys ? '#A78BFA' : '#9CA3AF', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>{h}</span>
+                <span key={h} style={{ color: needleSystem === sys ? 'var(--text-accent)' : 'var(--text-muted)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>{h}</span>
               ))}
             </div>
             {filteredNeedles.length === 0 && (
-              <p style={{ color: '#6B7280', padding: 16, textAlign: 'center' }}>No results for &quot;{needleSearch}&quot;</p>
+              <p style={{ color: 'var(--text-faint)', padding: 16, textAlign: 'center' }}>No results for &quot;{needleSearch}&quot;</p>
             )}
             {filteredNeedles.map((n, i) => (
               <div key={n.metric} style={{
                 display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
-                padding: '12px 16px', background: i % 2 === 0 ? 'transparent' : '#1a1f2e',
-                borderTop: '1px solid #374151',
+                padding: '12px 16px', background: i % 2 === 0 ? 'transparent' : 'var(--bg-muted)',
+                borderTop: '1px solid var(--border-light)',
               }}>
-                <span style={{ color: needleSystem === 'metric' ? '#F9FAFB' : '#A78BFA', fontWeight: needleSystem === 'metric' ? 700 : 600, fontSize: 15 }}>{n.metric} mm</span>
-                <span style={{ color: needleSystem === 'US' ? '#F9FAFB' : '#9CA3AF', fontWeight: needleSystem === 'US' ? 700 : 400, fontSize: 15 }}>{n.us}</span>
-                <span style={{ color: needleSystem === 'UK' ? '#F9FAFB' : '#9CA3AF', fontWeight: needleSystem === 'UK' ? 700 : 400, fontSize: 15 }}>{n.uk}</span>
+                <span style={{ color: needleSystem === 'metric' ? 'var(--text-primary)' : 'var(--text-accent)', fontWeight: needleSystem === 'metric' ? 700 : 600, fontSize: 15 }}>{n.metric} mm</span>
+                <span style={{ color: needleSystem === 'US' ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: needleSystem === 'US' ? 700 : 400, fontSize: 15 }}>{n.us}</span>
+                <span style={{ color: needleSystem === 'UK' ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: needleSystem === 'UK' ? 700 : 400, fontSize: 15 }}>{n.uk}</span>
               </div>
             ))}
           </div>
@@ -321,24 +322,24 @@ export default function GaugePage() {
       {/* ── Cast On Tail Calculator ── */}
       {tab === 'castonTail' && (
         <div>
-          <p style={{ color: '#9CA3AF', marginBottom: 24, fontSize: 14 }}>
+          <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: 14 }}>
             Calculate how long a tail you need for a long tail cast on, based on your yarn and needle size.
           </p>
           <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
             <p className="card-title" style={{ marginBottom: 4 }}>Stitch count</p>
-            <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 12 }}>How many stitches are you casting on?</p>
-            <input style={{ ...inp, textAlign: 'left', maxWidth: 200 }}
+            <p style={{ color: 'var(--text-faint)', fontSize: 12, marginBottom: 12 }}>How many stitches are you casting on?</p>
+            <input style={{ ...inputStyle, textAlign: 'left', maxWidth: 200 }}
               value={tailStitches} onChange={e => { setTailStitches(e.target.value); setTailResult(null); }}
               placeholder="e.g. 80" type="number" />
           </div>
           <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
             <p className="card-title" style={{ marginBottom: 4 }}>WPI (wraps per inch)</p>
-            <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 12 }}>Wrap your yarn around a ruler — count how many wraps fit in 1 inch.</p>
-            <input style={{ ...inp, textAlign: 'left', maxWidth: 200 }}
+            <p style={{ color: 'var(--text-faint)', fontSize: 12, marginBottom: 12 }}>Wrap your yarn around a ruler — count how many wraps fit in 1 inch.</p>
+            <input style={{ ...inputStyle, textAlign: 'left', maxWidth: 200 }}
               value={tailWpi} onChange={e => { setTailWpi(e.target.value); setTailResult(null); }}
               placeholder="e.g. 14" type="number" />
             <div style={{ marginTop: 16 }}>
-              <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 8 }}>Common WPI ranges by weight:</p>
+              <p style={{ color: 'var(--text-faint)', fontSize: 12, marginBottom: 8 }}>Common WPI ranges by weight:</p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {[
                   { label: 'Lace', wpi: '30+' }, { label: 'Fingering', wpi: '14–18' },
@@ -346,9 +347,9 @@ export default function GaugePage() {
                   { label: 'Worsted', wpi: '9–11' }, { label: 'Aran', wpi: '7–9' },
                   { label: 'Bulky', wpi: '5–7' }, { label: 'Super Bulky', wpi: '1–4' },
                 ].map(({ label, wpi: range }) => (
-                  <div key={label} style={{ background: '#374151', borderRadius: 6, padding: '4px 10px', fontSize: 12 }}>
-                    <span style={{ color: '#A78BFA', fontWeight: 600 }}>{label}</span>
-                    <span style={{ color: '#6B7280' }}> {range}</span>
+                  <div key={label} style={{ background: 'var(--bg-muted)', borderRadius: 6, padding: '4px 10px', fontSize: 12 }}>
+                    <span style={{ color: 'var(--text-accent)', fontWeight: 600 }}>{label}</span>
+                    <span style={{ color: 'var(--text-faint)' }}> {range}</span>
                   </div>
                 ))}
               </div>
@@ -356,24 +357,24 @@ export default function GaugePage() {
           </div>
           <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
             <p className="card-title" style={{ marginBottom: 4 }}>Needle size</p>
-            <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 12 }}>Pick a common size or enter a custom diameter.</p>
+            <p style={{ color: 'var(--text-faint)', fontSize: 12, marginBottom: 12 }}>Pick a common size or enter a custom diameter.</p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
               {['2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0', '8.0', '9.0', '10.0', '12.0'].map(mm => (
                 <button key={mm} onClick={() => { setTailNeedleInput(mm); setTailNeedle(mm); setTailResult(null); }} style={{
                   padding: '5px 10px', borderRadius: 8, border: '1px solid',
-                  borderColor: tailNeedleInput === mm ? '#7C3AED' : '#374151',
-                  background: tailNeedleInput === mm ? '#7C3AED' : 'transparent',
-                  color: tailNeedleInput === mm ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12,
+                  borderColor: tailNeedleInput === mm ? 'var(--primary)' : 'var(--border-medium)',
+                  background: tailNeedleInput === mm ? 'var(--primary)' : 'transparent',
+                  color: tailNeedleInput === mm ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
                 }}>{mm} mm</button>
               ))}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ color: '#6B7280', fontSize: 13 }}>Custom:</span>
-              <input style={{ ...inp, textAlign: 'left', maxWidth: 120 }}
+              <span style={{ color: 'var(--text-faint)', fontSize: 13 }}>Custom:</span>
+              <input style={{ ...inputStyle, textAlign: 'left', maxWidth: 120 }}
                 value={tailNeedleInput === 'custom' ? tailNeedle : ''}
                 onChange={e => { setTailNeedle(e.target.value); setTailNeedleInput('custom'); setTailResult(null); }}
                 placeholder="mm" type="number" />
-              <span style={{ color: '#6B7280', fontSize: 13 }}>mm</span>
+              <span style={{ color: 'var(--text-faint)', fontSize: 13 }}>mm</span>
             </div>
           </div>
           <button className="btn btn-primary" style={{ marginBottom: 20, opacity: (!tailStitches || !tailWpi || !tailNeedle) ? 0.5 : 1 }}
@@ -388,15 +389,15 @@ export default function GaugePage() {
           </button>
           {tailResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ background: '#1F2937', borderRadius: 16, padding: 28, textAlign: 'center' }}>
-                <p style={{ color: '#9CA3AF', fontSize: 13, marginBottom: 8 }}>Leave a tail of at least</p>
-                <p style={{ color: '#F9FAFB', fontSize: 52, fontWeight: 700, lineHeight: 1 }}>{tailResult.inches}&quot;</p>
-                <p style={{ color: '#A78BFA', fontSize: 20, fontWeight: 600, marginTop: 4 }}>{tailResult.cm} cm</p>
-                <p style={{ color: '#6B7280', fontSize: 12, marginTop: 12 }}>Includes 6&quot; extra to weave in the end</p>
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 16, padding: 28, textAlign: 'center' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Leave a tail of at least</p>
+                <p style={{ color: 'var(--text-primary)', fontSize: 52, fontWeight: 700, lineHeight: 1 }}>{tailResult.inches}&quot;</p>
+                <p style={{ color: 'var(--text-accent)', fontSize: 20, fontWeight: 600, marginTop: 4 }}>{tailResult.cm} cm</p>
+                <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 12 }}>Includes 6&quot; extra to weave in the end</p>
               </div>
-              <div style={{ background: '#1a2540', borderRadius: 12, padding: 16, borderLeft: '3px solid #7C3AED' }}>
-                <p style={{ color: '#F9FAFB', fontWeight: 600, marginBottom: 6 }}>💡 Tip</p>
-                <p style={{ color: '#D1D5DB', fontSize: 14, lineHeight: 1.6 }}>
+              <div style={{ background: 'var(--bg-accent)', borderRadius: 12, padding: 16, borderLeft: '3px solid var(--border-accent)' }}>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: 6 }}>💡 Tip</p>
+                <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6 }}>
                   When in doubt, add a little extra — running out of tail mid-cast-on means starting over.
                   For very large stitch counts, cut a long tail and fold it in half to find the midpoint first.
                 </p>
@@ -409,7 +410,7 @@ export default function GaugePage() {
       {/* ── Yardage Calculator ── */}
       {tab === 'yardage' && (
         <div>
-          <p style={{ color: '#9CA3AF', marginBottom: 24, fontSize: 14 }}>
+          <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: 14 }}>
             Estimate how much yarn you need based on your finished dimensions and gauge.
           </p>
           <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
@@ -418,9 +419,9 @@ export default function GaugePage() {
               {(['rectangle', 'triangle', 'circle'] as const).map(s => (
                 <button key={s} onClick={() => { setYardageShape(s); setYardageResult(null); }} style={{
                   flex: 1, padding: '10px 8px', borderRadius: 10, border: '1px solid',
-                  borderColor: yardageShape === s ? '#7C3AED' : '#374151',
-                  background: yardageShape === s ? '#7C3AED' : 'transparent',
-                  color: yardageShape === s ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 13,
+                  borderColor: yardageShape === s ? 'var(--primary)' : 'var(--border-medium)',
+                  background: yardageShape === s ? 'var(--primary)' : 'transparent',
+                  color: yardageShape === s ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 13,
                 }}>
                   {s === 'rectangle' ? '▭ Rectangle / Square' : s === 'triangle' ? '△ Triangle' : '○ Circle'}
                 </button>
@@ -434,31 +435,31 @@ export default function GaugePage() {
                 {(['in', 'cm'] as const).map(u => (
                   <button key={u} onClick={() => { setYardageUnit(u); setYardageResult(null); }} style={{
                     padding: '4px 12px', borderRadius: 8, border: '1px solid',
-                    borderColor: yardageUnit === u ? '#7C3AED' : '#374151',
-                    background: yardageUnit === u ? '#7C3AED' : 'transparent',
-                    color: yardageUnit === u ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 13,
+                    borderColor: yardageUnit === u ? 'var(--primary)' : 'var(--border-medium)',
+                    background: yardageUnit === u ? 'var(--primary)' : 'transparent',
+                    color: yardageUnit === u ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 13,
                   }}>{u}</button>
                 ))}
               </div>
             </div>
             {yardageShape === 'circle' ? (
               <div style={{ maxWidth: 200 }}>
-                <label style={lbl}>Radius ({yardageUnit})</label>
-                <input style={inp} value={yardageR}
+                <label style={labelStyle}>Radius ({yardageUnit})</label>
+                <input style={inputStyle} value={yardageR}
                   onChange={e => { setYardageR(e.target.value); setYardageResult(null); }}
                   placeholder="e.g. 6" type="number" />
               </div>
             ) : (
               <div style={{ display: 'flex', gap: 16 }}>
                 <div style={{ flex: 1 }}>
-                  <label style={lbl}>Width ({yardageUnit})</label>
-                  <input style={inp} value={yardageW}
+                  <label style={labelStyle}>Width ({yardageUnit})</label>
+                  <input style={inputStyle} value={yardageW}
                     onChange={e => { setYardageW(e.target.value); setYardageResult(null); }}
                     placeholder={yardageShape === 'triangle' ? 'Base' : 'Width'} type="number" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={lbl}>Height ({yardageUnit})</label>
-                  <input style={inp} value={yardageH}
+                  <label style={labelStyle}>Height ({yardageUnit})</label>
+                  <input style={inputStyle} value={yardageH}
                     onChange={e => { setYardageH(e.target.value); setYardageResult(null); }}
                     placeholder="Height" type="number" />
                 </div>
@@ -469,26 +470,26 @@ export default function GaugePage() {
             <p className="card-title" style={{ marginBottom: 12 }}>Your gauge</p>
             <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
               <div style={{ flex: 1 }}>
-                <label style={lbl}>Stitches</label>
-                <input style={inp} value={yardageSts}
+                <label style={labelStyle}>Stitches</label>
+                <input style={inputStyle} value={yardageSts}
                   onChange={e => { setYardageSts(e.target.value); setYardageResult(null); }}
                   placeholder="e.g. 20" type="number" />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={lbl}>Rows</label>
-                <input style={inp} value={yardageRows}
+                <label style={labelStyle}>Rows</label>
+                <input style={inputStyle} value={yardageRows}
                   onChange={e => { setYardageRows(e.target.value); setYardageResult(null); }}
                   placeholder="e.g. 28" type="number" />
               </div>
               <div>
-                <label style={lbl}>Per</label>
+                <label style={labelStyle}>Per</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {(['10cm', '4in'] as const).map(u => (
                     <button key={u} onClick={() => { setYardageGaugeUnit(u); setYardageResult(null); }} style={{
                       padding: '6px 10px', borderRadius: 6, border: '1px solid',
-                      borderColor: yardageGaugeUnit === u ? '#7C3AED' : '#374151',
-                      background: yardageGaugeUnit === u ? '#7C3AED' : 'transparent',
-                      color: yardageGaugeUnit === u ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12,
+                      borderColor: yardageGaugeUnit === u ? 'var(--primary)' : 'var(--border-medium)',
+                      background: yardageGaugeUnit === u ? 'var(--primary)' : 'transparent',
+                      color: yardageGaugeUnit === u ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
                     }}>{u}</button>
                   ))}
                 </div>
@@ -502,25 +503,25 @@ export default function GaugePage() {
           </button>
           {yardageResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ background: '#1F2937', borderRadius: 16, padding: 28, textAlign: 'center' }}>
-                <p style={{ color: '#9CA3AF', fontSize: 13, marginBottom: 8 }}>Estimated yarn needed</p>
-                <p style={{ color: '#F9FAFB', fontSize: 52, fontWeight: 700, lineHeight: 1 }}>{yardageResult.yards}</p>
-                <p style={{ color: '#9CA3AF', fontSize: 14, marginTop: 2 }}>yards</p>
-                <p style={{ color: '#A78BFA', fontSize: 20, fontWeight: 600, marginTop: 8 }}>{yardageResult.meters} m</p>
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 16, padding: 28, textAlign: 'center' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Estimated yarn needed</p>
+                <p style={{ color: 'var(--text-primary)', fontSize: 52, fontWeight: 700, lineHeight: 1 }}>{yardageResult.yards}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 2 }}>yards</p>
+                <p style={{ color: 'var(--text-accent)', fontSize: 20, fontWeight: 600, marginTop: 8 }}>{yardageResult.meters} m</p>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div style={{ background: '#1F2937', borderRadius: 12, padding: 16, textAlign: 'center' }}>
-                  <p style={{ color: '#F9FAFB', fontSize: 28, fontWeight: 700 }}>{yardageResult.skeins50}</p>
-                  <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>skeins (50g / ~54 yds)</p>
+                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, textAlign: 'center' }}>
+                  <p style={{ color: 'var(--text-primary)', fontSize: 28, fontWeight: 700 }}>{yardageResult.skeins50}</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>skeins (50g / ~54 yds)</p>
                 </div>
-                <div style={{ background: '#1F2937', borderRadius: 12, padding: 16, textAlign: 'center' }}>
-                  <p style={{ color: '#F9FAFB', fontSize: 28, fontWeight: 700 }}>{yardageResult.skeins100}</p>
-                  <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>skeins (100g / ~109 yds)</p>
+                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, textAlign: 'center' }}>
+                  <p style={{ color: 'var(--text-primary)', fontSize: 28, fontWeight: 700 }}>{yardageResult.skeins100}</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>skeins (100g / ~109 yds)</p>
                 </div>
               </div>
-              <div style={{ background: '#1a2540', borderRadius: 12, padding: 16, borderLeft: '3px solid #7C3AED' }}>
-                <p style={{ color: '#F9FAFB', fontWeight: 600, marginBottom: 6 }}>💡 Note</p>
-                <p style={{ color: '#D1D5DB', fontSize: 14, lineHeight: 1.6 }}>
+              <div style={{ background: 'var(--bg-accent)', borderRadius: 12, padding: 16, borderLeft: '3px solid var(--border-accent)' }}>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: 6 }}>💡 Note</p>
+                <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6 }}>
                   This estimate includes a 15% buffer for seams, finishing, and swatch waste.
                   Skein sizes assume worsted weight — adjust if using a different weight.
                   Always buy one extra skein if possible, especially for hand-dyed yarn where dye lots vary.
@@ -533,6 +534,3 @@ export default function GaugePage() {
     </div>
   );
 }
-
-const lbl: React.CSSProperties = labelStyle;
-const inp: React.CSSProperties = { ...inputStyle, textAlign: 'center' };

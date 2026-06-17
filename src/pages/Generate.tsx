@@ -248,11 +248,11 @@ Rules:
       </div>
 
       {error && (
-        <div style={{ background: '#1a1020', border: '1px solid #EF4444', borderRadius: 10, padding: 14, marginBottom: 16 }}>
-          <p style={{ color: '#EF4444', fontSize: 14 }}>
+        <div style={{ background: 'var(--danger-vivid-bg)', border: '1px solid var(--danger-vivid)', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+          <p style={{ color: 'var(--danger-vivid)', fontSize: 14 }}>
             {error}
             {error.includes('expired') && (
-              <> <a href="/settings" style={{ color: '#A78BFA', textDecoration: 'underline' }}>Go to Settings →</a></>
+              <> <a href="/settings" style={{ color: 'var(--text-accent)', textDecoration: 'underline' }}>Go to Settings →</a></>
             )}
           </p>
         </div>

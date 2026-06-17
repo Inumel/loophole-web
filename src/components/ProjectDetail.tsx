@@ -301,8 +301,8 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
     fetchProject();
   }
 
-  if (loading) return <p style={{ color: '#9CA3AF' }}>Loading…</p>;
-  if (!project) return <p style={{ color: '#9CA3AF' }}>Project not found.</p>;
+  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
+  if (!project) return <p style={{ color: 'var(--text-muted)' }}>Project not found.</p>;
 
   const rawSections = project.pattern?.parsed_guide?.sections;
   const sections = Array.isArray(rawSections) ? (rawSections as GuideSection[]) : null;
@@ -316,10 +316,10 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
         <h1 style={{ margin: 0 }}>{project.name}</h1>
-        {!readOnly && <button onClick={openEdit} style={{ background: '#374151', border: 'none', color: '#A78BFA', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0, marginLeft: 12 }}>✏️ Edit</button>}
+        {!readOnly && <button onClick={openEdit} style={{ background: 'var(--bg-muted)', border: 'none', color: 'var(--text-accent)', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0, marginLeft: 12 }}>✏️ Edit</button>}
       </div>
       {project.pattern && (
-        <p style={{ color: '#9CA3AF', fontSize: 14, marginBottom: 16 }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 16 }}>
           Pattern: {project.pattern.name}{project.chosen_size && project.chosen_size !== 'One Size' ? ` · Size: ${project.chosen_size}` : ''}
         </p>
       )}
@@ -330,16 +330,16 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
           {['active', 'paused', 'completed', 'frogged'].map(s => (
             <button key={s} onClick={() => setStatus(s)} style={{
               padding: '6px 14px', borderRadius: 20,
-              border: `1px solid ${project.status === s ? '#7C3AED' : '#374151'}`,
-              background: project.status === s ? '#7C3AED' : 'transparent',
-              color: project.status === s ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 13,
+              border: `1px solid ${project.status === s ? 'var(--primary)' : 'var(--border-medium)'}`,
+              background: project.status === s ? 'var(--primary)' : 'transparent',
+              color: project.status === s ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 13,
             }}>{s}</button>
           ))}
         </div>
       )}
       {readOnly && (
         <div style={{ marginBottom: 24 }}>
-          <span style={{ background: '#7C3AED22', color: '#A78BFA', borderRadius: 20, padding: '6px 14px', fontSize: 13, fontWeight: 600 }}>{project.status}</span>
+          <span style={{ background: 'var(--bg-accent)', color: 'var(--text-accent)', borderRadius: 20, padding: '6px 14px', fontSize: 13, fontWeight: 600 }}>{project.status}</span>
         </div>
       )}
 
@@ -350,14 +350,14 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
             {!readOnly && <button onClick={() => adjustRow(-1)} style={cBtn}>−</button>}
             <div style={{ textAlign: 'center' }}>
-              <p style={{ fontSize: 52, fontWeight: 700, color: '#F9FAFB', lineHeight: 1 }}>{project.current_row}</p>
-              {project.target_rows && <p style={{ color: '#9CA3AF', fontSize: 13 }}>of {project.target_rows}</p>}
+              <p style={{ fontSize: 52, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{project.current_row}</p>
+              {project.target_rows && <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>of {project.target_rows}</p>}
             </div>
             {!readOnly && <button onClick={() => adjustRow(1)} style={cBtn}>+</button>}
           </div>
           {progress !== null && (
-            <div style={{ height: 6, background: '#374151', borderRadius: 3, marginTop: 16, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${progress}%`, background: '#7C3AED', borderRadius: 3 }} />
+            <div style={{ height: 6, background: 'var(--bg-muted)', borderRadius: 3, marginTop: 16, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${progress}%`, background: 'var(--primary)', borderRadius: 3 }} />
             </div>
           )}
         </div>
@@ -366,21 +366,21 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
         <div className="card" style={{ cursor: 'default' }}>
           <p className="card-title" style={{ marginBottom: 16 }}>Timer</p>
           {timerRunning && (
-            <p style={{ fontSize: 32, fontWeight: 700, color: '#F9FAFB', textAlign: 'center', fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
+            <p style={{ fontSize: 32, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'center', fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
               {fmt(timerSeconds)}
             </p>
           )}
           {!readOnly && <button onClick={timerRunning ? stopTimer : startTimer} className="btn"
-            style={{ width: '100%', background: timerRunning ? '#EF4444' : '#10B981', color: '#fff' }}>
+            style={{ width: '100%', background: timerRunning ? 'var(--danger-vivid)' : 'var(--success-vivid)', color: '#fff' }}>
             {timerRunning ? '⏹ Stop' : '▶ Start Session'}
           </button>}
           {sessions.length > 0 && (
-            <p style={{ color: '#9CA3AF', fontSize: 12, textAlign: 'center', marginTop: 8 }}>Total: {totalTime()}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, textAlign: 'center', marginTop: 8 }}>Total: {totalTime()}</p>
           )}
           {sessions.slice(0, 4).map(s => (
-            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #374151', marginTop: 6, paddingTop: 6 }}>
-              <span style={{ color: '#9CA3AF', fontSize: 12 }}>{new Date(s.started_at).toLocaleDateString()}</span>
-              <span style={{ color: '#F9FAFB', fontSize: 12 }}>{s.duration_minutes ? `${Math.round(s.duration_minutes)}m` : 'in progress'}</span>
+            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-light)', marginTop: 6, paddingTop: 6 }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{new Date(s.started_at).toLocaleDateString()}</span>
+              <span style={{ color: 'var(--text-primary)', fontSize: 12 }}>{s.duration_minutes ? `${Math.round(s.duration_minutes)}m` : 'in progress'}</span>
             </div>
           ))}
         </div>
@@ -391,10 +391,10 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
         <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <p className="card-title">Pattern Guide</p>
-            <span style={{ color: '#9CA3AF', fontSize: 13 }}>{completedSteps}/{totalSteps} steps</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{completedSteps}/{totalSteps} steps</span>
           </div>
-          <div style={{ height: 6, background: '#374151', borderRadius: 3, marginBottom: 12, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0}%`, background: '#7C3AED', borderRadius: 3 }} />
+          <div style={{ height: 6, background: 'var(--bg-muted)', borderRadius: 3, marginBottom: 12, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0}%`, background: 'var(--primary)', borderRadius: 3 }} />
           </div>
           {/* Section tabs */}
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 12, paddingBottom: 4 }}>
@@ -404,9 +404,9 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
               const done = comp === total;
               return (
                 <button key={i} onClick={() => setActiveSection(i)} style={{
-                  padding: '6px 12px', borderRadius: 8, border: `1px solid ${activeSection === i ? '#7C3AED' : done ? '#10B981' : '#374151'}`,
-                  background: activeSection === i ? '#7C3AED' : 'transparent',
-                  color: activeSection === i ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12,
+                  padding: '6px 12px', borderRadius: 8, border: `1px solid ${activeSection === i ? 'var(--primary)' : done ? 'var(--success-vivid)' : 'var(--border-medium)'}`,
+                  background: activeSection === i ? 'var(--primary)' : 'transparent',
+                  color: activeSection === i ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
                   whiteSpace: 'nowrap', flexShrink: 0,
                 }}>
                   {done ? '✓ ' : ''}{sec.title} ({comp}/{total})
@@ -414,24 +414,24 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
               );
             })}
           </div>
-          <p style={{ color: '#4B5563', fontSize: 11, textAlign: 'center', marginBottom: 10, fontStyle: 'italic' }}>Click to complete a step</p>
+          <p style={{ color: 'var(--text-faint)', fontSize: 11, textAlign: 'center', marginBottom: 10, fontStyle: 'italic' }}>Click to complete a step</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {getSteps(sections[activeSection], project.chosen_size, project.chosen_color_variation).map((step, si) => {
               const done = isCompleted(activeSection, si);
               return (
                 <div key={si} onClick={() => toggleStep(activeSection, si)} style={{
                   display: 'flex', gap: 12, alignItems: 'flex-start',
-                  background: done ? '#1a2e1a' : '#374151',
+                  background: done ? 'var(--success-vivid-bg)' : 'var(--bg-muted)',
                   borderRadius: 10, padding: 12, cursor: 'pointer', opacity: done ? 0.8 : 1,
                 }}>
                   <div style={{
-                    width: 24, height: 24, borderRadius: 12, border: `2px solid ${done ? '#10B981' : '#6B7280'}`,
-                    background: done ? '#10B981' : 'transparent', flexShrink: 0,
+                    width: 24, height: 24, borderRadius: 12, border: `2px solid ${done ? 'var(--success-vivid)' : 'var(--text-faint)'}`,
+                    background: done ? 'var(--success-vivid)' : 'transparent', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     {done && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}
                   </div>
-                  <p style={{ color: done ? '#6B7280' : '#D1D5DB', fontSize: 14, lineHeight: 1.5, flex: 1, textDecoration: done ? 'line-through' : 'none', margin: 0 }} className="step-container">
+                  <p style={{ color: done ? 'var(--text-faint)' : 'var(--text-body)', fontSize: 14, lineHeight: 1.5, flex: 1, textDecoration: done ? 'line-through' : 'none', margin: 0 }} className="step-container">
                     <StepText step={step} index={si} />
                   </p>
                 </div>
@@ -453,18 +453,18 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
       <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <p className="card-title">Yarn</p>
-        {!readOnly && <button onClick={openYarnModal} style={{ background: '#374151', border: 'none', color: '#A78BFA', padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>+ Add</button>}
+        {!readOnly && <button onClick={openYarnModal} style={{ background: 'var(--bg-muted)', border: 'none', color: 'var(--text-accent)', padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>+ Add</button>}
         </div>
         {projectYarns.length === 0 ? (
-          <p style={{ color: '#6B7280', fontSize: 13, fontStyle: 'italic' }}>No yarn linked yet.</p>
+          <p style={{ color: 'var(--text-faint)', fontSize: 13, fontStyle: 'italic' }}>No yarn linked yet.</p>
         ) : projectYarns.map(py => (
-          <div key={py.id} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 8, borderTop: '1px solid #374151' }}>
-            <div style={{ width: 20, height: 20, borderRadius: 10, background: py.yarn?.[0]?.color_hex ?? '#6B7280', flexShrink: 0 }} />
+          <div key={py.id} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 8, borderTop: '1px solid var(--border-light)' }}>
+            <div style={{ width: 20, height: 20, borderRadius: 10, background: py.yarn?.[0]?.color_hex ?? 'var(--neutral-vivid)', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
-            <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{py.yarn?.[0]?.name ?? py.yarn_name ?? 'Unknown'}</p>
-            {py.yarn?.[0]?.brand && <p style={{ color: '#9CA3AF', fontSize: 12 }}>{py.yarn[0].brand}</p>}
+            <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{py.yarn?.[0]?.name ?? py.yarn_name ?? 'Unknown'}</p>
+            {py.yarn?.[0]?.brand && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>{py.yarn[0].brand}</p>}
             </div>
-            {py.quantity_used != null && <span style={{ color: '#A78BFA', fontWeight: 600 }}>{py.quantity_used} {py.unit}</span>}
+            {py.quantity_used != null && <span style={{ color: 'var(--text-accent)', fontWeight: 600 }}>{py.quantity_used} {py.unit}</span>}
           </div>
         ))}
       </div>
@@ -475,7 +475,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
         <textarea value={notes} onChange={(e) => !readOnly && setNotes(e.target.value)} onBlur={() => !readOnly && saveNotes()} rows={4}
           placeholder="Notes about this project..."
           readOnly={readOnly}
-          style={{ width: '100%', background: '#374151', border: '1px solid #4B5563', borderRadius: 8, padding: 10, color: '#F9FAFB', fontSize: 14, resize: readOnly ? 'none' : 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', opacity: readOnly ? 0.6 : 1 }} />
+          style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: 10, color: 'var(--text-body)', fontSize: 14, resize: readOnly ? 'none' : 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', opacity: readOnly ? 0.6 : 1 }} />
         {!readOnly && <button className="btn btn-secondary" onClick={saveNotes} style={{ marginTop: 8 }}>Save Notes</button>}
       </div>
 
@@ -483,17 +483,17 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
         if (!confirm('Delete this project?')) return;
         await supabase.from('projects').delete().eq('id', projectId);
         onBack();
-      }} style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid #EF4444', background: 'transparent', color: '#EF4444', cursor: 'pointer', fontSize: 14 }}>
+      }} style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--danger-vivid)', background: 'transparent', color: 'var(--danger-vivid)', cursor: 'pointer', fontSize: 14 }}>
         Delete Project
       </button>}
 
       {/* Edit modal */}
       {showEditModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: '#1F2937', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: 'var(--bg-sidebar)', border: '1px solid var(--border-light)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <p style={{ color: '#F9FAFB', fontSize: 18, fontWeight: 700 }}>Edit Project</p>
-              <button onClick={() => setShowEditModal(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <p style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700 }}>Edit Project</p>
+              <button onClick={() => setShowEditModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 20, cursor: 'pointer' }}>✕</button>
             </div>
 
             {[['Project Name *', editName, setEditName, 'text', 'Project name'],
@@ -501,9 +501,9 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
               ['Start Date', editStartedAt, setEditStartedAt, 'date', ''],
             ].map(([label, value, setter, type, placeholder]) => (
               <div key={label as string} style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', color: '#9CA3AF', fontSize: 13, marginBottom: 6 }}>{label as string}</label>
+                <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: 13, marginBottom: 6 }}>{label as string}</label>
                 <input
-                  style={{ width: '100%', background: '#374151', border: '1px solid #4B5563', borderRadius: 8, padding: '10px 12px', color: '#F9FAFB', fontSize: 15, boxSizing: 'border-box' }}
+                  style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '10px 12px', color: 'var(--text-body)', fontSize: 15, boxSizing: 'border-box' }}
                   value={value as string}
                   onChange={e => (setter as (v: string) => void)(e.target.value)}
                   type={type as string}
@@ -526,21 +526,21 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
 
       {/* Completion modal */}
       {showCompletionModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: '#1F2937', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: 'var(--bg-sidebar)', border: '1px solid var(--border-light)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <p style={{ color: '#F9FAFB', fontSize: 18, fontWeight: 700 }}>🎉 Project Complete!</p>
-              <button onClick={() => setShowCompletionModal(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <p style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700 }}>🎉 Project Complete!</p>
+              <button onClick={() => setShowCompletionModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 20, cursor: 'pointer' }}>✕</button>
             </div>
-            <label style={{ display: 'block', color: '#9CA3AF', fontSize: 13, marginBottom: 6 }}>How did it go? (optional)</label>
+            <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: 13, marginBottom: 6 }}>How did it go? (optional)</label>
             <textarea
               value={completionNotes}
               onChange={e => setCompletionNotes(e.target.value)}
               placeholder="Any notes about the finished project…"
               rows={3}
-              style={{ width: '100%', background: '#374151', border: '1px solid #4B5563', borderRadius: 8, padding: 10, color: '#F9FAFB', fontSize: 14, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 16 }}
+              style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: 10, color: 'var(--text-body)', fontSize: 14, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 16 }}
             />
-            <label style={{ display: 'block', color: '#9CA3AF', fontSize: 13, marginBottom: 10 }}>Rating</label>
+            <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: 13, marginBottom: 10 }}>Rating</label>
             <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
               {[1,2,3,4,5].map(star => (
                 <button key={star} onClick={() => setCompletionRating(star)}
@@ -550,7 +550,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-primary" onClick={saveCompletion}
                 disabled={savingCompletion}
-                style={{ flex: 1, background: '#10B981', opacity: savingCompletion ? 0.6 : 1 }}>
+                style={{ flex: 1, background: 'var(--success-vivid)', opacity: savingCompletion ? 0.6 : 1 }}>
                 {savingCompletion ? 'Saving…' : 'Mark as Complete'}
               </button>
               <button className="btn btn-secondary" onClick={async () => {
@@ -566,33 +566,33 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
 
       {/* Yarn modal */}
       {showYarnModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: '#1F2937', borderRadius: '20px 20px 0 0', padding: 24, width: '100%', maxWidth: 600, maxHeight: '70vh', overflow: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: 'var(--bg-sidebar)', borderRadius: '20px 20px 0 0', padding: 24, width: '100%', maxWidth: 600, maxHeight: '70vh', overflow: 'auto', border: '1px solid var(--border-light)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-              <p style={{ color: '#F9FAFB', fontSize: 18, fontWeight: 700 }}>Add Yarn</p>
-              <button onClick={() => setShowYarnModal(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <p style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700 }}>Add Yarn</p>
+              <button onClick={() => setShowYarnModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 20, cursor: 'pointer' }}>✕</button>
             </div>
-            <p style={{ color: '#9CA3AF', fontSize: 13, marginBottom: 8 }}>Select from stash</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Select from stash</p>
             <div style={{ maxHeight: 200, overflow: 'auto', marginBottom: 16 }}>
               {stashYarns.map(y => (
                 <div key={y.id} onClick={() => { setSelectedStashYarn(y); setYarnUnit(y.unit); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', borderBottom: '1px solid #374151', cursor: 'pointer', background: selectedStashYarn?.id === y.id ? '#2D1B6B' : 'transparent', borderRadius: 8 }}>
-                  <div style={{ width: 20, height: 20, borderRadius: 10, background: y.color_hex ?? '#6B7280' }} />
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', background: selectedStashYarn?.id === y.id ? 'var(--bg-accent)' : 'transparent', borderRadius: 8 }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 10, background: y.color_hex ?? 'var(--neutral-vivid)' }} />
                   <div style={{ flex: 1 }}>
-                    <p style={{ color: '#F9FAFB', fontSize: 14, fontWeight: 600 }}>{y.name}</p>
-                    {y.brand && <p style={{ color: '#9CA3AF', fontSize: 12 }}>{y.brand}</p>}
+                    <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{y.name}</p>
+                    {y.brand && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>{y.brand}</p>}
                   </div>
-                  {y.quantity != null && <span style={{ color: '#9CA3AF', fontSize: 12 }}>{y.quantity} {y.unit}</span>}
+                  {y.quantity != null && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{y.quantity} {y.unit}</span>}
                 </div>
               ))}
             </div>
-            <p style={{ color: '#9CA3AF', fontSize: 13, marginBottom: 8 }}>Quantity used (optional)</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Quantity used (optional)</p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
               <input value={quantityUsed} onChange={(e) => setQuantityUsed(e.target.value)} type="number" placeholder="0"
-                style={{ background: '#374151', border: '1px solid #4B5563', borderRadius: 8, padding: '8px 12px', color: '#F9FAFB', fontSize: 15, width: 100 }} />
+                style={{ background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-body)', fontSize: 15, width: 100 }} />
               {UNITS.map(u => (
                 <button key={u} onClick={() => setYarnUnit(u)}
-                  style={{ padding: '6px 12px', borderRadius: 16, border: '1px solid', borderColor: yarnUnit === u ? '#7C3AED' : '#374151', background: yarnUnit === u ? '#7C3AED' : 'transparent', color: yarnUnit === u ? '#fff' : '#9CA3AF', cursor: 'pointer', fontSize: 12 }}>
+                  style={{ padding: '6px 12px', borderRadius: 16, border: '1px solid', borderColor: yarnUnit === u ? 'var(--primary)' : 'var(--border-medium)', background: yarnUnit === u ? 'var(--primary)' : 'transparent', color: yarnUnit === u ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 12 }}>
                   {u}
                 </button>
               ))}
@@ -608,6 +608,6 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
 }
 
 const cBtn: React.CSSProperties = {
-  width: 48, height: 48, borderRadius: 24, background: '#374151',
-  border: 'none', color: '#F9FAFB', fontSize: 24, cursor: 'pointer',
+  width: 48, height: 48, borderRadius: 24, background: 'var(--bg-muted)',
+  border: 'none', color: 'var(--text-primary)', fontSize: 24, cursor: 'pointer',
 };

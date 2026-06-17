@@ -272,7 +272,7 @@ export default function ProjectsPage() {
                         {y.brand && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>{y.brand}</p>}
                       </div>
                       {qty != null && (
-                        <span style={{ color: inStock ? '#10B981' : '#EF4444', fontSize: 13 }}>
+                        <span style={{ color: inStock ? 'var(--success-vivid)' : 'var(--danger-vivid)', fontSize: 13 }}>
                           {qty} {unit}{!inStock ? ' (out)' : ''}
                         </span>
                       )}
