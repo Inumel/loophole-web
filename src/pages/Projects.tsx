@@ -9,7 +9,6 @@ type Project = {
   name: string;
   status: string;
   current_row: number;
-  target_rows: number | null;
   started_at: string | null;
 };
 
@@ -48,7 +47,6 @@ export default function ProjectsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [name, setName] = useState('');
-  const [targetRows, setTargetRows] = useState('');
   const [startedAt, setStartedAt] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -69,7 +67,7 @@ export default function ProjectsPage() {
     setLoading(true);
     const { data } = await supabase
       .from('projects')
-      .select('id, name, status, current_row, target_rows, started_at')
+      .select('id, name, status, current_row, started_at')
       .order('created_at', { ascending: false });
     if (data) setProjects(data);
     setLoading(false);
@@ -108,7 +106,6 @@ export default function ProjectsPage() {
     setSaving(true);
     const { data, error } = await supabase.from('projects').insert({
       name: name.trim(),
-      target_rows: targetRows ? parseInt(targetRows) : null,
       started_at: startedAt || null,
       notes: notes || null,
       status: 'active',
@@ -167,10 +164,6 @@ export default function ProjectsPage() {
         <div style={f.field}>
           <label style={f.label}>Project Name *</label>
           <input style={f.input} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Blue Cabled Sweater" />
-        </div>
-        <div style={f.field}>
-          <label style={f.label}>Target Rows</label>
-          <input style={f.input} value={targetRows} onChange={e => setTargetRows(e.target.value)} placeholder="e.g. 220" type="number" />
         </div>
         <div style={f.field}>
           <label style={f.label}>Start Date</label>
@@ -330,7 +323,7 @@ export default function ProjectsPage() {
               <span className="card-title">{p.name}</span>
               <span className={`badge ${statusClass[p.status] ?? ''}`}>{p.status}</span>
             </div>
-            <p className="card-sub">Row {p.current_row}{p.target_rows ? ` of ${p.target_rows}` : ''}</p>
+            <p className="card-sub">{p.current_row} step{p.current_row === 1 ? '' : 's'} completed</p>
           </div>
         ))
       )}

@@ -68,7 +68,6 @@ export default function PatternsPage() {
 
   // New project from pattern
   const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectTargetRows, setNewProjectTargetRows] = useState('');
   const [availableSizes, setAvailableSizes] = useState<string[]>([]);
   const [chosenSize, setChosenSize] = useState('');
   const [availableVariations, setAvailableVariations] = useState<string[]>([]);
@@ -209,7 +208,6 @@ export default function PatternsPage() {
     setChosenSize(firstSize);
     const sizeSuffix = firstSize && firstSize !== 'One Size' ? ` - ${firstSize}` : '';
     setNewProjectName(`${pattern.name}${sizeSuffix}`);
-    setNewProjectTargetRows('');
 
     // Pre-fill yarn slots from yarn_quantity
     const yarnQty = pattern.yarn_quantity as Array<{ amount: number; unit: string; color?: string; size?: string }> | null;
@@ -245,7 +243,6 @@ export default function PatternsPage() {
       pattern_id: selected.id,
       chosen_size: chosenSize || (availableSizes[0] ?? null),
       chosen_color_variation: chosenVariation ?? null,
-      target_rows: newProjectTargetRows ? parseInt(newProjectTargetRows) : null,
       status: 'active', current_row: 0,
       started_at: new Date().toISOString().split('T')[0],
     }).select().single();
@@ -329,12 +326,6 @@ export default function PatternsPage() {
             {chosenVariation && <p style={{ color: 'var(--success-vivid)', fontSize: 12, marginTop: 8 }}>✓ Variation: {chosenVariation}</p>}
           </div>
         )}
-
-        <div style={fi.field}>
-          <label style={fi.label}>Target Rows (optional)</label>
-          <input style={fi.input} value={newProjectTargetRows}
-            onChange={e => setNewProjectTargetRows(e.target.value)} type="number" placeholder="e.g. 220" />
-        </div>
 
         {/* Yarn selection */}
         <p style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Yarn from Stash (optional)</p>

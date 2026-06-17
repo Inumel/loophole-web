@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import StepText from './StepText';
-import { getPref } from '../lib/prefs';
 import { difficultyColor, stepDifficulty } from '../lib/theme';
 
 type Project = {
@@ -9,7 +8,6 @@ type Project = {
   name: string;
   status: string;
   current_row: number;
-  target_rows: number | null;
   started_at: string | null;
   notes: string | null;
   chosen_size: string | null;
@@ -86,6 +84,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState(0);
   const [stepProgress, setStepProgress] = useState<StepProgress[]>([]);
+  const completedStepsCountRef = useRef(0);
   const [projectYarns, setProjectYarns] = useState<ProjectYarn[]>([]);
   const [stashYarns, setStashYarns] = useState<StashYarn[]>([]);
   const [showYarnModal, setShowYarnModal] = useState(false);
@@ -93,12 +92,10 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
   const [quantityUsed, setQuantityUsed] = useState('');
   const [yarnUnit, setYarnUnit] = useState('g');
   const [savingYarn, setSavingYarn] = useState(false);
-  const rowIncrement = parseInt(getPref('ROW_COUNTER_INCREMENT')) || 1;
 
   // Edit
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState('');
-  const [editTargetRows, setEditTargetRows] = useState('');
   const [editStartedAt, setEditStartedAt] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -141,7 +138,10 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
   async function fetchStepProgress(pid: string) {
     const { data } = await supabase.from('project_step_progress')
       .select('section_index, step_index, completed').eq('project_id', pid);
-    if (data) setStepProgress(data);
+    if (data) {
+      setStepProgress(data);
+      completedStepsCountRef.current = data.filter(p => p.completed).length;
+    }
   }
 
   async function fetchProjectYarns() {
@@ -204,6 +204,18 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
       project_id: projectId, section_index: si, step_index: ti,
       completed: newCompleted, completed_at: newCompleted ? new Date().toISOString() : null,
     }, { onConflict: 'project_id,section_index,step_index' });
+
+    // Step counter: current_row mirrors the count of completed steps across the
+    // whole project, so it stays in sync everywhere current_row is displayed
+    // (project list cards, etc.) without those views needing their own logic.
+    if (project) {
+      const newCount = newCompleted
+        ? completedStepsCountRef.current + 1
+        : Math.max(0, completedStepsCountRef.current - 1);
+      completedStepsCountRef.current = newCount;
+      await supabase.from('projects').update({ current_row: newCount }).eq('id', projectId);
+      setProject(prev => prev ? { ...prev, current_row: newCount } : prev);
+    }
   }
 
   function isCompleted(si: number, ti: number) {
@@ -244,13 +256,6 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   }
 
-  async function adjustRow(delta: number) {
-    if (!project) return;
-    const newRow = Math.max(0, project.current_row + (delta * rowIncrement));
-    await supabase.from('projects').update({ current_row: newRow }).eq('id', projectId);
-    setProject({ ...project, current_row: newRow });
-  }
-
   async function saveNotes() {
     await supabase.from('projects').update({ notes }).eq('id', projectId);
   }
@@ -284,7 +289,6 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
   function openEdit() {
     if (!project) return;
     setEditName(project.name);
-    setEditTargetRows(project.target_rows != null ? String(project.target_rows) : '');
     setEditStartedAt(project.started_at ?? '');
     setShowEditModal(true);
   }
@@ -294,7 +298,6 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
     setSavingEdit(true);
     await supabase.from('projects').update({
       name: editName.trim(),
-      target_rows: editTargetRows ? parseInt(editTargetRows) : null,
       started_at: editStartedAt || null,
     }).eq('id', projectId);
     setSavingEdit(false);
@@ -310,7 +313,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
   const genStepDifficulty = project.pattern?.parsed_guide?.stepDifficulty as Record<string, string> | null | undefined;
   const totalSteps = sections?.reduce((sum, s) => sum + getSteps(s, project.chosen_size, project.chosen_color_variation).length, 0) ?? 0;
   const completedSteps = stepProgress.filter(p => p.completed).length;
-  const progress = project.target_rows ? Math.min(100, (project.current_row / project.target_rows) * 100) : null;
+  const stepProgressPct = totalSteps > 0 ? Math.min(100, (completedSteps / totalSteps) * 100) : null;
 
   return (
     <div>
@@ -346,21 +349,24 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-        {/* Row counter */}
+        {/* Step counter — driven by step completion in the Pattern Guide below; no manual adjustment */}
         <div className="card" style={{ cursor: 'default' }}>
-          <p className="card-title" style={{ marginBottom: 16 }}>Row Counter</p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
-            {!readOnly && <button onClick={() => adjustRow(-1)} style={cBtn}>−</button>}
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ fontSize: 52, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{project.current_row}</p>
-              {project.target_rows && <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>of {project.target_rows}</p>}
-            </div>
-            {!readOnly && <button onClick={() => adjustRow(1)} style={cBtn}>+</button>}
-          </div>
-          {progress !== null && (
-            <div style={{ height: 6, background: 'var(--bg-muted)', borderRadius: 3, marginTop: 16, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${progress}%`, background: 'var(--primary)', borderRadius: 3 }} />
-            </div>
+          <p className="card-title" style={{ marginBottom: 16 }}>Step Counter</p>
+          {sections && sections.length > 0 ? (
+            <>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: 52, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{completedSteps}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>of {totalSteps} steps</p>
+              </div>
+              {stepProgressPct !== null && (
+                <div style={{ height: 6, background: 'var(--bg-muted)', borderRadius: 3, marginTop: 16, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${stepProgressPct}%`, background: 'var(--primary)', borderRadius: 3 }} />
+                </div>
+              )}
+              <p style={{ color: 'var(--text-faint)', fontSize: 11, textAlign: 'center', marginTop: 10, fontStyle: 'italic' }}>Tap a step below to mark it complete</p>
+            </>
+          ) : (
+            <p style={{ color: 'var(--text-faint)', fontSize: 13, fontStyle: 'italic', textAlign: 'center' }}>Link a pattern with steps to track progress here.</p>
           )}
         </div>
 
@@ -503,7 +509,6 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
             </div>
 
             {[['Project Name *', editName, setEditName, 'text', 'Project name'],
-              ['Target Rows', editTargetRows, setEditTargetRows, 'number', 'e.g. 220'],
               ['Start Date', editStartedAt, setEditStartedAt, 'date', ''],
             ].map(([label, value, setter, type, placeholder]) => (
               <div key={label as string} style={{ marginBottom: 16 }}>
@@ -612,8 +617,3 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
     </div>
   );
 }
-
-const cBtn: React.CSSProperties = {
-  width: 48, height: 48, borderRadius: 24, background: 'var(--bg-muted)',
-  border: 'none', color: 'var(--text-primary)', fontSize: 24, cursor: 'pointer',
-};
