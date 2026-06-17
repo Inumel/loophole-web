@@ -63,10 +63,24 @@ export default function ProjectPhotos({ projectId, readOnly = false }: Props) {
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
     if (readOnly) return;
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) uploadFiles(e.dataTransfer.files);
   }
+
+  // Without this, a drop that misses the drop zone (or lands on a child
+  // element) falls through to the browser default of navigating to the
+  // file/opening it as a page, which silently aborts the upload.
+  useEffect(() => {
+    function preventNav(e: DragEvent) { e.preventDefault(); }
+    window.addEventListener('dragover', preventNav);
+    window.addEventListener('drop', preventNav);
+    return () => {
+      window.removeEventListener('dragover', preventNav);
+      window.removeEventListener('drop', preventNav);
+    };
+  }, []);
 
   async function deletePhoto(photo: Photo) {
     if (!confirm('Delete this photo?')) return;
@@ -116,8 +130,17 @@ export default function ProjectPhotos({ projectId, readOnly = false }: Props) {
         <>
           {!readOnly && (
             <div
-              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
+              onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+              onDragLeave={e => {
+                e.preventDefault();
+                // Only clear dragOver when actually leaving the drop zone itself,
+                // not when the pointer passes over a child element (e.g. the
+                // hint text), which otherwise causes flicker and can interfere
+                // with the eventual drop firing correctly.
+                if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                setDragOver(false);
+              }}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
               style={{
