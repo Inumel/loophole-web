@@ -72,6 +72,8 @@ CRITICAL RULES:
 
 5. ABBREVIATIONS: If the pattern includes an abbreviations glossary, extract it as an object.
 
+6. STEP DIFFICULTY: If the pattern explicitly marks varying difficulty across sections or steps (e.g. "EASY: Ribbing" vs "ADVANCED: Cable panel", or a note like "this part is tricky"), capture that as a stepDifficulty object. This is OPTIONAL — omit it entirely if the pattern doesn't call out varying difficulty, since the top-level difficulty field already covers the uniform case.
+
 Return a JSON object with these fields:
 - name: pattern name
 - designer: designer name if present
@@ -84,6 +86,7 @@ Return a JSON object with these fields:
 - yarn_quantity: array of { amount, unit, size?, color?, note? } — include all sizes
 - stitch_patterns: array of stitch pattern names used
 - abbreviations: object of { abbrev: explanation } from the pattern's own glossary if present
+- stepDifficulty: OPTIONAL object of { "<section title>|<step number>": "Beginner"|"Easy"|"Intermediate"|"Advanced" } for steps whose difficulty is explicitly called out as differing from the rest of the pattern. Omit entirely if not applicable.
 - sections: array of { title: string, steps_by_size: object, steps_by_variation?: object } where every size has fully expanded instructions with no brackets. steps_by_variation only present for sections with colour-specific steps.
 
 Return ONLY a raw JSON object. No markdown, no code fences. Start with { and end with }.`,

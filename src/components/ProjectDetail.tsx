@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import StepText from './StepText';
 import { getPref } from '../lib/prefs';
-import { difficultyColor } from '../lib/theme';
+import { difficultyColor, stepDifficulty } from '../lib/theme';
 
 type Project = {
   id: string;
@@ -307,6 +307,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
 
   const rawSections = project.pattern?.parsed_guide?.sections;
   const sections = Array.isArray(rawSections) ? (rawSections as GuideSection[]) : null;
+  const genStepDifficulty = project.pattern?.parsed_guide?.stepDifficulty as Record<string, string> | null | undefined;
   const totalSteps = sections?.reduce((sum, s) => sum + getSteps(s, project.chosen_size, project.chosen_color_variation).length, 0) ?? 0;
   const completedSteps = stepProgress.filter(p => p.completed).length;
   const progress = project.target_rows ? Math.min(100, (project.current_row / project.target_rows) * 100) : null;
@@ -419,11 +420,14 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {getSteps(sections[activeSection], project.chosen_size, project.chosen_color_variation).map((step, si) => {
               const done = isCompleted(activeSection, si);
+              const stepNumMatch = step.match(/^(\d+)\./);
+              const stepNum = stepNumMatch ? stepNumMatch[1] : String(si + 1);
+              const effectiveDifficulty = stepDifficulty(genStepDifficulty, sections[activeSection].title, stepNum, project.pattern?.difficulty);
               return (
                 <div key={si} onClick={() => toggleStep(activeSection, si)} style={{
                   display: 'flex', gap: 12, alignItems: 'flex-start',
                   background: done ? 'var(--success-vivid-bg)' : 'var(--bg-muted)',
-                  borderLeft: `3px solid ${done ? 'var(--success-vivid)' : difficultyColor(project.pattern?.difficulty)}`,
+                  borderLeft: `3px solid ${done ? 'var(--success-vivid)' : difficultyColor(effectiveDifficulty)}`,
                   borderRadius: 10, padding: 12, cursor: 'pointer', opacity: done ? 0.8 : 1,
                 }}>
                   <div style={{

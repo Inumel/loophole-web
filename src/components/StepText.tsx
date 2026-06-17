@@ -109,11 +109,14 @@ export default function StepText({ step, index }: Props) {
     load();
   }, [step]);
 
-  const tokens = tokenize(step);
+  const leadingNumMatch = step.match(/^(\d+)\.\s+(.+)/s);
+  const displayNum = leadingNumMatch ? leadingNumMatch[1] : String(index + 1);
+  const cleanStep = leadingNumMatch ? leadingNumMatch[2] : step;
+  const tokens = tokenize(cleanStep);
 
   return (
     <span style={{ position: 'relative' }}>
-      <strong style={{ color: 'var(--primary)' }}>{index + 1}. </strong>
+      <strong style={{ color: 'var(--primary)' }}>{displayNum}. </strong>
       {tokens.map((token, i) => {
         if (!token.isAbbrev) return <span key={i}>{token.text}</span>;
         const definition = abbrevs[token.key];

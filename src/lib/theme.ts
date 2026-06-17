@@ -155,3 +155,18 @@ export function difficultyColor(difficulty?: string | null): string {
   if (!difficulty) return 'var(--primary)';
   return DIFFICULTY_COLOR[difficulty] ?? 'var(--primary)';
 }
+
+// Resolves the effective difficulty for one step: checks the per-step map
+// first (keyed "<section title>|<step number>"), falling back to the
+// pattern's overall difficulty if that step isn't called out specifically.
+// Most patterns are uniform difficulty throughout, so stepDifficulty is
+// expected to be sparse — only the steps that genuinely differ get an entry.
+export function stepDifficulty(
+  stepDifficultyMap: Record<string, string> | null | undefined,
+  sectionTitle: string,
+  stepNumber: number | string,
+  patternDifficulty?: string | null
+): string | null {
+  const key = `${sectionTitle}|${stepNumber}`;
+  return stepDifficultyMap?.[key] ?? patternDifficulty ?? null;
+}

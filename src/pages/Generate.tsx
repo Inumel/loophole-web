@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { inputStyle, selectStyle, labelStyle, difficultyColor } from '../lib/theme';
+import { inputStyle, selectStyle, labelStyle, difficultyColor, stepDifficulty } from '../lib/theme';
 
 const YARN_WEIGHTS = ['Lace', 'Fingering', 'Sport', 'DK', 'Worsted', 'Aran', 'Bulky', 'Super Bulky'];
 const DIFFICULTIES = ['Beginner', 'Easy', 'Intermediate', 'Advanced'];
@@ -22,6 +22,7 @@ type GeneratedPattern = {
   extras?: { title: string; rows: [string, string][] }[];
   stitchPattern?: { title: string; layout: string; note: string };
   sections: PatternSection[];
+  stepDifficulty?: Record<string, string>;
 };
 
 export default function GeneratePage() {
@@ -96,6 +97,10 @@ Return a JSON object with this exact structure (omit optional fields if not rele
     "k": "knit",
     "p": "purl"
   },
+  "stepDifficulty": {
+    "Pattern Instructions|1": "Easy",
+    "Pattern Instructions|6": "Advanced"
+  },
   "extras": [
     {
       "title": "Cable Definitions",
@@ -130,6 +135,9 @@ Rules:
 - Only include extras and stitchPattern if they are relevant to this specific pattern
 - Only include a row repeat reference section in sections[] if the pattern has a repeating row structure
 - All abbreviations used in the instructions must be defined in the abbreviations object
+- stepDifficulty is OPTIONAL and should only be included if the pattern has genuinely varying difficulty across its steps (e.g. simple ribbing followed by an advanced cable panel, or basic shaping followed by a tricky heel turn). If the whole pattern is uniformly one difficulty level, omit stepDifficulty entirely — the overall "Difficulty" in metadata already covers that case.
+- When included, key stepDifficulty as "<section title>|<step number>" exactly matching the section's title string and the step's number as it appears in that section's numbered content. Only include entries for steps whose difficulty differs from the overall pattern difficulty — no need to label every single step.
+- Use the same difficulty labels as the overall scale: "Beginner", "Easy", "Intermediate", "Advanced"
 - Return ONLY raw JSON, no markdown, no code fences, no comments`;
 
     try {
@@ -371,12 +379,13 @@ Rules:
                 {sec.content.split('\n').filter(Boolean).map((line, j) => {
                   const stepMatch = line.match(/^(\d+)\.\s+(.+)/);
                   if (stepMatch) {
+                    const effectiveDifficulty = stepDifficulty(pattern.stepDifficulty, sec.title, stepMatch[1], pattern.metadata?.['Difficulty']);
                     return (
                       <div key={j} className="step-card reveal" style={{
                         animationDelay: `${0.22 + i * 0.05 + j * 0.025}s`,
                         display: 'flex', gap: 12, background: 'var(--bg-card)',
                         border: '1px solid var(--border-light)',
-                        borderLeft: `3px solid ${difficultyColor(pattern.metadata?.['Difficulty'])}`,
+                        borderLeft: `3px solid ${difficultyColor(effectiveDifficulty)}`,
                         borderRadius: 8, padding: '12px 14px',
                       }}>
                         <span style={{ background: 'var(--primary)', color: 'var(--primary-text)', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{stepMatch[1]}</span>
@@ -429,6 +438,7 @@ Rules:
                     generated: true,
                     metadata: pattern.metadata,
                     abbreviations: pattern.abbreviations,
+                    stepDifficulty: pattern.stepDifficulty ?? null,
                     extras: pattern.extras ?? [],
                     stitchPattern: pattern.stitchPattern ?? null,
                     sections: pattern.sections.map(s => ({

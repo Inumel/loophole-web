@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { searchRavelryPatterns, getRavelryPattern, mapRavelryPattern } from '../lib/ravelry';
 import { parsePatternWithClaude } from '../lib/claude';
 import StepText from '../components/StepText';
-import { difficultyColor } from '../lib/theme';
+import { difficultyColor, stepDifficulty } from '../lib/theme';
 
 type Pattern = {
   id: string; name: string; designer: string | null; source: string;
@@ -436,6 +436,7 @@ export default function PatternsPage() {
     const genAbbreviations = isGenerated ? selected.parsed_guide?.abbreviations as Record<string, string> | null : null;
     const genExtras = isGenerated ? selected.parsed_guide?.extras as Array<{ title: string; rows: [string, string][] }> | null : null;
     const genStitchPattern = isGenerated ? selected.parsed_guide?.stitchPattern as { title: string; layout: string; note: string } | null : null;
+    const genStepDifficulty = selected.parsed_guide?.stepDifficulty as Record<string, string> | null | undefined;
     return (
       <div>
         <button className="btn btn-secondary" onClick={() => setView('list')} style={{ marginBottom: 20 }}>← Back</button>
@@ -607,15 +608,20 @@ export default function PatternsPage() {
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {getSteps(sections[activeSection]).map((step, j) => (
-                <div key={j} style={{
-                  background: 'var(--bg-input)', borderRadius: 8, padding: '10px 14px',
-                  fontSize: 14, lineHeight: 1.6, color: 'var(--text-body)',
-                  borderLeft: `3px solid ${difficultyColor(selected.difficulty)}`,
-                }}>
-                  <StepText step={step} index={j} />
-                </div>
-              ))}
+              {getSteps(sections[activeSection]).map((step, j) => {
+                const stepNumMatch = step.match(/^(\d+)\./);
+                const stepNum = stepNumMatch ? stepNumMatch[1] : String(j + 1);
+                const effectiveDifficulty = stepDifficulty(genStepDifficulty, sections[activeSection].title, stepNum, selected.difficulty);
+                return (
+                  <div key={j} style={{
+                    background: 'var(--bg-input)', borderRadius: 8, padding: '10px 14px',
+                    fontSize: 14, lineHeight: 1.6, color: 'var(--text-body)',
+                    borderLeft: `3px solid ${difficultyColor(effectiveDifficulty)}`,
+                  }}>
+                    <StepText step={step} index={j} />
+                  </div>
+                );
+              })}
             </div>
 
             {/* Section nav */}
