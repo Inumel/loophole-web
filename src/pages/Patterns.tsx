@@ -535,6 +535,32 @@ export default function PatternsPage() {
           </div>
         )}
 
+        {/* Saved visualization (generated patterns only) */}
+        {(() => {
+          const svg = selected.parsed_guide?.visualization as string | null | undefined;
+          if (!svg) return null;
+          return (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--border-light)' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Pattern Diagram</p>
+                <button
+                  onClick={() => {
+                    const blob = new Blob([svg], { type: 'image/svg+xml' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = `${selected.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-diagram.svg`;
+                    a.click(); URL.revokeObjectURL(url);
+                  }}
+                  style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: 'pointer' }}
+                >
+                  ↓ Download SVG
+                </button>
+              </div>
+              <div dangerouslySetInnerHTML={{ __html: svg }} style={{ width: '100%', display: 'block', lineHeight: 0 }} />
+            </div>
+          );
+        })()}
+
         {/* Generated pattern abbreviations */}
         {genAbbreviations && Object.keys(genAbbreviations).length > 0 && (
           <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>

@@ -23,6 +23,7 @@ type GeneratedPattern = {
   stitchPattern?: { title: string; layout: string; note: string };
   sections: PatternSection[];
   stepDifficulty?: Record<string, string>;
+  visualization?: string; // SVG markup, generated separately on demand
 };
 
 export default function GeneratePage() {
@@ -37,6 +38,7 @@ export default function GeneratePage() {
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [generatingViz, setGeneratingViz] = useState(false);
   const [pattern, setPattern] = useState<GeneratedPattern | null>(null);
   const [error, setError] = useState('');
   const [activeOutputSection, setActiveOutputSection] = useState(0);
@@ -236,6 +238,90 @@ Rules:
     setGenerating(false);
   }
 
+  async function generateVisualization() {
+    if (!pattern) return;
+    const token = localStorage.getItem('loophole_token');
+    if (!token) return;
+
+    setGeneratingViz(true);
+
+    // Summarise the pattern for the diagram prompt — enough context for Claude
+    // to choose and draw the most appropriate diagram type without re-sending
+    // the full instructions (which would blow the token budget).
+    const patternSummary = [
+      `Name: ${pattern.name}`,
+      `Object: ${object || pattern.name}`,
+      pattern.metadata?.['Needle size'] && `Needle size: ${pattern.metadata['Needle size']}`,
+      pattern.metadata?.['Gauge'] && `Gauge: ${pattern.metadata['Gauge']}`,
+      pattern.metadata?.['Cast on'] && `Cast on: ${pattern.metadata['Cast on']}`,
+      pattern.metadata?.['Finished length'] && `Finished length: ${pattern.metadata['Finished length']}`,
+      pattern.metadata?.['Finished width'] && `Finished width: ${pattern.metadata['Finished width']}`,
+      pattern.metadata?.['Difficulty'] && `Difficulty: ${pattern.metadata['Difficulty']}`,
+      pattern.stitchPattern && `Stitch pattern: ${pattern.stitchPattern.layout}`,
+      pattern.extras?.length && `Extras: ${pattern.extras.map(e => e.title).join(', ')}`,
+    ].filter(Boolean).join('\n');
+
+    const vizPrompt = `You are a technical illustrator specialising in knitting pattern diagrams. Based on this pattern summary, generate a single SVG diagram that best helps a knitter understand what they are making.
+
+Pattern summary:
+${patternSummary}
+
+Choose the diagram type that adds the most value for this specific pattern:
+- For shaped garments (sweaters, hats, socks, mittens, shawls): a schematic showing the finished shape with labeled measurements
+- For cables or textured stitches: a stitch repeat chart showing the row-by-row structure with knit/purl/cable symbols
+- For colorwork or Fair Isle: a color grid chart showing the repeat
+- For simple rectangular pieces (scarves, dishcloths, blankets): a schematic with shape and dimensions labeled
+
+SVG requirements:
+- viewBox="0 0 500 380" — always this exact size so it fits the card
+- Background: rect fill="#2a1a22" (matches the app's dark card color) covering the full viewBox
+- Text: fill="#e8c8d8" for labels, fill="#c47aaa" for measurements and accent text
+- Grid/symbol lines: stroke="#c47aaa" opacity 0.4–0.7
+- Shape outlines: stroke="#c47aaa" stroke-width="2" fill="none"
+- Filled cells (knit squares, color blocks): fill="#c47aaa" opacity 0.6–0.9
+- Purl/background cells: fill="#321e28"
+- Font: font-family="system-ui, sans-serif"
+- Include a small legend if using symbols
+- Include a title text element near the top identifying the diagram type
+- Keep it clean and readable — prioritise clarity over complexity
+- Return ONLY the raw SVG markup starting with <svg and ending with </svg>, nothing else — no markdown, no explanation, no code fences`;
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claude-proxy`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'x-loophole-token': token,
+          },
+          body: JSON.stringify({
+            max_tokens: 4097, // just over 4096 to route to Sonnet — diagram quality is noticeably better
+            messages: [{ role: 'user', content: vizPrompt }],
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
+
+      let svg = (data.content?.[0]?.text ?? '').trim();
+      // Strip any accidental markdown fences
+      svg = svg.replace(/^```(?:svg|xml)?\s*/i, '').replace(/\s*```$/, '').trim();
+      // Validate it's actually SVG before storing
+      if (!svg.startsWith('<svg')) throw new Error('Response was not valid SVG');
+
+      setPattern(prev => prev ? { ...prev, visualization: svg } : prev);
+    } catch (e) {
+      console.error('Visualization generation failed:', e);
+      // Non-fatal — pattern is already displayed, just show a brief inline error
+      setPattern(prev => prev ? { ...prev, visualization: 'error' } : prev);
+    }
+    setGeneratingViz(false);
+  }
+
   return (
     <div style={{ maxWidth: 860 }}>
       <h1>Pattern Generator</h1>
@@ -363,6 +449,45 @@ Rules:
           <div className="reveal">
             <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{pattern.name}</h2>
             {pattern.tagline && <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>{pattern.tagline}</p>}
+          </div>
+
+          {/* Visualization */}
+          <div className="reveal" style={{ animationDelay: '0.03s', marginBottom: 20 }}>
+            {pattern.visualization && pattern.visualization !== 'error' ? (
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--border-light)' }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Pattern Diagram</p>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([pattern.visualization!], { type: 'image/svg+xml' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url; a.download = `${pattern.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-diagram.svg`;
+                      a.click(); URL.revokeObjectURL(url);
+                    }}
+                    style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: 'pointer' }}
+                  >
+                    ↓ Download SVG
+                  </button>
+                </div>
+                <div dangerouslySetInnerHTML={{ __html: pattern.visualization }}
+                  style={{ width: '100%', display: 'block', lineHeight: 0 }} />
+              </div>
+            ) : pattern.visualization === 'error' ? (
+              <p style={{ color: 'var(--text-faint)', fontSize: 13, fontStyle: 'italic' }}>Diagram generation failed — the pattern is still complete above.</p>
+            ) : (
+              <button
+                onClick={generateVisualization}
+                disabled={generatingViz}
+                style={{
+                  width: '100%', background: 'var(--bg-card)', border: '1px dashed var(--border-medium)',
+                  borderRadius: 10, padding: '14px', color: generatingViz ? 'var(--text-faint)' : 'var(--text-muted)',
+                  fontSize: 13, cursor: generatingViz ? 'default' : 'pointer', textAlign: 'center',
+                }}
+              >
+                {generatingViz ? '🗒️ Generating diagram… (10–20 sec)' : '🗒️ Generate Pattern Diagram'}
+              </button>
+            )}
           </div>
 
           {/* Metadata grid */}
@@ -523,6 +648,7 @@ Rules:
                     stepDifficulty: pattern.stepDifficulty ?? null,
                     extras: pattern.extras ?? [],
                     stitchPattern: pattern.stitchPattern ?? null,
+                    visualization: (pattern.visualization && pattern.visualization !== 'error') ? pattern.visualization : null,
                     sections: pattern.sections.map(s => ({
                       title: s.title,
                       steps: s.content.split('\n').filter(Boolean),
