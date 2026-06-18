@@ -462,6 +462,32 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
         </div>
       )}
 
+      {/* Pattern diagram (if linked pattern has a saved visualization) */}
+      {(() => {
+        const svg = project.pattern?.parsed_guide?.visualization as string | null | undefined;
+        if (!svg) return null;
+        return (
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--border-light)' }}>
+              <p className="card-title" style={{ margin: 0 }}>Pattern Diagram</p>
+              <button
+                onClick={() => {
+                  const blob = new Blob([svg], { type: 'image/svg+xml' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url; a.download = `${(project.pattern?.name ?? 'pattern').replace(/[^a-z0-9]/gi, '-').toLowerCase()}-diagram.svg`;
+                  a.click(); URL.revokeObjectURL(url);
+                }}
+                style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: 'pointer' }}
+              >
+                ↓ Download SVG
+              </button>
+            </div>
+            <div dangerouslySetInnerHTML={{ __html: svg }} style={{ width: '100%', display: 'block', lineHeight: 0 }} />
+          </div>
+        );
+      })()}
+
       {/* Yarn */}
       <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

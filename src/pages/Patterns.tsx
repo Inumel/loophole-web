@@ -535,7 +535,7 @@ export default function PatternsPage() {
           </div>
         )}
 
-        {/* Saved visualization (generated patterns only) */}
+        {/* Saved visualization — after metadata, matching Generate page position */}
         {(() => {
           const svg = selected.parsed_guide?.visualization as string | null | undefined;
           if (!svg) return null;

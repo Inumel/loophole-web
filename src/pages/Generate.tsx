@@ -39,6 +39,7 @@ export default function GeneratePage() {
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generatingViz, setGeneratingViz] = useState(false);
+  const [diagType, setDiagType] = useState<'auto' | 'schematic' | 'stitch' | 'colorwork'>('auto');
   const [pattern, setPattern] = useState<GeneratedPattern | null>(null);
   const [error, setError] = useState('');
   const [activeOutputSection, setActiveOutputSection] = useState(0);
@@ -238,16 +239,23 @@ Rules:
     setGenerating(false);
   }
 
-  async function generateVisualization() {
+  async function generateVisualization(typeHint: typeof diagType = diagType) {
     if (!pattern) return;
     const token = localStorage.getItem('loophole_token');
     if (!token) return;
 
     setGeneratingViz(true);
+    // Clear any existing visualization so the loading state is visible
+    setPattern(prev => prev ? { ...prev, visualization: undefined } : prev);
 
-    // Summarise the pattern for the diagram prompt — enough context for Claude
-    // to choose and draw the most appropriate diagram type without re-sending
-    // the full instructions (which would blow the token budget).
+    // Read the current theme to pass matching color tokens to Claude—
+    // so the SVG background and palette always match the active theme rather
+    // than being hardcoded to one or the other.
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    const colors = isDark
+      ? { bg: '#2a1a22', bgAlt: '#321e28', text: '#e8c8d8', accent: '#c47aaa' }
+      : { bg: '#ffffff', bgAlt: '#fdf6f0', text: '#5c3d2e', accent: '#c49bbf' };
+
     const patternSummary = [
       `Name: ${pattern.name}`,
       `Object: ${object || pattern.name}`,
@@ -261,25 +269,35 @@ Rules:
       pattern.extras?.length && `Extras: ${pattern.extras.map(e => e.title).join(', ')}`,
     ].filter(Boolean).join('\n');
 
-    const vizPrompt = `You are a technical illustrator specialising in knitting pattern diagrams. Based on this pattern summary, generate a single SVG diagram that best helps a knitter understand what they are making.
+    const typeInstruction = typeHint === 'auto'
+      ? `Choose the diagram type that adds the most value for this specific pattern:
+- For shaped garments (sweaters, hats, socks, mittens, shawls): a schematic showing the finished shape with labeled measurements
+- For cables or textured stitches: a stitch repeat chart showing the row-by-row structure with knit/purl/cable symbols
+- For colorwork or Fair Isle: a color grid chart showing the repeat
+- For simple rectangular pieces (scarves, dishcloths, blankets): a schematic with shape and dimensions labeled`
+      : typeHint === 'schematic'
+      ? `Generate a schematic diagram showing the finished shape with all key measurements labeled. Use clean outlines and dimension lines.`
+      : typeHint === 'stitch'
+      ? `Generate a stitch repeat chart showing the row-by-row structure. Use symbols for knit (empty square), purl (dot), and any cable or special stitches. Include a legend.`
+      : `Generate a colorwork grid chart showing the stitch repeat as a color grid. Use filled and empty squares to represent the two (or more) colors. Include a legend.`;
+
+    const vizPrompt = `You are a technical illustrator specialising in knitting pattern diagrams. Based on this pattern summary, generate a single SVG diagram.
 
 Pattern summary:
 ${patternSummary}
 
-Choose the diagram type that adds the most value for this specific pattern:
-- For shaped garments (sweaters, hats, socks, mittens, shawls): a schematic showing the finished shape with labeled measurements
-- For cables or textured stitches: a stitch repeat chart showing the row-by-row structure with knit/purl/cable symbols
-- For colorwork or Fair Isle: a color grid chart showing the repeat
-- For simple rectangular pieces (scarves, dishcloths, blankets): a schematic with shape and dimensions labeled
+${typeInstruction}
 
 SVG requirements:
 - viewBox="0 0 500 380" — always this exact size so it fits the card
-- Background: rect fill="#2a1a22" (matches the app's dark card color) covering the full viewBox
-- Text: fill="#e8c8d8" for labels, fill="#c47aaa" for measurements and accent text
-- Grid/symbol lines: stroke="#c47aaa" opacity 0.4–0.7
-- Shape outlines: stroke="#c47aaa" stroke-width="2" fill="none"
-- Filled cells (knit squares, color blocks): fill="#c47aaa" opacity 0.6–0.9
-- Purl/background cells: fill="#321e28"
+- Background: rect fill="${colors.bg}" covering the full viewBox
+- Alternate/secondary background areas: fill="${colors.bgAlt}"
+- Primary text (labels, titles): fill="${colors.text}"
+- Accent text (measurements, highlights): fill="${colors.accent}"
+- Grid/symbol lines: stroke="${colors.accent}" opacity 0.4–0.7
+- Shape outlines: stroke="${colors.accent}" stroke-width="2" fill="none"
+- Filled cells (knit squares, color blocks): fill="${colors.accent}" opacity 0.7
+- Purl/background cells: fill="${colors.bgAlt}" stroke="${colors.accent}" stroke-width="0.5" opacity 0.5
 - Font: font-family="system-ui, sans-serif"
 - Include a small legend if using symbols
 - Include a title text element near the top identifying the diagram type
@@ -298,7 +316,7 @@ SVG requirements:
             'x-loophole-token': token,
           },
           body: JSON.stringify({
-            max_tokens: 4097, // just over 4096 to route to Sonnet — diagram quality is noticeably better
+            max_tokens: 4097,
             messages: [{ role: 'user', content: vizPrompt }],
           }),
         }
@@ -308,15 +326,12 @@ SVG requirements:
       if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
 
       let svg = (data.content?.[0]?.text ?? '').trim();
-      // Strip any accidental markdown fences
       svg = svg.replace(/^```(?:svg|xml)?\s*/i, '').replace(/\s*```$/, '').trim();
-      // Validate it's actually SVG before storing
       if (!svg.startsWith('<svg')) throw new Error('Response was not valid SVG');
 
       setPattern(prev => prev ? { ...prev, visualization: svg } : prev);
     } catch (e) {
       console.error('Visualization generation failed:', e);
-      // Non-fatal — pattern is already displayed, just show a brief inline error
       setPattern(prev => prev ? { ...prev, visualization: 'error' } : prev);
     }
     setGeneratingViz(false);
@@ -451,45 +466,6 @@ SVG requirements:
             {pattern.tagline && <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>{pattern.tagline}</p>}
           </div>
 
-          {/* Visualization */}
-          <div className="reveal" style={{ animationDelay: '0.03s', marginBottom: 20 }}>
-            {pattern.visualization && pattern.visualization !== 'error' ? (
-              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--border-light)' }}>
-                  <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Pattern Diagram</p>
-                  <button
-                    onClick={() => {
-                      const blob = new Blob([pattern.visualization!], { type: 'image/svg+xml' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url; a.download = `${pattern.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-diagram.svg`;
-                      a.click(); URL.revokeObjectURL(url);
-                    }}
-                    style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: 'pointer' }}
-                  >
-                    ↓ Download SVG
-                  </button>
-                </div>
-                <div dangerouslySetInnerHTML={{ __html: pattern.visualization }}
-                  style={{ width: '100%', display: 'block', lineHeight: 0 }} />
-              </div>
-            ) : pattern.visualization === 'error' ? (
-              <p style={{ color: 'var(--text-faint)', fontSize: 13, fontStyle: 'italic' }}>Diagram generation failed — the pattern is still complete above.</p>
-            ) : (
-              <button
-                onClick={generateVisualization}
-                disabled={generatingViz}
-                style={{
-                  width: '100%', background: 'var(--bg-card)', border: '1px dashed var(--border-medium)',
-                  borderRadius: 10, padding: '14px', color: generatingViz ? 'var(--text-faint)' : 'var(--text-muted)',
-                  fontSize: 13, cursor: generatingViz ? 'default' : 'pointer', textAlign: 'center',
-                }}
-              >
-                {generatingViz ? '🗒️ Generating diagram… (10–20 sec)' : '🗒️ Generate Pattern Diagram'}
-              </button>
-            )}
-          </div>
-
           {/* Metadata grid */}
           {pattern.metadata && Object.keys(pattern.metadata).length > 0 && (
             <div className="reveal" style={{ animationDelay: '0.05s', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: 20 }}>
@@ -501,6 +477,79 @@ SVG requirements:
               ) : null)}
             </div>
           )}
+
+          {/* Visualization — sits after metadata so it doesn't push key info below the fold */}
+          <div className="reveal" style={{ animationDelay: '0.07s', marginBottom: 20 }}>
+            {pattern.visualization && pattern.visualization !== 'error' ? (
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--border-light)', flexWrap: 'wrap', gap: 8 }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Pattern Diagram</p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => generateVisualization(diagType)}
+                      disabled={generatingViz}
+                      style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: generatingViz ? 'default' : 'pointer', opacity: generatingViz ? 0.5 : 1 }}
+                    >
+                      {generatingViz ? 'Regenerating…' : '↺ Regenerate'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        const blob = new Blob([pattern.visualization!], { type: 'image/svg+xml' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url; a.download = `${pattern.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-diagram.svg`;
+                        a.click(); URL.revokeObjectURL(url);
+                      }}
+                      style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: 'pointer' }}
+                    >
+                      ↓ Download SVG
+                    </button>
+                  </div>
+                </div>
+                {generatingViz ? (
+                  <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-faint)', fontSize: 13, fontStyle: 'italic' }}>Generating new diagram…</div>
+                ) : (
+                  <div dangerouslySetInnerHTML={{ __html: pattern.visualization }} style={{ width: '100%', display: 'block', lineHeight: 0 }} />
+                )}
+              </div>
+            ) : pattern.visualization === 'error' ? (
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <p style={{ color: 'var(--text-faint)', fontSize: 13, fontStyle: 'italic' }}>Diagram generation failed — the pattern is still complete.</p>
+                <button onClick={() => generateVisualization(diagType)} disabled={generatingViz}
+                  style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--primary)', borderRadius: 6, padding: '4px 12px', fontSize: 12, cursor: 'pointer' }}>
+                  Try again
+                </button>
+              </div>
+            ) : (
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Generate a diagram for this pattern:</p>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {([['auto', 'Auto'], ['schematic', 'Schematic'], ['stitch', 'Stitch chart'], ['colorwork', 'Colorwork grid']] as const).map(([val, label]) => (
+                      <button key={val} onClick={() => setDiagType(val)} style={{
+                        padding: '4px 10px', borderRadius: 14, border: '1px solid',
+                        borderColor: diagType === val ? 'var(--primary)' : 'var(--border-medium)',
+                        background: diagType === val ? 'var(--primary)' : 'transparent',
+                        color: diagType === val ? 'var(--primary-text)' : 'var(--text-muted)',
+                        cursor: 'pointer', fontSize: 11,
+                      }}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  onClick={() => generateVisualization(diagType)}
+                  disabled={generatingViz}
+                  style={{
+                    width: '100%', background: 'var(--bg-input)', border: '1px dashed var(--border-medium)',
+                    borderRadius: 8, padding: '12px', color: generatingViz ? 'var(--text-faint)' : 'var(--text-muted)',
+                    fontSize: 13, cursor: generatingViz ? 'default' : 'pointer', textAlign: 'center',
+                  }}
+                >
+                  {generatingViz ? '🗒️ Generating diagram… (10–20 sec)' : '🗒️ Generate Pattern Diagram'}
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Sticky section nav — only worth showing once there's more than one section to jump between */}
           {pattern.sections && pattern.sections.length > 1 && (
