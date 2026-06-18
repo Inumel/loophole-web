@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { inputStyle, selectStyle, labelStyle, difficultyColor, stepDifficulty } from '../lib/theme';
@@ -34,10 +34,13 @@ export default function GeneratePage() {
   const [length, setLength] = useState('');
   const [width, setWidth] = useState('');
   const [extraNotes, setExtraNotes] = useState('');
+  const [referenceImage, setReferenceImage] = useState<File | null>(null);
+  const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [pattern, setPattern] = useState<GeneratedPattern | null>(null);
   const [error, setError] = useState('');
   const [activeOutputSection, setActiveOutputSection] = useState(0);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   if (!unlocked) {
     return (
@@ -50,6 +53,51 @@ export default function GeneratePage() {
         </div>
       </div>
     );
+  }
+
+  function handleReferenceImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !file.type.startsWith('image/')) return;
+    setReferenceImage(file);
+    if (referenceImagePreview) URL.revokeObjectURL(referenceImagePreview);
+    setReferenceImagePreview(URL.createObjectURL(file));
+  }
+
+  function clearReferenceImage() {
+    if (referenceImagePreview) URL.revokeObjectURL(referenceImagePreview);
+    setReferenceImage(null);
+    setReferenceImagePreview(null);
+  }
+
+  // Downscales and re-encodes the reference image client-side before sending
+  // it to Claude — keeps the request small and fast without needing any
+  // server-side processing. The image is never uploaded to storage; it only
+  // ever exists as this base64 string for the duration of the API call.
+  function imageFileToBase64(file: File, maxDim = 1024): Promise<{ base64: string; mediaType: string }> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('Canvas not supported')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve({ base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Failed to load image')); };
+      img.src = url;
+    });
   }
 
   async function generate() {
@@ -77,7 +125,7 @@ export default function GeneratePage() {
 Object: ${objectName}
 Style: ${style || 'your choice based on the object'}
 Yarn weight: ${yarnWeight}
-Difficulty: ${difficulty}${dimensions ? `\nDimensions: ${dimensions}` : ''}${extraNotes ? `\nAdditional notes: ${extraNotes}` : ''}
+Difficulty: ${difficulty}${dimensions ? `\nDimensions: ${dimensions}` : ''}${extraNotes ? `\nAdditional notes: ${extraNotes}` : ''}${referenceImage ? `\n\nA reference image is attached. Use it as visual inspiration alongside the specifications above — let it inform the silhouette, stitch texture, colorwork, proportions, and overall aesthetic you design toward. The text specifications (object, style, yarn weight, difficulty, dimensions) still take priority where they conflict with what the image shows; use the image to fill in and refine the details those specifications leave open, not to override them.` : ''}
 
 Return a JSON object with this exact structure (omit optional fields if not relevant):
 {
@@ -141,6 +189,13 @@ Rules:
 - Return ONLY raw JSON, no markdown, no code fences, no comments`;
 
     try {
+      const messageContent: Array<Record<string, unknown>> = [];
+      if (referenceImage) {
+        const { base64, mediaType } = await imageFileToBase64(referenceImage);
+        messageContent.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } });
+      }
+      messageContent.push({ type: 'text', text: prompt });
+
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claude-proxy`,
         {
@@ -153,7 +208,7 @@ Rules:
           },
           body: JSON.stringify({
             max_tokens: 8096, // triggers Sonnet in the proxy
-            messages: [{ role: 'user', content: prompt }],
+            messages: [{ role: 'user', content: messageContent }],
           }),
         }
       );
@@ -174,6 +229,10 @@ Rules:
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to generate pattern. Please try again.');
     }
+    // Reference image is intentionally temporary — it's never persisted anywhere,
+    // and we clear it here so it doesn't silently carry over into a future
+    // generate() call once this one has finished (success or failure).
+    clearReferenceImage();
     setGenerating(false);
   }
 
@@ -250,10 +309,33 @@ Rules:
             placeholder="e.g. Include a simple border, make it suitable for a beginner, use a 4-stitch cable repeat…" />
         </div>
 
+        <div style={{ marginBottom: 16 }}>
+          <label style={lbl}>Reference image (optional)</label>
+          <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleReferenceImageSelect} />
+          {referenceImagePreview ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <img src={referenceImagePreview} alt="Reference" style={{ width: 72, height: 72, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border-light)' }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Claude will use this as visual inspiration alongside your other choices. It's never saved — only used for this one generation.</p>
+                <button onClick={clearReferenceImage} style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>
+                  Remove image
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => imageInputRef.current?.click()} style={{
+              display: 'block', width: '100%', background: 'var(--bg-input)', border: '1px dashed var(--border-medium)',
+              borderRadius: 8, padding: '12px', color: 'var(--text-faint)', fontSize: 13, cursor: 'pointer', textAlign: 'center',
+            }}>
+              + Add a reference image
+            </button>
+          )}
+        </div>
+
         <button onClick={generate} disabled={generating}
           className="btn btn-primary"
           style={{ opacity: generating ? 0.6 : 1 }}>
-          {generating ? '✨ Generating pattern…' : '✨ Generate Pattern'}
+          {generating ? (referenceImage ? '✨ Looking at your reference image…' : '✨ Generating pattern…') : '✨ Generate Pattern'}
         </button>
       </div>
 
