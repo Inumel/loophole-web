@@ -9,6 +9,10 @@ const DIFFICULTIES = ['Beginner', 'Easy', 'Intermediate', 'Advanced'];
 const SUGGESTED_OBJECTS = ['Scarf', 'Hat', 'Cowl', 'Shawl', 'Mittens', 'Socks', 'Sweater', 'Cardigan', 'Baby Blanket', 'Dishcloth', 'Fingerless Gloves', 'Headband', 'Bag', 'Toy'];
 const SUGGESTED_STYLES = ['Stockinette', 'Garter', 'Ribbing', 'Seed stitch', 'Moss stitch', 'Ribbing with cabling', 'Lace', 'Colorwork', 'Cables', 'Textured', 'Brioche', 'Slip stitch', 'Fair Isle'];
 
+// Objects where the third dimension field should be labelled 'Circumference'
+// rather than 'Circumference / Depth'.
+const CIRCULAR_OBJECTS = ['Hat', 'Cowl', 'Mittens', 'Socks', 'Headband', 'Fingerless Gloves'];
+
 type PatternSection = {
   title: string;
   content: string;
@@ -18,9 +22,9 @@ type GeneratedPattern = {
   name: string;
   tagline: string;
   metadata: Record<string, string>;
-  sizes?: string[];                        // #5: optional size list
-  materials?: { yarn: string; needles: string; notions?: string[] }; // #6
-  prerequisites?: string[];               // #4: skill prerequisites
+  sizes?: string[];
+  materials?: { yarn: string; needles: string; notions?: string[] };
+  prerequisites?: string[];
   abbreviations: Record<string, string>;
   extras?: { title: string; rows: [string, string][] }[];
   stitchPattern?: { title: string; layout: string; note: string };
@@ -33,7 +37,7 @@ type HistoryEntry = {
   id: string;
   name: string;
   tagline: string;
-  inputs: { object: string; style: string; yarnWeight: string; difficulty: string; length: string; width: string; extraNotes: string };
+  inputs: { object: string; style: string; yarnWeight: string; difficulty: string; length: string; width: string; circumference: string; extraNotes: string };
   pattern: GeneratedPattern;
   savedAt: string;
 };
@@ -47,6 +51,7 @@ type PromptTemplate = {
   difficulty: string;
   length: string;
   width: string;
+  circumference: string;
   extraNotes: string;
   savedAt: string;
 };
@@ -57,23 +62,19 @@ const TEMPLATES_KEY = 'loophole_gen_templates';
 function loadHistory(): HistoryEntry[] {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]'); } catch { return []; }
 }
-
 function saveToHistory(entry: HistoryEntry) {
   const history = loadHistory();
   const updated = [entry, ...history.filter(h => h.id !== entry.id)].slice(0, 10);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
 }
-
 function loadTemplates(): PromptTemplate[] {
   try { return JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? '[]'); } catch { return []; }
 }
-
 function saveTemplate(t: PromptTemplate) {
   const templates = loadTemplates();
   const updated = [t, ...templates.filter(x => x.id !== t.id)].slice(0, 20);
   localStorage.setItem(TEMPLATES_KEY, JSON.stringify(updated));
 }
-
 function deleteTemplate(id: string) {
   localStorage.setItem(TEMPLATES_KEY, JSON.stringify(loadTemplates().filter(t => t.id !== id)));
 }
@@ -86,6 +87,7 @@ export default function GeneratePage() {
   const [difficulty, setDifficulty] = useState('Intermediate');
   const [length, setLength] = useState('');
   const [width, setWidth] = useState('');
+  const [circumference, setCircumference] = useState('');
   const [extraNotes, setExtraNotes] = useState('');
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
@@ -102,6 +104,10 @@ export default function GeneratePage() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [saveTemplateName, setSaveTemplateName] = useState('');
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  // Inline save state — replaces the alert() dialog with a button state change
+  const [saved, setSaved] = useState(false);
+  // Track which section tabs have been visited so we can show a subtle ✓ indicator
+  const [visitedSections, setVisitedSections] = useState<Set<number>>(new Set([0]));
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   if (!unlocked) {
@@ -132,10 +138,6 @@ export default function GeneratePage() {
     setReferenceImagePreview(null);
   }
 
-  // Downscales and re-encodes the reference image client-side before sending
-  // it to Claude — keeps the request small and fast without needing any
-  // server-side processing. The image is never uploaded to storage; it only
-  // ever exists as this base64 string for the duration of the API call.
   function imageFileToBase64(file: File, maxDim = 1024): Promise<{ base64: string; mediaType: string }> {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -162,13 +164,11 @@ export default function GeneratePage() {
     });
   }
 
+  const isCircularObject = CIRCULAR_OBJECTS.some(o => object.toLowerCase().includes(o.toLowerCase()));
+
   async function generate() {
     const token = localStorage.getItem('loophole_token');
-    if (!token) {
-      setError('Session expired. Please go to Settings and unlock again.');
-      return;
-    }
-
+    if (!token) { setError('Session expired. Please go to Settings and unlock again.'); return; }
     const objectName = object.trim();
     if (!objectName) { setError('Please specify what you want to knit.'); return; }
 
@@ -176,10 +176,13 @@ export default function GeneratePage() {
     setPattern(null);
     setError('');
     setActiveOutputSection(0);
+    setSaved(false);
+    setVisitedSections(new Set([0]));
 
     const dimensions = [
       length && `length: ${length}`,
       width && `width: ${width}`,
+      circumference && `circumference: ${circumference}`,
     ].filter(Boolean).join(', ');
 
     const prompt = `You are an expert knitting pattern designer. Create a complete, detailed, genuinely usable knitting pattern based on these specifications:
@@ -278,7 +281,7 @@ Rules:
             'x-loophole-token': token,
           },
           body: JSON.stringify({
-            max_tokens: 16000, // increased from 8096 to support content-heavy patterns (e.g. multi-swatch samplers)
+            max_tokens: 16000,
             messages: [{ role: 'user', content: messageContent }],
           }),
         }
@@ -297,12 +300,11 @@ Rules:
       if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
       const parsed = JSON.parse(text) as GeneratedPattern;
       setPattern(parsed);
-      // Save to generation history (#7)
       const entry: HistoryEntry = {
         id: Date.now().toString(),
         name: parsed.name,
         tagline: parsed.tagline,
-        inputs: { object: objectName, style, yarnWeight, difficulty, length, width, extraNotes },
+        inputs: { object: objectName, style, yarnWeight, difficulty, length, width, circumference, extraNotes },
         pattern: parsed,
         savedAt: new Date().toISOString(),
       };
@@ -311,9 +313,6 @@ Rules:
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to generate pattern. Please try again.');
     }
-    // Reference image is intentionally temporary — it's never persisted anywhere,
-    // and we clear it here so it doesn't silently carry over into a future
-    // generate() call once this one has finished (success or failure).
     clearReferenceImage();
     setGenerating(false);
   }
@@ -324,12 +323,8 @@ Rules:
     if (!token) return;
 
     setGeneratingViz(true);
-    // Clear any existing visualization so the loading state is visible
     setPattern(prev => prev ? { ...prev, visualization: undefined } : prev);
 
-    // Read the current theme to pass matching color tokens to Claude—
-    // so the SVG background and palette always match the active theme rather
-    // than being hardcoded to one or the other.
     const isDark = document.documentElement.dataset.theme === 'dark';
     const colors = isDark
       ? { bg: '#2a1a22', bgAlt: '#321e28', text: '#e8c8d8', accent: '#c47aaa' }
@@ -400,14 +395,11 @@ SVG requirements:
           }),
         }
       );
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
-
       let svg = (data.content?.[0]?.text ?? '').trim();
       svg = svg.replace(/^```(?:svg|xml)?\s*/i, '').replace(/\s*```$/, '').trim();
       if (!svg.startsWith('<svg')) throw new Error('Response was not valid SVG');
-
       setPattern(prev => prev ? { ...prev, visualization: svg } : prev);
     } catch (e) {
       console.error('Visualization generation failed:', e);
@@ -416,14 +408,12 @@ SVG requirements:
     setGeneratingViz(false);
   }
 
-  // #9: Regenerate a single section without touching the rest of the pattern
   async function regenerateSection(sectionIndex: number) {
     if (!pattern) return;
     const token = localStorage.getItem('loophole_token');
     if (!token) return;
     const sec = pattern.sections[sectionIndex];
     if (!sec) return;
-
     setRegeneratingSection(sectionIndex);
 
     const sectionPrompt = `You are an expert knitting pattern designer. Regenerate ONLY the section titled "${sec.title}" for this pattern.
@@ -482,13 +472,12 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
     setRegeneratingSection(null);
   }
 
-  // #8: Template helpers
   function handleSaveTemplate() {
     if (!saveTemplateName.trim()) return;
     const t: PromptTemplate = {
       id: Date.now().toString(),
       name: saveTemplateName.trim(),
-      object, style, yarnWeight, difficulty, length, width, extraNotes,
+      object, style, yarnWeight, difficulty, length, width, circumference, extraNotes,
       savedAt: new Date().toISOString(),
     };
     saveTemplate(t);
@@ -500,13 +489,62 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
   function handleLoadTemplate(t: PromptTemplate) {
     setObject(t.object); setStyle(t.style); setYarnWeight(t.yarnWeight);
     setDifficulty(t.difficulty); setLength(t.length); setWidth(t.width);
-    setExtraNotes(t.extraNotes);
+    setCircumference(t.circumference ?? ''); setExtraNotes(t.extraNotes);
     setShowTemplates(false);
   }
 
   function handleDeleteTemplate(id: string) {
     deleteTemplate(id);
     setTemplates(loadTemplates());
+  }
+
+  async function handleSaveToPatterns() {
+    if (!pattern) return;
+    const { error: saveError } = await supabase.from('patterns').insert({
+      name: pattern.name,
+      source: 'generated',
+      difficulty: pattern.metadata?.['Difficulty'] ?? null,
+      yarn_weight: pattern.metadata?.['Yarn weight'] ?? null,
+      needle_size: pattern.metadata?.['Needle size'] ?? null,
+      notes: pattern.tagline ?? null,
+      gauge_stitches: (() => {
+        const g = pattern.metadata?.['Gauge'] ?? '';
+        const m = g.match(/(\d+(?:\.\d+)?)\s*sts/);
+        return m ? parseFloat(m[1]) : null;
+      })(),
+      gauge_rows: (() => {
+        const g = pattern.metadata?.['Gauge'] ?? '';
+        const m = g.match(/(\d+(?:\.\d+)?)\s*rows/);
+        return m ? parseFloat(m[1]) : null;
+      })(),
+      gauge_unit: (() => {
+        const g = pattern.metadata?.['Gauge'] ?? '';
+        if (g.includes('10cm') || g.includes('10 cm')) return 'per 10cm';
+        if (g.includes('4in') || g.includes('4 in') || g.includes('4"')) return 'per 4in';
+        return 'per 4in';
+      })(),
+      parsed_guide: {
+        generated: true,
+        metadata: pattern.metadata,
+        sizes: pattern.sizes ?? ['One Size'],
+        materials: pattern.materials ?? null,
+        prerequisites: pattern.prerequisites ?? null,
+        abbreviations: pattern.abbreviations,
+        stepDifficulty: pattern.stepDifficulty ?? null,
+        extras: pattern.extras ?? [],
+        stitchPattern: pattern.stitchPattern ?? null,
+        visualization: (pattern.visualization && pattern.visualization !== 'error') ? pattern.visualization : null,
+        sections: pattern.sections.map(s => ({
+          title: s.title,
+          steps: s.content.split('\n').filter(Boolean),
+        })),
+      },
+    });
+    if (saveError) {
+      setError('Failed to save: ' + saveError.message);
+    } else {
+      setSaved(true);
+    }
   }
 
   return (
@@ -532,7 +570,6 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
         Describe what you want to knit and Claude will generate a complete pattern for you.
       </p>
 
-      {/* History panel (#7) */}
       {showHistory && (
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
           <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Recent Generations</p>
@@ -542,16 +579,20 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
                 <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.name}</p>
                 <p style={{ color: 'var(--text-faint)', fontSize: 11 }}>{h.inputs.object} · {h.inputs.yarnWeight} · {new Date(h.savedAt).toLocaleDateString()}</p>
               </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                <button onClick={() => { setPattern(h.pattern); setObject(h.inputs.object); setStyle(h.inputs.style); setYarnWeight(h.inputs.yarnWeight); setDifficulty(h.inputs.difficulty); setLength(h.inputs.length); setWidth(h.inputs.width); setExtraNotes(h.inputs.extraNotes); setShowHistory(false); setActiveOutputSection(0); }}
-                  style={{ background: 'var(--primary)', border: 'none', color: 'var(--primary-text)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>Restore</button>
-              </div>
+              <button onClick={() => {
+                setPattern(h.pattern); setObject(h.inputs.object); setStyle(h.inputs.style);
+                setYarnWeight(h.inputs.yarnWeight); setDifficulty(h.inputs.difficulty);
+                setLength(h.inputs.length); setWidth(h.inputs.width);
+                setCircumference(h.inputs.circumference ?? ''); setExtraNotes(h.inputs.extraNotes);
+                setShowHistory(false); setActiveOutputSection(0); setSaved(false); setVisitedSections(new Set([0]));
+              }} style={{ background: 'var(--primary)', border: 'none', color: 'var(--primary-text)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', flexShrink: 0 }}>
+                Restore
+              </button>
             </div>
           ))}
         </div>
       )}
 
-      {/* Templates panel (#8) */}
       {showTemplates && (
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
           <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Saved Templates</p>
@@ -589,7 +630,6 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
               ))}
             </div>
           </div>
-
           <div>
             <label style={lbl}>Style</label>
             <input style={{ ...inp, marginBottom: 8 }} value={style} onChange={e => setStyle(e.target.value)}
@@ -619,7 +659,8 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
               {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {/* Three dimension fields — the third relabels contextually for circular objects */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
             <div>
               <label style={lbl}>Length</label>
               <input style={inp} value={length} onChange={e => setLength(e.target.value)} placeholder='e.g. 70"' />
@@ -627,6 +668,11 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
             <div>
               <label style={lbl}>Width</label>
               <input style={inp} value={width} onChange={e => setWidth(e.target.value)} placeholder='e.g. 6"' />
+            </div>
+            <div>
+              <label style={lbl}>{isCircularObject ? 'Circumference' : 'Circ / Depth'}</label>
+              <input style={inp} value={circumference} onChange={e => setCircumference(e.target.value)}
+                placeholder={isCircularObject ? 'e.g. 22"' : 'e.g. 10"'} />
             </div>
           </div>
         </div>
@@ -661,13 +707,10 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
           )}
         </div>
 
-        <button onClick={generate} disabled={generating}
-          className="btn btn-primary"
-          style={{ opacity: generating ? 0.6 : 1 }}>
+        <button onClick={generate} disabled={generating} className="btn btn-primary" style={{ opacity: generating ? 0.6 : 1 }}>
           {generating ? (referenceImage ? '✨ Looking at your reference image…' : '✨ Generating pattern…') : '✨ Generate Pattern'}
         </button>
 
-        {/* Save as template (#8) */}
         <div style={{ marginTop: 12 }}>
           {showSaveTemplate ? (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -707,7 +750,6 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
         </div>
       )}
 
-      {/* Generated pattern output */}
       {pattern && (
         <div>
           <div className="reveal">
@@ -727,7 +769,7 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
             </div>
           )}
 
-          {/* Sizes (#5) */}
+          {/* Sizes */}
           {pattern.sizes && pattern.sizes.length > 0 && pattern.sizes[0] !== 'One Size' && (
             <div className="reveal" style={{ animationDelay: '0.06s', marginBottom: 20 }}>
               <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Sizes</p>
@@ -739,10 +781,10 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
             </div>
           )}
 
-          {/* Materials (#6) */}
+          {/* Materials */}
           {pattern.materials && (
             <div className="reveal" style={{ animationDelay: '0.07s', background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
-              <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>You’ll Need</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>You'll Need</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <span style={{ fontSize: 18, flexShrink: 0 }}>🧶</span>
@@ -775,7 +817,7 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
             </div>
           )}
 
-          {/* Prerequisites (#4) */}
+          {/* Prerequisites */}
           {pattern.prerequisites && pattern.prerequisites.length > 0 && (
             <div className="reveal" style={{ animationDelay: '0.08s', background: 'var(--bg-accent)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, marginBottom: 20, borderLeft: '3px solid var(--primary)' }}>
               <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>You Should Know How To…</p>
@@ -787,39 +829,32 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
             </div>
           )}
 
-          {/* Visualization — sits after metadata so it doesn't push key info below the fold */}
-          <div className="reveal" style={{ animationDelay: '0.07s', marginBottom: 20 }}>
+          {/* Visualization */}
+          <div className="reveal" style={{ animationDelay: '0.09s', marginBottom: 20 }}>
             {pattern.visualization && pattern.visualization !== 'error' ? (
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--border-light)', flexWrap: 'wrap', gap: 8 }}>
                   <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Pattern Diagram</p>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      onClick={() => generateVisualization(diagType)}
-                      disabled={generatingViz}
-                      style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: generatingViz ? 'default' : 'pointer', opacity: generatingViz ? 0.5 : 1 }}
-                    >
+                    <button onClick={() => generateVisualization(diagType)} disabled={generatingViz}
+                      style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: generatingViz ? 'default' : 'pointer', opacity: generatingViz ? 0.5 : 1 }}>
                       {generatingViz ? 'Regenerating…' : '↺ Regenerate'}
                     </button>
-                    <button
-                      onClick={() => {
-                        const blob = new Blob([pattern.visualization!], { type: 'image/svg+xml' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url; a.download = `${pattern.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-diagram.svg`;
-                        a.click(); URL.revokeObjectURL(url);
-                      }}
-                      style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: 'pointer' }}
-                    >
+                    <button onClick={() => {
+                      const blob = new Blob([pattern.visualization!], { type: 'image/svg+xml' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url; a.download = pattern.name.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-diagram.svg';
+                      a.click(); URL.revokeObjectURL(url);
+                    }} style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: 'pointer' }}>
                       ↓ Download SVG
                     </button>
                   </div>
                 </div>
-                {generatingViz ? (
-                  <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-faint)', fontSize: 13, fontStyle: 'italic' }}>Generating new diagram…</div>
-                ) : (
-                  <div dangerouslySetInnerHTML={{ __html: pattern.visualization }} style={{ width: '100%', display: 'block', lineHeight: 0 }} />
-                )}
+                {generatingViz
+                  ? <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-faint)', fontSize: 13, fontStyle: 'italic' }}>Generating new diagram…</div>
+                  : <div dangerouslySetInnerHTML={{ __html: pattern.visualization }} style={{ width: '100%', display: 'block', lineHeight: 0 }} />
+                }
               </div>
             ) : pattern.visualization === 'error' ? (
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -845,57 +880,56 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
                     ))}
                   </div>
                 </div>
-                <button
-                  onClick={() => generateVisualization(diagType)}
-                  disabled={generatingViz}
-                  style={{
-                    width: '100%', background: 'var(--bg-input)', border: '1px dashed var(--border-medium)',
-                    borderRadius: 8, padding: '12px', color: generatingViz ? 'var(--text-faint)' : 'var(--text-muted)',
-                    fontSize: 13, cursor: generatingViz ? 'default' : 'pointer', textAlign: 'center',
-                  }}
-                >
+                <button onClick={() => generateVisualization(diagType)} disabled={generatingViz} style={{
+                  width: '100%', background: 'var(--bg-input)', border: '1px dashed var(--border-medium)',
+                  borderRadius: 8, padding: '12px', color: generatingViz ? 'var(--text-faint)' : 'var(--text-muted)',
+                  fontSize: 13, cursor: generatingViz ? 'default' : 'pointer', textAlign: 'center',
+                }}>
                   {generatingViz ? '🗒️ Generating diagram… (10–20 sec)' : '🗒️ Generate Pattern Diagram'}
                 </button>
               </div>
             )}
           </div>
 
-          {/* Sticky section nav — only worth showing once there's more than one section to jump between */}
+          {/* Section nav — ✓ on visited tabs (except currently active) */}
           {pattern.sections && pattern.sections.length > 1 && (
-            <div className="section-nav-sticky reveal" style={{ animationDelay: '0.08s' }}>
+            <div className="section-nav-sticky reveal" style={{ animationDelay: '0.1s' }}>
               {pattern.sections.map((sec, i) => (
-                <button
-                  key={i}
+                <button key={i}
                   className={`section-nav-pill ${activeOutputSection === i ? 'active' : ''}`}
                   onClick={() => {
                     setActiveOutputSection(i);
+                    setVisitedSections(prev => new Set([...prev, i]));
                     document.getElementById(`gen-section-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }}
                 >
+                  {visitedSections.has(i) && i !== activeOutputSection && (
+                    <span style={{ marginRight: 4, opacity: 0.6, fontSize: 10 }}>✓</span>
+                  )}
                   {sec.title}
                 </button>
               ))}
             </div>
           )}
 
-          {/* Abbreviations */}
+          {/* Abbreviations — flex-start so long definitions wrap cleanly */}
           {pattern.abbreviations && Object.keys(pattern.abbreviations).length > 0 && (
-            <div className="reveal" style={{ animationDelay: '0.1s', marginBottom: 20 }}>
+            <div className="reveal" style={{ animationDelay: '0.12s', marginBottom: 20 }}>
               <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Abbreviations</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6 }}>
                 {Object.entries(pattern.abbreviations).map(([abbrev, explanation]) => (
-                  <div key={abbrev} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 6, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 13, fontFamily: 'monospace', minWidth: 40 }}>{abbrev}</span>
-                    <span style={{ color: 'var(--text-body)', fontSize: 13 }}>— {explanation}</span>
+                  <div key={abbrev} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 6, padding: '8px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 13, fontFamily: 'monospace', minWidth: 40, flexShrink: 0, paddingTop: 1 }}>{abbrev}</span>
+                    <span style={{ color: 'var(--text-body)', fontSize: 13, lineHeight: 1.5 }}>— {explanation}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Extras (cable definitions etc.) */}
+          {/* Extras */}
           {pattern.extras && pattern.extras.map((extra, i) => (
-            <div key={i} className="reveal" style={{ animationDelay: `${0.12 + i * 0.04}s`, marginBottom: 20 }}>
+            <div key={i} className="reveal" style={{ animationDelay: `${0.14 + i * 0.04}s`, marginBottom: 20 }}>
               <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>{extra.title}</p>
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, overflow: 'hidden' }}>
                 {extra.rows.map(([term, def], j) => (
@@ -910,7 +944,7 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
 
           {/* Stitch pattern layout */}
           {pattern.stitchPattern && (
-            <div className="reveal" style={{ animationDelay: '0.16s', marginBottom: 20 }}>
+            <div className="reveal" style={{ animationDelay: '0.18s', marginBottom: 20 }}>
               <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>{pattern.stitchPattern.title}</p>
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, padding: 16, marginBottom: 10 }}>
                 <p style={{ fontFamily: 'monospace', color: 'var(--text-body)', fontSize: 14, lineHeight: 1.8, wordBreak: 'break-word' }}>
@@ -938,14 +972,11 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
 
           {/* Pattern sections */}
           {pattern.sections && pattern.sections.map((sec, i) => (
-            <div key={i} id={`gen-section-${i}`} className="reveal" style={{ animationDelay: `${0.2 + i * 0.05}s`, marginBottom: 24, scrollMarginTop: 60 }}>
+            <div key={i} id={`gen-section-${i}`} className="reveal" style={{ animationDelay: `${0.22 + i * 0.05}s`, marginBottom: 24, scrollMarginTop: 60 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>{sec.title}</p>
-                <button
-                  onClick={() => regenerateSection(i)}
-                  disabled={regeneratingSection !== null}
-                  style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-faint)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: regeneratingSection !== null ? 'default' : 'pointer', opacity: regeneratingSection !== null ? 0.4 : 1 }}
-                >
+                <button onClick={() => regenerateSection(i)} disabled={regeneratingSection !== null}
+                  style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-faint)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: regeneratingSection !== null ? 'default' : 'pointer', opacity: regeneratingSection !== null ? 0.4 : 1 }}>
                   {regeneratingSection === i ? '↺ Regenerating…' : '↺ Regenerate section'}
                 </button>
               </div>
@@ -959,7 +990,7 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
                       const effectiveDifficulty = stepDifficulty(pattern.stepDifficulty, sec.title, stepMatch[1], pattern.metadata?.['Difficulty']);
                       return (
                         <div key={j} className="step-card reveal" style={{
-                          animationDelay: `${0.22 + i * 0.05 + j * 0.025}s`,
+                          animationDelay: `${0.24 + i * 0.05 + j * 0.025}s`,
                           display: 'flex', gap: 12, background: 'var(--bg-card)',
                           border: '1px solid var(--border-light)',
                           borderLeft: `3px solid ${difficultyColor(effectiveDifficulty)}`,
@@ -967,77 +998,38 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
                         }}>
                           <span style={{ background: 'var(--primary)', color: 'var(--primary-text)', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{stepMatch[1]}</span>
                           <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, margin: 0 }}
-                            dangerouslySetInnerHTML={{ __html: stepMatch[2].replace(/\*\*(.+?)\*\*/g, `<strong style="color:var(--text-primary)">$1</strong>`) }}
+                            dangerouslySetInnerHTML={{ __html: stepMatch[2].replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text-primary)">$1</strong>') }}
                           />
                         </div>
                       );
                     }
-                    return (
-                      <p key={j} style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, padding: '4px 14px' }}>{line}</p>
-                    );
+                    return <p key={j} style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, padding: '4px 14px' }}>{line}</p>;
                   })}
                 </div>
               )}
             </div>
           ))}
 
-          {/* Save to patterns button */}
-          <div className="reveal" style={{ animationDelay: '0.1s', borderTop: '1px solid var(--border-light)', paddingTop: 20, marginTop: 8 }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 12 }}>
-              Happy with this pattern? You can save it to your pattern library.
-            </p>
+          {/* Save footer — inline state, no alert() dialogs */}
+          <div className="reveal" style={{ animationDelay: '0.1s', borderTop: '1px solid var(--border-light)', paddingTop: 20, marginTop: 8, display: 'flex', alignItems: 'center', gap: 16 }}>
+            {!saved && (
+              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                Happy with this pattern? Save it to your pattern library.
+              </p>
+            )}
             <button
-              className="btn btn-primary"
-              onClick={async () => {
-                const { error } = await supabase.from('patterns').insert({
-                  name: pattern.name,
-                  source: 'generated',
-                  difficulty: pattern.metadata?.['Difficulty'] ?? null,
-                  yarn_weight: pattern.metadata?.['Yarn weight'] ?? null,
-                  needle_size: pattern.metadata?.['Needle size'] ?? null,
-                  notes: pattern.tagline ?? null,
-                  gauge_stitches: (() => {
-                    const g = pattern.metadata?.['Gauge'] ?? '';
-                    const m = g.match(/(\d+(?:\.\d+)?)\s*sts/);
-                    return m ? parseFloat(m[1]) : null;
-                  })(),
-                  gauge_rows: (() => {
-                    const g = pattern.metadata?.['Gauge'] ?? '';
-                    const m = g.match(/(\d+(?:\.\d+)?)\s*rows/);
-                    return m ? parseFloat(m[1]) : null;
-                  })(),
-                  gauge_unit: (() => {
-                    const g = pattern.metadata?.['Gauge'] ?? '';
-                    if (g.includes('10cm') || g.includes('10 cm')) return 'per 10cm';
-                    if (g.includes('4in') || g.includes('4 in') || g.includes('4"')) return 'per 4in';
-                    return 'per 4in';
-                  })(),
-                  parsed_guide: {
-                    generated: true,
-                    metadata: pattern.metadata,
-                    sizes: pattern.sizes ?? ['One Size'],
-                    materials: pattern.materials ?? null,
-                    prerequisites: pattern.prerequisites ?? null,
-                    abbreviations: pattern.abbreviations,
-                    stepDifficulty: pattern.stepDifficulty ?? null,
-                    extras: pattern.extras ?? [],
-                    stitchPattern: pattern.stitchPattern ?? null,
-                    visualization: (pattern.visualization && pattern.visualization !== 'error') ? pattern.visualization : null,
-                    sections: pattern.sections.map(s => ({
-                      title: s.title,
-                      steps: s.content.split('\n').filter(Boolean),
-                    })),
-                  },
-                });
-                if (error) {
-                  alert(`Failed to save: ${error.message}`);
-                } else {
-                  alert(`“${pattern.name}” saved to your patterns!`);
-                }
-              }}
+              className={saved ? '' : 'btn btn-primary'}
+              disabled={saved}
+              onClick={handleSaveToPatterns}
+              style={saved ? { background: 'var(--success-vivid)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'default', flexShrink: 0 } : { flexShrink: 0 }}
             >
-              💾 Save to Patterns
+              {saved ? '✓ Saved to Patterns' : '💾 Save to Patterns'}
             </button>
+            {saved && (
+              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                Find it in your <a href="/patterns" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Patterns library</a>.
+              </p>
+            )}
           </div>
         </div>
       )}
