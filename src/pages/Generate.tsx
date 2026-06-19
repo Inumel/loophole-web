@@ -210,7 +210,7 @@ Rules:
             'x-loophole-token': token,
           },
           body: JSON.stringify({
-            max_tokens: 8096, // triggers Sonnet in the proxy
+            max_tokens: 16000, // increased from 8096 to support content-heavy patterns (e.g. multi-swatch samplers)
             messages: [{ role: 'user', content: messageContent }],
           }),
         }
