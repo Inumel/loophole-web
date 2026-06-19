@@ -240,8 +240,20 @@ Return a JSON object with this exact structure (omit optional fields if not rele
   },
   "sections": [
     {
-      "title": "Pattern Instructions",
-      "content": "Numbered step-by-step instructions as a single string, each step on a new line starting with number and period.\n1. Cast on: ...\n2. Setup row: ...\n3. Row 1 — RS: ..."
+      "title": "Gauge Swatch",
+      "content": "1. Cast on 24 sts using your chosen yarn and needle size...\n2. Work in pattern for 4 inches..."
+    },
+    {
+      "title": "Cast On & Brim",
+      "content": "1. Using the long-tail cast on, cast on X sts...\n2. Join to work in the round..."
+    },
+    {
+      "title": "Body",
+      "content": "1. Begin main pattern..."
+    },
+    {
+      "title": "Finishing",
+      "content": "1. Break yarn and draw through remaining sts..."
     }
   ]
 }
@@ -254,6 +266,7 @@ Rules:
 - materials: always include. yarn should specify total yardage, weight, and a suggested yarn. needles should include size in both US and mm. notions lists any additional tools needed (stitch markers, tapestry needle, cable needle, stitch holders, etc.)
 - prerequisites: list every technique the knitter must already know before starting. Be specific — not just "knitting" but "long-tail cast on", "k2tog decrease", "picking up stitches", etc. Derive this list from the actual techniques used in the instructions
 - Include helpful coaching notes within steps (e.g. why to do something, what to watch out for)
+- SECTIONS: Split instructions into logical named sections — never put everything into one "Pattern Instructions" section. Each distinct construction phase gets its own section: e.g. "Gauge Swatch", "Cast On", "Brim", "Body", "Shaping", "Crown", "Finishing", "Sleeves", "Neckband" — whatever phases apply to this specific object. A hat should have at minimum: Gauge Swatch, Brim, Body, Crown. A sweater should have at minimum: Gauge Swatch, Body, Sleeves, Neckband, Finishing. Simple objects (scarves, dishcloths) may have 2–3 sections. Complex objects should have 4–7. Each step within a section must start with its number and a period on its own line
 - Only include extras and stitchPattern if they are relevant to this specific pattern
 - Only include a row repeat reference section in sections[] if the pattern has a repeating row structure
 - All abbreviations used in the instructions must be defined in the abbreviations object
@@ -376,6 +389,7 @@ SVG requirements:
 - Include a small legend if using symbols
 - Include a title text element near the top identifying the diagram type
 - Keep it clean and readable — prioritise clarity over complexity
+- ONE DIAGRAM ONLY: choose a single diagram type and use the full viewBox for it. Do not combine a schematic and a stitch chart in the same SVG — pick whichever adds more value and fill the space with that alone. If in doubt, a well-labelled schematic with generous whitespace is better than two cramped diagrams
 - Return ONLY the raw SVG markup starting with <svg and ending with </svg>, nothing else — no markdown, no explanation, no code fences`;
 
     try {
