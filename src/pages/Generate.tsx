@@ -18,13 +18,65 @@ type GeneratedPattern = {
   name: string;
   tagline: string;
   metadata: Record<string, string>;
+  sizes?: string[];                        // #5: optional size list
+  materials?: { yarn: string; needles: string; notions?: string[] }; // #6
+  prerequisites?: string[];               // #4: skill prerequisites
   abbreviations: Record<string, string>;
   extras?: { title: string; rows: [string, string][] }[];
   stitchPattern?: { title: string; layout: string; note: string };
   sections: PatternSection[];
   stepDifficulty?: Record<string, string>;
-  visualization?: string; // SVG markup, generated separately on demand
+  visualization?: string;
 };
+
+type HistoryEntry = {
+  id: string;
+  name: string;
+  tagline: string;
+  inputs: { object: string; style: string; yarnWeight: string; difficulty: string; length: string; width: string; extraNotes: string };
+  pattern: GeneratedPattern;
+  savedAt: string;
+};
+
+type PromptTemplate = {
+  id: string;
+  name: string;
+  object: string;
+  style: string;
+  yarnWeight: string;
+  difficulty: string;
+  length: string;
+  width: string;
+  extraNotes: string;
+  savedAt: string;
+};
+
+const HISTORY_KEY = 'loophole_gen_history';
+const TEMPLATES_KEY = 'loophole_gen_templates';
+
+function loadHistory(): HistoryEntry[] {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]'); } catch { return []; }
+}
+
+function saveToHistory(entry: HistoryEntry) {
+  const history = loadHistory();
+  const updated = [entry, ...history.filter(h => h.id !== entry.id)].slice(0, 10);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+}
+
+function loadTemplates(): PromptTemplate[] {
+  try { return JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? '[]'); } catch { return []; }
+}
+
+function saveTemplate(t: PromptTemplate) {
+  const templates = loadTemplates();
+  const updated = [t, ...templates.filter(x => x.id !== t.id)].slice(0, 20);
+  localStorage.setItem(TEMPLATES_KEY, JSON.stringify(updated));
+}
+
+function deleteTemplate(id: string) {
+  localStorage.setItem(TEMPLATES_KEY, JSON.stringify(loadTemplates().filter(t => t.id !== id)));
+}
 
 export default function GeneratePage() {
   const { unlocked } = useAuth();
@@ -39,10 +91,17 @@ export default function GeneratePage() {
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generatingViz, setGeneratingViz] = useState(false);
+  const [regeneratingSection, setRegeneratingSection] = useState<number | null>(null);
   const [diagType, setDiagType] = useState<'auto' | 'schematic' | 'stitch' | 'colorwork'>('auto');
   const [pattern, setPattern] = useState<GeneratedPattern | null>(null);
   const [error, setError] = useState('');
   const [activeOutputSection, setActiveOutputSection] = useState(0);
+  const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
+  const [showHistory, setShowHistory] = useState(false);
+  const [templates, setTemplates] = useState<PromptTemplate[]>(() => loadTemplates());
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [saveTemplateName, setSaveTemplateName] = useState('');
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   if (!unlocked) {
@@ -134,6 +193,7 @@ Return a JSON object with this exact structure (omit optional fields if not rele
 {
   "name": "Pattern name",
   "tagline": "One-line description (yarn weight · dimensions · style summary)",
+  "sizes": ["One Size"],
   "metadata": {
     "Yarn weight": "e.g. Medium (4)",
     "Needle size": "e.g. US 7 (4.5 mm)",
@@ -141,9 +201,18 @@ Return a JSON object with this exact structure (omit optional fields if not rele
     "Cast on": "e.g. 34 sts",
     "Finished length": "e.g. 70 inches",
     "Finished width": "e.g. 6 inches",
-    "Yarn needed": "e.g. ~600 yds",
     "Difficulty": "e.g. Intermediate"
   },
+  "materials": {
+    "yarn": "e.g. ~600 yds worsted weight yarn (shown in Cascade 220)",
+    "needles": "e.g. US 7 (4.5mm) straight or circular needles, 32 inches",
+    "notions": ["Tapestry needle", "Stitch markers", "Scissors"]
+  },
+  "prerequisites": [
+    "Long-tail cast on",
+    "Knit and purl stitches",
+    "Binding off"
+  ],
   "abbreviations": {
     "k": "knit",
     "p": "purl"
@@ -175,19 +244,18 @@ Return a JSON object with this exact structure (omit optional fields if not rele
 }
 
 Rules:
-- Make stitch counts, gauge, and yarn amounts genuinely accurate for the specified yarn weight and dimensions
-- For yarn needed: calculate a realistic estimate based on the object type, finished dimensions, and yarn weight. Use these approximate yardage references as a baseline and adjust for dimensions:
-  * Scarf (6x60in, worsted): ~400 yds | Hat (adult, worsted): ~200 yds | Mittens (pair, worsted): ~200 yds
-  * Socks (pair, fingering): ~400 yds | Cowl (worsted): ~250 yds | Shawl (DK): ~800 yds
-  * Baby blanket (worsted): ~800 yds | Sweater (adult M, worsted): ~1200 yds
-  * Lighter yarn weights need more yards for the same area; heavier weights need fewer
-  * Always err on the side of slightly more rather than less, and note it as approximate
+- STITCH COUNT MATH: Verify all stitch counts are mathematically consistent before returning. The cast-on stitch count must be evenly divisible by any stitch pattern repeat. If you specify a 6-stitch cable repeat, the cast-on must be a multiple of 6 (plus any edge stitches). Double-check every increase, decrease, and shaping calculation against the running stitch count
+- GAUGE CONSISTENCY: The needle size, yarn weight, and gauge must be consistent with each other. A worsted weight yarn on 4.5mm needles should give approximately 18–22 sts per 4 inches in stockinette. Do not specify a gauge that contradicts the needle size or yarn weight
+- YARN QUANTITY: For objects with distinct components (sweater body + sleeves, socks with heel + leg + foot), break the yarn estimate down by section in the materials.yarn field. For simple objects, a single total is fine. Always note it as approximate and round up generously
+- sizes: include if the pattern supports multiple sizes (e.g. ["XS", "S", "M", "L", "XL"] or ["Child", "Adult"]). Use ["One Size"] for patterns with no sizing
+- materials: always include. yarn should specify total yardage, weight, and a suggested yarn. needles should include size in both US and mm. notions lists any additional tools needed (stitch markers, tapestry needle, cable needle, stitch holders, etc.)
+- prerequisites: list every technique the knitter must already know before starting. Be specific — not just "knitting" but "long-tail cast on", "k2tog decrease", "picking up stitches", etc. Derive this list from the actual techniques used in the instructions
 - Include helpful coaching notes within steps (e.g. why to do something, what to watch out for)
 - Only include extras and stitchPattern if they are relevant to this specific pattern
 - Only include a row repeat reference section in sections[] if the pattern has a repeating row structure
 - All abbreviations used in the instructions must be defined in the abbreviations object
-- stepDifficulty is OPTIONAL and should only be included if the pattern has genuinely varying difficulty across its steps (e.g. simple ribbing followed by an advanced cable panel, or basic shaping followed by a tricky heel turn). If the whole pattern is uniformly one difficulty level, omit stepDifficulty entirely — the overall "Difficulty" in metadata already covers that case.
-- When included, key stepDifficulty as "<section title>|<step number>" exactly matching the section's title string and the step's number as it appears in that section's numbered content. Only include entries for steps whose difficulty differs from the overall pattern difficulty — no need to label every single step.
+- stepDifficulty is OPTIONAL and should only be included if the pattern has genuinely varying difficulty across its steps. If the whole pattern is uniformly one difficulty level, omit stepDifficulty entirely
+- When included, key stepDifficulty as "<section title>|<step number>" exactly matching the section's title string and the step's number. Only include entries for steps whose difficulty differs from the overall pattern difficulty
 - Use the same difficulty labels as the overall scale: "Beginner", "Easy", "Intermediate", "Advanced"
 - Return ONLY raw JSON, no markdown, no code fences, no comments`;
 
@@ -229,6 +297,17 @@ Rules:
       if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
       const parsed = JSON.parse(text) as GeneratedPattern;
       setPattern(parsed);
+      // Save to generation history (#7)
+      const entry: HistoryEntry = {
+        id: Date.now().toString(),
+        name: parsed.name,
+        tagline: parsed.tagline,
+        inputs: { object: objectName, style, yarnWeight, difficulty, length, width, extraNotes },
+        pattern: parsed,
+        savedAt: new Date().toISOString(),
+      };
+      saveToHistory(entry);
+      setHistory(loadHistory());
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to generate pattern. Please try again.');
     }
@@ -337,12 +416,161 @@ SVG requirements:
     setGeneratingViz(false);
   }
 
+  // #9: Regenerate a single section without touching the rest of the pattern
+  async function regenerateSection(sectionIndex: number) {
+    if (!pattern) return;
+    const token = localStorage.getItem('loophole_token');
+    if (!token) return;
+    const sec = pattern.sections[sectionIndex];
+    if (!sec) return;
+
+    setRegeneratingSection(sectionIndex);
+
+    const sectionPrompt = `You are an expert knitting pattern designer. Regenerate ONLY the section titled "${sec.title}" for this pattern.
+
+Pattern context:
+- Name: ${pattern.name}
+- Object: ${object || pattern.name}
+- Style: ${style || 'as in the original pattern'}
+- Yarn weight: ${yarnWeight}
+- Difficulty: ${difficulty}
+- Gauge: ${pattern.metadata?.['Gauge'] ?? 'as specified in pattern'}
+- Cast on: ${pattern.metadata?.['Cast on'] ?? 'as specified in pattern'}
+- Abbreviations in use: ${Object.keys(pattern.abbreviations ?? {}).join(', ')}
+
+The other sections are: ${pattern.sections.filter((_, i) => i !== sectionIndex).map(s => s.title).join(', ')}
+
+Write a complete, improved version of the "${sec.title}" section. Keep the same overall structure and stitch count logic, but improve clarity, accuracy, or detail.
+
+Return ONLY a JSON object with this exact shape, nothing else — no markdown, no fences:
+{ "title": "${sec.title}", "content": "1. Step one...\n2. Step two..." }`;
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claude-proxy`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'x-loophole-token': token,
+          },
+          body: JSON.stringify({
+            max_tokens: 4097,
+            messages: [{ role: 'user', content: sectionPrompt }],
+          }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
+      let text = (data.content?.[0]?.text ?? '').trim()
+        .replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      const start = text.indexOf('{'), end = text.lastIndexOf('}');
+      if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
+      const updated = JSON.parse(text) as PatternSection;
+      setPattern(prev => {
+        if (!prev) return prev;
+        const newSections = [...prev.sections];
+        newSections[sectionIndex] = updated;
+        return { ...prev, sections: newSections };
+      });
+    } catch (e) {
+      console.error('Section regeneration failed:', e);
+      alert('Section regeneration failed. The original section has been kept.');
+    }
+    setRegeneratingSection(null);
+  }
+
+  // #8: Template helpers
+  function handleSaveTemplate() {
+    if (!saveTemplateName.trim()) return;
+    const t: PromptTemplate = {
+      id: Date.now().toString(),
+      name: saveTemplateName.trim(),
+      object, style, yarnWeight, difficulty, length, width, extraNotes,
+      savedAt: new Date().toISOString(),
+    };
+    saveTemplate(t);
+    setTemplates(loadTemplates());
+    setSaveTemplateName('');
+    setShowSaveTemplate(false);
+  }
+
+  function handleLoadTemplate(t: PromptTemplate) {
+    setObject(t.object); setStyle(t.style); setYarnWeight(t.yarnWeight);
+    setDifficulty(t.difficulty); setLength(t.length); setWidth(t.width);
+    setExtraNotes(t.extraNotes);
+    setShowTemplates(false);
+  }
+
+  function handleDeleteTemplate(id: string) {
+    deleteTemplate(id);
+    setTemplates(loadTemplates());
+  }
+
   return (
     <div style={{ maxWidth: 860 }}>
-      <h1>Pattern Generator</h1>
-      <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <h1 style={{ margin: 0 }}>Pattern Generator</h1>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {templates.length > 0 && (
+            <button onClick={() => { setShowTemplates(t => !t); setShowHistory(false); }}
+              style={{ background: showTemplates ? 'var(--primary)' : 'var(--bg-card)', border: '1px solid var(--border-medium)', color: showTemplates ? 'var(--primary-text)' : 'var(--text-muted)', borderRadius: 8, padding: '6px 12px', fontSize: 13, cursor: 'pointer' }}>
+              💾 Templates ({templates.length})
+            </button>
+          )}
+          {history.length > 0 && (
+            <button onClick={() => { setShowHistory(h => !h); setShowTemplates(false); }}
+              style={{ background: showHistory ? 'var(--primary)' : 'var(--bg-card)', border: '1px solid var(--border-medium)', color: showHistory ? 'var(--primary-text)' : 'var(--text-muted)', borderRadius: 8, padding: '6px 12px', fontSize: 13, cursor: 'pointer' }}>
+              🕒 History ({history.length})
+            </button>
+          )}
+        </div>
+      </div>
+      <p style={{ color: 'var(--text-muted)', marginBottom: 16, fontSize: 14 }}>
         Describe what you want to knit and Claude will generate a complete pattern for you.
       </p>
+
+      {/* History panel (#7) */}
+      {showHistory && (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Recent Generations</p>
+          {history.map(h => (
+            <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid var(--border-light)', gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.name}</p>
+                <p style={{ color: 'var(--text-faint)', fontSize: 11 }}>{h.inputs.object} · {h.inputs.yarnWeight} · {new Date(h.savedAt).toLocaleDateString()}</p>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <button onClick={() => { setPattern(h.pattern); setObject(h.inputs.object); setStyle(h.inputs.style); setYarnWeight(h.inputs.yarnWeight); setDifficulty(h.inputs.difficulty); setLength(h.inputs.length); setWidth(h.inputs.width); setExtraNotes(h.inputs.extraNotes); setShowHistory(false); setActiveOutputSection(0); }}
+                  style={{ background: 'var(--primary)', border: 'none', color: 'var(--primary-text)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>Restore</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Templates panel (#8) */}
+      {showTemplates && (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Saved Templates</p>
+          {templates.map(t => (
+            <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid var(--border-light)', gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{t.name}</p>
+                <p style={{ color: 'var(--text-faint)', fontSize: 11 }}>{t.object} · {t.yarnWeight} · {t.difficulty}</p>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <button onClick={() => handleLoadTemplate(t)}
+                  style={{ background: 'var(--primary)', border: 'none', color: 'var(--primary-text)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>Load</button>
+                <button onClick={() => handleDeleteTemplate(t.id)}
+                  style={{ background: 'none', border: '1px solid var(--danger-vivid)', color: 'var(--danger-vivid)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Input form */}
       <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
@@ -438,6 +666,27 @@ SVG requirements:
           style={{ opacity: generating ? 0.6 : 1 }}>
           {generating ? (referenceImage ? '✨ Looking at your reference image…' : '✨ Generating pattern…') : '✨ Generate Pattern'}
         </button>
+
+        {/* Save as template (#8) */}
+        <div style={{ marginTop: 12 }}>
+          {showSaveTemplate ? (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input value={saveTemplateName} onChange={e => setSaveTemplateName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSaveTemplate()}
+                placeholder="Template name…"
+                style={{ flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 6, padding: '6px 10px', color: 'var(--text-body)', fontSize: 13 }} />
+              <button onClick={handleSaveTemplate} disabled={!saveTemplateName.trim()}
+                style={{ background: 'var(--primary)', border: 'none', color: 'var(--primary-text)', borderRadius: 6, padding: '6px 12px', fontSize: 13, cursor: 'pointer', opacity: saveTemplateName.trim() ? 1 : 0.5 }}>Save</button>
+              <button onClick={() => { setShowSaveTemplate(false); setSaveTemplateName(''); }}
+                style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+            </div>
+          ) : (
+            <button onClick={() => setShowSaveTemplate(true)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 12, cursor: 'pointer', padding: 0 }}>
+              💾 Save current inputs as template
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -475,6 +724,66 @@ SVG requirements:
                   <p style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 700 }}>{v}</p>
                 </div>
               ) : null)}
+            </div>
+          )}
+
+          {/* Sizes (#5) */}
+          {pattern.sizes && pattern.sizes.length > 0 && pattern.sizes[0] !== 'One Size' && (
+            <div className="reveal" style={{ animationDelay: '0.06s', marginBottom: 20 }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Sizes</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {pattern.sizes.map(s => (
+                  <span key={s} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 6, padding: '4px 12px', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600 }}>{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Materials (#6) */}
+          {pattern.materials && (
+            <div className="reveal" style={{ animationDelay: '0.07s', background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>You’ll Need</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>🧶</span>
+                  <div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Yarn</p>
+                    <p style={{ color: 'var(--text-body)', fontSize: 14 }}>{pattern.materials.yarn}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', borderTop: '1px solid var(--border-light)', paddingTop: 10 }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>🧵</span>
+                  <div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Needles</p>
+                    <p style={{ color: 'var(--text-body)', fontSize: 14 }}>{pattern.materials.needles}</p>
+                  </div>
+                </div>
+                {pattern.materials.notions && pattern.materials.notions.length > 0 && (
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', borderTop: '1px solid var(--border-light)', paddingTop: 10 }}>
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>✂️</span>
+                    <div>
+                      <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Notions</p>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {pattern.materials.notions.map(n => (
+                          <span key={n} style={{ background: 'var(--bg-input)', borderRadius: 6, padding: '3px 10px', color: 'var(--text-body)', fontSize: 13 }}>{n}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Prerequisites (#4) */}
+          {pattern.prerequisites && pattern.prerequisites.length > 0 && (
+            <div className="reveal" style={{ animationDelay: '0.08s', background: 'var(--bg-accent)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 16, marginBottom: 20, borderLeft: '3px solid var(--primary)' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>You Should Know How To…</p>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {pattern.prerequisites.map(p => (
+                  <span key={p} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: 6, padding: '4px 10px', color: 'var(--text-body)', fontSize: 13 }}>{p}</span>
+                ))}
+              </div>
             </div>
           )}
 
@@ -630,32 +939,45 @@ SVG requirements:
           {/* Pattern sections */}
           {pattern.sections && pattern.sections.map((sec, i) => (
             <div key={i} id={`gen-section-${i}`} className="reveal" style={{ animationDelay: `${0.2 + i * 0.05}s`, marginBottom: 24, scrollMarginTop: 60 }}>
-              <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>{sec.title}</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {sec.content.split('\n').filter(Boolean).map((line, j) => {
-                  const stepMatch = line.match(/^(\d+)\.\s+(.+)/);
-                  if (stepMatch) {
-                    const effectiveDifficulty = stepDifficulty(pattern.stepDifficulty, sec.title, stepMatch[1], pattern.metadata?.['Difficulty']);
-                    return (
-                      <div key={j} className="step-card reveal" style={{
-                        animationDelay: `${0.22 + i * 0.05 + j * 0.025}s`,
-                        display: 'flex', gap: 12, background: 'var(--bg-card)',
-                        border: '1px solid var(--border-light)',
-                        borderLeft: `3px solid ${difficultyColor(effectiveDifficulty)}`,
-                        borderRadius: 8, padding: '12px 14px',
-                      }}>
-                        <span style={{ background: 'var(--primary)', color: 'var(--primary-text)', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{stepMatch[1]}</span>
-                        <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, margin: 0 }}
-                          dangerouslySetInnerHTML={{ __html: stepMatch[2].replace(/\*\*(.+?)\*\*/g, `<strong style="color:var(--text-primary)">$1</strong>`) }}
-                        />
-                      </div>
-                    );
-                  }
-                  return (
-                    <p key={j} style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, padding: '4px 14px' }}>{line}</p>
-                  );
-                })}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>{sec.title}</p>
+                <button
+                  onClick={() => regenerateSection(i)}
+                  disabled={regeneratingSection !== null}
+                  style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-faint)', borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: regeneratingSection !== null ? 'default' : 'pointer', opacity: regeneratingSection !== null ? 0.4 : 1 }}
+                >
+                  {regeneratingSection === i ? '↺ Regenerating…' : '↺ Regenerate section'}
+                </button>
               </div>
+              {regeneratingSection === i ? (
+                <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-faint)', fontSize: 13, fontStyle: 'italic', background: 'var(--bg-card)', borderRadius: 8 }}>Rewriting this section…</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {sec.content.split('\n').filter(Boolean).map((line, j) => {
+                    const stepMatch = line.match(/^(\d+)\.\s+(.+)/);
+                    if (stepMatch) {
+                      const effectiveDifficulty = stepDifficulty(pattern.stepDifficulty, sec.title, stepMatch[1], pattern.metadata?.['Difficulty']);
+                      return (
+                        <div key={j} className="step-card reveal" style={{
+                          animationDelay: `${0.22 + i * 0.05 + j * 0.025}s`,
+                          display: 'flex', gap: 12, background: 'var(--bg-card)',
+                          border: '1px solid var(--border-light)',
+                          borderLeft: `3px solid ${difficultyColor(effectiveDifficulty)}`,
+                          borderRadius: 8, padding: '12px 14px',
+                        }}>
+                          <span style={{ background: 'var(--primary)', color: 'var(--primary-text)', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{stepMatch[1]}</span>
+                          <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, margin: 0 }}
+                            dangerouslySetInnerHTML={{ __html: stepMatch[2].replace(/\*\*(.+?)\*\*/g, `<strong style="color:var(--text-primary)">$1</strong>`) }}
+                          />
+                        </div>
+                      );
+                    }
+                    return (
+                      <p key={j} style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, padding: '4px 14px' }}>{line}</p>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ))}
 
@@ -693,6 +1015,9 @@ SVG requirements:
                   parsed_guide: {
                     generated: true,
                     metadata: pattern.metadata,
+                    sizes: pattern.sizes ?? ['One Size'],
+                    materials: pattern.materials ?? null,
+                    prerequisites: pattern.prerequisites ?? null,
                     abbreviations: pattern.abbreviations,
                     stepDifficulty: pattern.stepDifficulty ?? null,
                     extras: pattern.extras ?? [],

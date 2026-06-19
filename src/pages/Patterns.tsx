@@ -428,6 +428,8 @@ export default function PatternsPage() {
     const genExtras = isGenerated ? selected.parsed_guide?.extras as Array<{ title: string; rows: [string, string][] }> | null : null;
     const genStitchPattern = isGenerated ? selected.parsed_guide?.stitchPattern as { title: string; layout: string; note: string } | null : null;
     const genStepDifficulty = selected.parsed_guide?.stepDifficulty as Record<string, string> | null | undefined;
+    const genMaterials = isGenerated ? selected.parsed_guide?.materials as { yarn: string; needles: string; notions?: string[] } | null : null;
+    const genPrerequisites = isGenerated ? selected.parsed_guide?.prerequisites as string[] | null : null;
     return (
       <div>
         <button className="btn btn-secondary" onClick={() => setView('list')} style={{ marginBottom: 20 }}>← Back</button>
@@ -560,6 +562,53 @@ export default function PatternsPage() {
             </div>
           );
         })()}
+
+        {/* Materials and prerequisites for generated patterns */}
+        {genMaterials && (
+          <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
+            <p className="card-title" style={{ marginBottom: 12 }}>You’ll Need</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 18, flexShrink: 0 }}>🧶</span>
+                <div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Yarn</p>
+                  <p style={{ color: 'var(--text-body)', fontSize: 14 }}>{genMaterials.yarn}</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', borderTop: '1px solid var(--border-light)', paddingTop: 10 }}>
+                <span style={{ fontSize: 18, flexShrink: 0 }}>🧵</span>
+                <div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Needles</p>
+                  <p style={{ color: 'var(--text-body)', fontSize: 14 }}>{genMaterials.needles}</p>
+                </div>
+              </div>
+              {genMaterials.notions && genMaterials.notions.length > 0 && (
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', borderTop: '1px solid var(--border-light)', paddingTop: 10 }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>✂️</span>
+                  <div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Notions</p>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {genMaterials.notions.map(n => (
+                        <span key={n} style={{ background: 'var(--bg-input)', borderRadius: 6, padding: '3px 10px', color: 'var(--text-body)', fontSize: 13 }}>{n}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {genPrerequisites && genPrerequisites.length > 0 && (
+          <div style={{ background: 'var(--bg-accent)', border: '1px solid var(--border-light)', borderLeft: '3px solid var(--primary)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <p className="card-title" style={{ marginBottom: 10 }}>You Should Know How To…</p>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {genPrerequisites.map(p => (
+                <span key={p} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: 6, padding: '4px 10px', color: 'var(--text-body)', fontSize: 13 }}>{p}</span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Generated pattern abbreviations */}
         {genAbbreviations && Object.keys(genAbbreviations).length > 0 && (
