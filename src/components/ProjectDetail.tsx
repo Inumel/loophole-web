@@ -86,6 +86,9 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
   const [activeSection, setActiveSection] = useState(0);
   const [stepProgress, setStepProgress] = useState<StepProgress[]>([]);
   const completedStepsCountRef = useRef(0);
+  const [focusMode, setFocusMode] = useState(false);
+  const [focusStepIndex, setFocusStepIndex] = useState(0);
+  const didAutoScrollRef = useRef(false);
   const [projectYarns, setProjectYarns] = useState<ProjectYarn[]>([]);
   const [stashYarns, setStashYarns] = useState<StashYarn[]>([]);
   const [showYarnModal, setShowYarnModal] = useState(false);
@@ -142,6 +145,32 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
     if (data) {
       setStepProgress(data);
       completedStepsCountRef.current = data.filter(p => p.completed).length;
+
+      // Auto-scroll to first incomplete step, but only if the user has already
+      // made progress (so opening a fresh project starts at the top as normal).
+      const anyCompleted = data.some(p => p.completed);
+      if (anyCompleted && !didAutoScrollRef.current) {
+        didAutoScrollRef.current = true;
+        // Find which section contains the first incomplete step so we can
+        // switch to it before scrolling.
+        const completedSet = new Set(data.filter(p => p.completed).map(p => `${p.section_index}-${p.step_index}`));
+        // We'll resolve the actual section after render using the data-first-incomplete marker.
+        // For the section switch, find the lowest section_index that has an incomplete step.
+        const incompleteSections = data
+          .filter(p => !p.completed)
+          .map(p => p.section_index);
+        // Also check sections that have no progress record at all (all steps untouched).
+        // We can't enumerate those here since we don't have the sections array yet,
+        // so just switch to the first section that has any incomplete record.
+        if (incompleteSections.length > 0) {
+          const firstIncompleteSection = Math.min(...incompleteSections);
+          setActiveSection(firstIncompleteSection);
+        }
+        setTimeout(() => {
+          const el = document.querySelector('[data-first-incomplete]');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      }
     }
   }
 
@@ -306,6 +335,41 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
     fetchProject();
   }
 
+  // Keyboard shortcuts for focus mode
+  useEffect(() => {
+    if (!focusMode || !project) return;
+    const rawSecs = project.pattern?.parsed_guide?.sections;
+    const secs = Array.isArray(rawSecs) ? (rawSecs as GuideSection[]) : null;
+    if (!secs) return;
+    const allSteps = secs.flatMap((sec, si) =>
+      getSteps(sec, project.chosen_size, project.chosen_color_variation).map((step, ti) => ({ step, si, ti }))
+    );
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { setFocusMode(false); return; }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        setFocusStepIndex(i => {
+          const next = Math.min(allSteps.length - 1, i + 1);
+          const nextStep = allSteps[next];
+          if (nextStep && nextStep.si !== allSteps[i]?.si) setActiveSection(nextStep.si);
+          return next;
+        });
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        setFocusStepIndex(i => Math.max(0, i - 1));
+      }
+      if (e.key === ' ') {
+        e.preventDefault();
+        setFocusStepIndex(i => {
+          const cur = allSteps[i];
+          if (cur) toggleStep(cur.si, cur.ti);
+          return i;
+        });
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [focusMode, focusStepIndex, project]);
+
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
   if (!project) return <p style={{ color: 'var(--text-muted)' }}>Project not found.</p>;
 
@@ -400,7 +464,28 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
         <div className="card" style={{ cursor: 'default', marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <p className="card-title">Pattern Guide</p>
-            <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{completedSteps}/{totalSteps} steps</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{completedSteps}/{totalSteps} steps</span>
+              {!readOnly && (
+                <button onClick={() => {
+                  // Start focus mode at the first incomplete step
+                  const steps = sections.flatMap((sec, si) =>
+                    getSteps(sec, project.chosen_size, project.chosen_color_variation).map((_, ti) => ({ si, ti }))
+                  );
+                  const firstIncomplete = steps.findIndex(({ si, ti }) => !isCompleted(si, ti));
+                  const startAt = firstIncomplete >= 0 ? firstIncomplete : 0;
+                  const { si } = steps[startAt] ?? { si: 0 };
+                  setActiveSection(si);
+                  setFocusStepIndex(startAt);
+                  setFocusMode(true);
+                }} style={{
+                  background: 'var(--primary)', border: 'none', color: 'var(--primary-text)',
+                  borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                }}>
+                  🎯 Focus
+                </button>
+              )}
+            </div>
           </div>
           <div style={{ height: 6, background: 'var(--bg-muted)', borderRadius: 3, marginBottom: 12, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0}%`, background: 'var(--primary)', borderRadius: 3 }} />
@@ -425,32 +510,38 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
           </div>
           <p style={{ color: 'var(--text-faint)', fontSize: 11, textAlign: 'center', marginBottom: 10, fontStyle: 'italic' }}>Click to complete a step</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {getSteps(sections[activeSection], project.chosen_size, project.chosen_color_variation).map((step, si) => {
-              const done = isCompleted(activeSection, si);
-              const stepNumMatch = step.match(/^(\d+)\./);
-              const stepNum = stepNumMatch ? stepNumMatch[1] : String(si + 1);
-              const effectiveDifficulty = stepDifficulty(genStepDifficulty, sections[activeSection].title, stepNum, project.pattern?.difficulty);
-              return (
-                <div key={si} onClick={() => toggleStep(activeSection, si)} style={{
-                  display: 'flex', gap: 12, alignItems: 'flex-start',
-                  background: done ? 'var(--success-vivid-bg)' : 'var(--bg-muted)',
-                  borderLeft: `3px solid ${done ? 'var(--success-vivid)' : difficultyColor(effectiveDifficulty)}`,
-                  borderRadius: 10, padding: 12, cursor: 'pointer', opacity: done ? 0.8 : 1,
-                }}>
-                  <div style={{
-                    width: 24, height: 24, borderRadius: 12, border: `2px solid ${done ? 'var(--success-vivid)' : 'var(--text-faint)'}`,
-                    background: done ? 'var(--success-vivid)' : 'transparent', flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {done && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}
-                  </div>
-                  <p style={{ color: done ? 'var(--text-faint)' : 'var(--text-body)', fontSize: 14, lineHeight: 1.5, flex: 1, textDecoration: done ? 'line-through' : 'none', margin: 0 }} className="step-container">
-                    <StepText step={step} index={si} />
-                  </p>
+          {getSteps(sections[activeSection], project.chosen_size, project.chosen_color_variation).map((step, si) => {
+          const done = isCompleted(activeSection, si);
+          const stepNumMatch = step.match(/^(\d+)\./);
+          const stepNum = stepNumMatch ? stepNumMatch[1] : String(si + 1);
+          const effectiveDifficulty = stepDifficulty(genStepDifficulty, sections[activeSection].title, stepNum, project.pattern?.difficulty);
+          // Mark the first incomplete step in the current section for auto-scroll
+          const allStepsInSection = getSteps(sections[activeSection], project.chosen_size, project.chosen_color_variation);
+          const firstIncompleteInSection = allStepsInSection.findIndex((_, idx) => !isCompleted(activeSection, idx));
+          const isFirstIncomplete = si === firstIncompleteInSection;
+          return (
+          <div key={si}
+            {...(isFirstIncomplete ? { 'data-first-incomplete': 'true' } : {})}
+          onClick={() => toggleStep(activeSection, si)} style={{
+          display: 'flex', gap: 12, alignItems: 'flex-start',
+          background: done ? 'var(--success-vivid-bg)' : 'var(--bg-muted)',
+          borderLeft: `3px solid ${done ? 'var(--success-vivid)' : difficultyColor(effectiveDifficulty)}`,
+          borderRadius: 10, padding: 12, cursor: 'pointer', opacity: done ? 0.8 : 1,
+          }}>
+          <div style={{
+            width: 24, height: 24, borderRadius: 12, border: `2px solid ${done ? 'var(--success-vivid)' : 'var(--text-faint)'}`,
+          background: done ? 'var(--success-vivid)' : 'transparent', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+                {done && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}
                 </div>
-              );
-            })}
-          </div>
+                  <p style={{ color: done ? 'var(--text-faint)' : 'var(--text-body)', fontSize: 14, lineHeight: 1.5, flex: 1, textDecoration: done ? 'line-through' : 'none', margin: 0 }} className="step-container">
+                      <StepText step={step} index={si} />
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             {activeSection > 0 && (
               <button className="btn btn-secondary" onClick={() => setActiveSection(s => s - 1)} style={{ flex: 1 }}>← Previous</button>
@@ -528,6 +619,118 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
       }} style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--danger-vivid)', background: 'transparent', color: 'var(--danger-vivid)', cursor: 'pointer', fontSize: 14 }}>
         Delete Project
       </button>}
+
+      {/* Focus mode overlay */}
+      {focusMode && sections && (() => {
+        // Build a flat list of all steps across all sections for linear navigation
+        const allSteps = sections.flatMap((sec, si) =>
+          getSteps(sec, project.chosen_size, project.chosen_color_variation).map((step, ti) => ({ step, si, ti, sectionTitle: sec.title }))
+        );
+        const total = allSteps.length;
+        const current = allSteps[focusStepIndex];
+        if (!current) return null;
+        const done = isCompleted(current.si, current.ti);
+        const stepNumMatch = current.step.match(/^(\d+)\./);
+        const stepNum = stepNumMatch ? stepNumMatch[1] : String(current.ti + 1);
+        const effectiveDifficulty = stepDifficulty(genStepDifficulty, current.sectionTitle, stepNum, project.pattern?.difficulty);
+
+        return (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'var(--bg-page)', zIndex: 200,
+            display: 'flex', flexDirection: 'column',
+          }}>
+            {/* Header */}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '16px 20px', borderBottom: '1px solid var(--border-light)', flexShrink: 0,
+            }}>
+              <div>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 16 }}>{project.name}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{current.sectionTitle}</p>
+              </div>
+              <button onClick={() => setFocusMode(false)}
+                style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer' }}>
+                ✕ Exit Focus
+              </button>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ height: 3, background: 'var(--bg-muted)', flexShrink: 0 }}>
+              <div style={{ height: '100%', width: `${((focusStepIndex + 1) / total) * 100}%`, background: 'var(--primary)', transition: 'width 0.3s' }} />
+            </div>
+
+            {/* Step content */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '32px 24px', maxWidth: 700, margin: '0 auto', width: '100%' }}>
+              {/* Step counter */}
+              <p style={{ color: 'var(--text-faint)', fontSize: 13, textAlign: 'center', marginBottom: 24 }}>
+                Step {focusStepIndex + 1} of {total}
+              </p>
+
+              {/* The step itself */}
+              <div onClick={() => toggleStep(current.si, current.ti)} style={{
+                background: done ? 'var(--success-vivid-bg)' : 'var(--bg-card)',
+                borderLeft: `4px solid ${done ? 'var(--success-vivid)' : difficultyColor(effectiveDifficulty)}`,
+                borderRadius: 16, padding: '28px 32px', cursor: 'pointer',
+                border: `1px solid ${done ? 'var(--success-vivid)' : 'var(--border-light)'}`,
+                borderLeftWidth: 4,
+                transition: 'background 0.2s',
+              }}>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 18,
+                    border: `2px solid ${done ? 'var(--success-vivid)' : 'var(--text-faint)'}`,
+                    background: done ? 'var(--success-vivid)' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    {done && <span style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>✓</span>}
+                  </div>
+                  <p style={{
+                    color: done ? 'var(--text-faint)' : 'var(--text-body)',
+                    fontSize: 18, lineHeight: 1.7, margin: 0,
+                    textDecoration: done ? 'line-through' : 'none',
+                  }} className="step-container">
+                    <StepText step={current.step} index={current.ti} />
+                  </p>
+                </div>
+              </div>
+
+              <p style={{ color: 'var(--text-faint)', fontSize: 12, textAlign: 'center', marginTop: 16, fontStyle: 'italic' }}>
+                {done ? 'Tap to un-complete' : 'Tap to mark complete'} · Space to toggle · ←→ to navigate · Esc to exit
+              </p>
+            </div>
+
+            {/* Prev / Next */}
+            <div style={{
+              display: 'flex', gap: 12, padding: '20px 24px',
+              borderTop: '1px solid var(--border-light)', flexShrink: 0,
+            }}>
+              <button
+                onClick={() => setFocusStepIndex(i => Math.max(0, i - 1))}
+                disabled={focusStepIndex === 0}
+                className="btn btn-secondary"
+                style={{ flex: 1, opacity: focusStepIndex === 0 ? 0.3 : 1 }}
+              >
+                ← Previous
+              </button>
+              <button
+                onClick={() => {
+                  if (focusStepIndex < total - 1) {
+                    const next = allSteps[focusStepIndex + 1];
+                    if (next.si !== current.si) setActiveSection(next.si);
+                    setFocusStepIndex(i => i + 1);
+                  } else {
+                    setFocusMode(false);
+                  }
+                }}
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+              >
+                {focusStepIndex === total - 1 ? '✓ Done' : 'Next →'}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Edit modal */}
       {showEditModal && (
