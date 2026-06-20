@@ -119,6 +119,12 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
     fetchProject();
     fetchSessions();
     fetchProjectYarns();
+    // Check for focus mode signal from the dashboard shortcut button
+    const focusTargetId = sessionStorage.getItem('loophole_open_focus');
+    if (focusTargetId === projectId) {
+      sessionStorage.removeItem('loophole_open_focus');
+      setTimeout(() => setFocusMode(true), 800);
+    }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [projectId]);
 

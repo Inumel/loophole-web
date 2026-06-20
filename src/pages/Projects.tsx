@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth';
 import ProjectDetail from '../components/ProjectDetail';
 import { inputStyle, labelStyle } from '../lib/theme';
 import { recordRecentItem } from './Dashboard';
+import { FOCUS_SIGNAL_KEY } from './Dashboard';
 
 type Project = {
   id: string;
@@ -75,6 +76,18 @@ export default function ProjectsPage() {
   }, []);
 
   useEffect(() => { if (view === 'list') fetchProjects(); }, [view, fetchProjects]);
+
+  // Check for a focus mode signal from the dashboard shortcut button
+  useEffect(() => {
+    const targetId = sessionStorage.getItem(FOCUS_SIGNAL_KEY);
+    if (targetId) {
+      sessionStorage.removeItem(FOCUS_SIGNAL_KEY);
+      // Store the intent so ProjectDetail can pick it up on mount
+      sessionStorage.setItem('loophole_open_focus', targetId);
+      setSelectedId(targetId);
+      setView('detail');
+    }
+  }, []);
 
   useEffect(() => {
     if (view === 'new') {
