@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import YarnDetail from '../components/YarnDetail';
 import YarnWeightReference from '../components/YarnWeightReference';
 import { getPref } from '../lib/prefs';
+import { recordRecentItem } from './Dashboard';
 
 type YarnCatalog = {
   id: string;
@@ -207,7 +208,18 @@ export default function StashPage() {
           const total = totalInStock(y);
           const unit = y.stash[0]?.unit ?? 'g';
           return (
-            <div key={y.id} className="card" onClick={() => { setSelectedId(y.id); setView('detail'); }}>
+            <div key={y.id} className="card" onClick={() => {
+              setSelectedId(y.id);
+              setView('detail');
+              recordRecentItem({
+                id: y.id,
+                name: y.colorway ?? y.name,
+                type: 'yarn',
+                meta: `${y.brand ? y.brand + ' · ' : ''}${total > 0 ? `${total} ${unit} in stock` : 'out of stock'}`,
+                path: '/stash',
+                color: y.color_hex ?? '#BA7517',
+              });
+            }}>
               <div className="card-row" style={{ alignItems: 'center', gap: 12 }}>
                 {y.photo_url
                   ? <YarnThumb storagePath={y.photo_url} fallback={y.color_hex} />

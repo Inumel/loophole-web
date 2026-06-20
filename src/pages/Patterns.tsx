@@ -4,6 +4,7 @@ import { searchRavelryPatterns, getRavelryPattern, mapRavelryPattern } from '../
 import { parsePatternWithClaude } from '../lib/claude';
 import StepText from '../components/StepText';
 import { difficultyColor, stepDifficulty } from '../lib/theme';
+import { recordRecentItem } from './Dashboard';
 
 type Pattern = {
   id: string; name: string; designer: string | null; source: string;
@@ -849,7 +850,18 @@ export default function PatternsPage() {
         <p className="empty">{listSearch ? 'No matching patterns.' : 'No patterns yet.'}</p>
       ) : (
         filteredPatterns.map(p => (
-          <div key={p.id} className="card" onClick={() => { setSelected(p); setView('detail'); }}>
+          <div key={p.id} className="card" onClick={() => {
+            setSelected(p);
+            setView('detail');
+            recordRecentItem({
+              id: p.id,
+              name: p.name,
+              type: 'pattern',
+              meta: [p.source, p.difficulty, p.yarn_weight].filter(Boolean).join(' · '),
+              path: '/patterns',
+              color: '#1D9E75',
+            });
+          }}>
             <div className="card-row" style={{ alignItems: 'flex-start', gap: 12 }}>
               <span style={{ fontSize: 20 }}>{sourceIcon[p.source] ?? '📌'}</span>
               <div style={{ flex: 1 }}>

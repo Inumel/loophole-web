@@ -113,53 +113,71 @@ body {
 
 #root { height: 100vh; }
 
-.app { display: flex; height: 100vh; }
+.app { display: flex; flex-direction: column; height: 100vh; }
 
-/* ── Sidebar ── */
-.sidebar {
-  width: 200px;
+/* ── Persistent header ── */
+.app-header {
+  height: 48px;
   background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-light);
   display: flex;
-  flex-direction: column;
-  padding: 24px 12px;
-  gap: 2px;
-  border-right: 1px solid var(--border-light);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.app-header .header-version {
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: 0.03em;
+  min-width: 60px;
+}
+
+.app-header .header-logo {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-accent);
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.app-header .header-logo-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
   flex-shrink: 0;
 }
 
-.logo {
-  font-family: var(--font-heading);
-  font-size: 20px;
-  font-weight: 700;
-  padding: 8px 12px;
-  margin-bottom: 20px;
-  color: var(--text-accent);
-  letter-spacing: -0.3px;
+.app-header .header-settings {
+  min-width: 60px;
+  display: flex;
+  justify-content: flex-end;
 }
 
-.nav-link {
-  display: block;
-  padding: 9px 12px;
+.app-header .header-settings button {
+  background: none;
+  border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
   color: var(--text-muted);
-  text-decoration: none;
-  font-size: 13.5px;
-  font-weight: 500;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  border-left: 2px solid transparent;
+  font-size: 16px;
+  transition: background 0.15s, color 0.15s;
 }
 
-.nav-link:hover {
+.app-header .header-settings button:hover {
   background: var(--bg-accent);
   color: var(--text-primary);
-  border-left-color: var(--border-accent);
-}
-
-.nav-link.active {
-  background: var(--bg-accent);
-  color: var(--text-accent);
-  border-left-color: var(--border-accent);
-  font-weight: 600;
 }
 
 /* ── Content ── */

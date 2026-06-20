@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import ProjectDetail from '../components/ProjectDetail';
 import { inputStyle, labelStyle } from '../lib/theme';
+import { recordRecentItem } from './Dashboard';
 
 type Project = {
   id: string;
@@ -318,7 +319,18 @@ export default function ProjectsPage() {
         <p className="empty">{search || statusFilter !== 'all' ? 'No matching projects.' : 'No projects yet.'}</p>
       ) : (
         filteredProjects.map(p => (
-          <div key={p.id} className="card" onClick={() => { setSelectedId(p.id); setView('detail'); }}>
+          <div key={p.id} className="card" onClick={() => {
+            setSelectedId(p.id);
+            setView('detail');
+            recordRecentItem({
+              id: p.id,
+              name: p.name,
+              type: 'project',
+              meta: `${p.status} · ${p.current_row} step${p.current_row === 1 ? '' : 's'}`,
+              path: '/projects',
+              color: '#7F77DD',
+            });
+          }}>
             <div className="card-row">
               <span className="card-title">{p.name}</span>
               <span className={`badge ${statusClass[p.status] ?? ''}`}>{p.status}</span>
