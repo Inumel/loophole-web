@@ -210,7 +210,7 @@ export default function DashboardPage() {
                 const pct = p.total_steps > 0 ? Math.round((p.current_row / p.total_steps) * 100) : 0;
                 return (
                   <div key={p.id}
-                    onClick={() => { navigate('/projects'); recordRecentItem({ id: p.id, name: p.name, type: 'project', meta: `active \u00b7 ${p.current_row} steps`, path: '/projects', color: '#7F77DD' }); }}
+                    onClick={() => { navigate(`/projects?open=${p.id}`); recordRecentItem({ id: p.id, name: p.name, type: 'project', meta: `active \u00b7 ${p.current_row} steps`, path: '/projects', color: '#7F77DD' }); }}
                     style={{ ...card, borderLeft: '3px solid var(--primary)', marginBottom: 8, cursor: 'pointer', transition: 'background 0.15s, box-shadow 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-card-hover)'; e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.boxShadow = 'none'; }}
@@ -220,7 +220,7 @@ export default function DashboardPage() {
                         <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{p.name}</p>
                         <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                           {p.current_row} of {p.total_steps > 0 ? p.total_steps : '?'} steps
-                          {p.total_steps > 0 && ` \u00b7 ${pct}%`}
+                          {p.total_steps > 0 && p.current_row > 0 && ` \u00b7 ${pct}%`}
                         </p>
                       </div>
                       <span style={{ background: 'var(--badge-active-bg)', color: 'var(--badge-active-text)', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 600, flexShrink: 0, marginLeft: 12 }}>active</span>
@@ -303,19 +303,15 @@ export default function DashboardPage() {
             return (
               <div key={c.key}>
                 <div
+                  className="browse-card"
                   onClick={() => {
                     if (isWorkshop) { setWorkshopExpanded(e => !e); return; }
                     if (!unlocked && c.key !== 'project') { navigate('/settings'); return; }
                     navigate(c.path!);
                   }}
-                  style={{
-                    ...card, cursor: 'pointer',
-                    display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center',
-                    textAlign: 'center', padding: '14px 8px',
-                    transition: 'background 0.15s, box-shadow 0.15s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-card-hover)'; e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.boxShadow = 'none'; }}
+                  style={{ borderTopColor: 'transparent' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderTopColor = col.text; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderTopColor = 'transparent'; }}
                 >
                   <div style={{ width: 32, height: 32, borderRadius: 9, background: col.bg, color: col.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>
                     {col.icon}

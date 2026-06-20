@@ -329,6 +329,51 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
   border-color: var(--primary);
 }
 
+/* ── Back button ── */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  margin-bottom: 20px;
+}
+.btn-back:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Dashboard browse cards ── */
+.browse-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-top: 2px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, border-top-color 0.2s;
+}
+.browse-card:hover {
+  background: var(--bg-card-hover);
+  box-shadow: var(--shadow-hover);
+}
+
 /* ── Pattern step card ── */
 .step-card {
   transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;

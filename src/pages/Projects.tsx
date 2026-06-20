@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import ProjectDetail from '../components/ProjectDetail';
@@ -43,6 +44,7 @@ const UNITS = ['g', 'oz', 'yards', 'meters', 'skeins'];
 
 export default function ProjectsPage() {
   const { unlocked } = useAuth();
+  const [searchParams] = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('list');
@@ -76,6 +78,15 @@ export default function ProjectsPage() {
   }, []);
 
   useEffect(() => { if (view === 'list') fetchProjects(); }, [view, fetchProjects]);
+
+  // Open a specific project directly from the dashboard card click
+  useEffect(() => {
+    const openId = searchParams.get('open');
+    if (openId) {
+      setSelectedId(openId);
+      setView('detail');
+    }
+  }, [searchParams]);
 
   // Check for a focus mode signal from the dashboard shortcut button
   useEffect(() => {
@@ -348,7 +359,7 @@ export default function ProjectsPage() {
               <span className="card-title">{p.name}</span>
               <span className={`badge ${statusClass[p.status] ?? ''}`}>{p.status}</span>
             </div>
-            <p className="card-sub">{p.current_row} step{p.current_row === 1 ? '' : 's'} completed</p>
+            <p className="card-sub">{p.current_row === 0 ? 'Not started' : `${p.current_row} step${p.current_row === 1 ? '' : 's'} completed`}</p>
           </div>
         ))
       )}

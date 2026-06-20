@@ -388,7 +388,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
 
   return (
     <div>
-      <button className="btn btn-secondary" onClick={onBack} style={{ marginBottom: 20 }}>← Back</button>
+      <button className="btn-back" onClick={onBack}>&#8592; Back</button>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
         <h1 style={{ margin: 0 }}>{project.name}</h1>

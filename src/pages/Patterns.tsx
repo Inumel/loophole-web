@@ -271,7 +271,7 @@ export default function PatternsPage() {
   if (view === 'new-project' && selected) {
     return (
       <div style={{ maxWidth: 500 }}>
-        <button className="btn btn-secondary" onClick={() => setView('detail')} style={{ marginBottom: 20 }}>← Back</button>
+        <button className="btn-back" onClick={() => setView('detail')}>&#8592; Back</button>
         <h1>Start a Project</h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: 20, fontSize: 14 }}>Pattern: {selected.name}</p>
 
@@ -433,8 +433,8 @@ export default function PatternsPage() {
     const genPrerequisites = isGenerated ? selected.parsed_guide?.prerequisites as string[] | null : null;
     return (
       <div>
-        <button className="btn btn-secondary" onClick={() => setView('list')} style={{ marginBottom: 20 }}>← Back</button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+      <button className="btn-back" onClick={() => setView('list')}>&#8592; Back</button>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 4 }}>
           <input
             defaultValue={selected.name}
             onBlur={async (e) => {
@@ -452,6 +452,9 @@ export default function PatternsPage() {
             onFocus={e => e.target.style.borderBottomColor = 'var(--primary)'}
             onBlurCapture={e => e.currentTarget.style.borderBottomColor = 'transparent'}
           />
+          <button className="btn btn-primary" onClick={() => openNewProject(selected)} style={{ flexShrink: 0, marginTop: 4 }}>
+            &#9654; Start a Project
+          </button>
         </div>
         {selected.designer && <p style={{ color: 'var(--text-muted)', marginBottom: 12 }}>by {selected.designer}</p>}
 
@@ -705,10 +708,6 @@ export default function PatternsPage() {
 
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
-          <button className="btn btn-primary" onClick={() => openNewProject(selected)}>
-            ▶ Start a Project
-          </button>
-
           <button className="btn btn-secondary"
             onClick={() => reparsePdfRef.current?.click()}
             disabled={parsing}
