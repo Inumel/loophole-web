@@ -57,10 +57,10 @@
 
 /* ── Design tokens — Dark (Twilight Rose) ── */
 [data-theme="dark"] {
-  --bg-page:          #1e1218;
-  --bg-sidebar:       #261820;
-  --bg-card:          rgba(255,255,255,0.05);
-  --bg-card-hover:    rgba(255,255,255,0.09);
+  --bg-page:          #1a0f15;
+  --bg-sidebar:       #221018;
+  --bg-card:          rgba(255,255,255,0.045);
+  --bg-card-hover:    rgba(255,255,255,0.085);
   --bg-input:         rgba(255,255,255,0.07);
   --bg-muted:         rgba(255,255,255,0.04);
   --bg-accent:        rgba(196,122,170,0.15);
@@ -113,7 +113,32 @@ body {
 
 #root { height: 100vh; }
 
-.app { display: flex; flex-direction: column; height: 100vh; }
+.app { display: flex; flex-direction: column; height: 100vh; position: relative; }
+
+/* ── Noise texture overlay (dark mode only) ── */
+[data-theme="dark"] .app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Page background gradient (dark mode only) ── */
+[data-theme="dark"] .content {
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(196,122,170,0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 95%, rgba(120,60,100,0.08) 0%, transparent 50%),
+    var(--bg-page);
+}
+
+/* ── Light mode page gradient ── */
+:root .content, [data-theme="light"] .content {
+  background:
+    radial-gradient(ellipse at 10% 0%, rgba(196,155,191,0.18) 0%, transparent 50%),
+    var(--bg-page);
+}
 
 /* ── Persistent header ── */
 .app-header {
@@ -128,6 +153,13 @@ body {
   position: sticky;
   top: 0;
   z-index: 50;
+}
+
+[data-theme="dark"] .app-header {
+  background: rgba(26, 10, 18, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom-color: rgba(196,122,170,0.12);
 }
 
 .app-header .header-version {
@@ -372,6 +404,20 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
 .browse-card:hover {
   background: var(--bg-card-hover);
   box-shadow: var(--shadow-hover);
+}
+
+/* ── Primary button gradient (dark mode) ── */
+[data-theme="dark"] .btn-primary {
+  background: linear-gradient(135deg, #c47aaa 0%, #a85a90 100%);
+  position: relative;
+  overflow: hidden;
+}
+[data-theme="dark"] .btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 55%);
+  pointer-events: none;
 }
 
 /* ── Pattern step card ── */

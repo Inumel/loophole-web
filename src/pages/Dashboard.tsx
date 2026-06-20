@@ -211,10 +211,12 @@ export default function DashboardPage() {
                 return (
                   <div key={p.id}
                     onClick={() => { navigate(`/projects?open=${p.id}`); recordRecentItem({ id: p.id, name: p.name, type: 'project', meta: `active \u00b7 ${p.current_row} steps`, path: '/projects', color: '#7F77DD' }); }}
-                    style={{ ...card, borderLeft: '3px solid var(--primary)', marginBottom: 8, cursor: 'pointer', transition: 'background 0.15s, box-shadow 0.15s' }}
+                    style={{ ...card, borderLeft: '3px solid var(--primary)', marginBottom: 8, cursor: 'pointer', transition: 'background 0.15s, box-shadow 0.15s', position: 'relative', overflow: 'hidden' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-card-hover)'; e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.boxShadow = 'none'; }}
                   >
+                    {/* Radial glow in top-left corner (dark mode texture) */}
+                    <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, width: '60%', height: '100%', background: 'radial-gradient(ellipse at 0% 0%, rgba(196,122,170,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: p.total_steps > 0 ? 10 : 0 }}>
                       <div>
                         <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{p.name}</p>
@@ -235,10 +237,11 @@ export default function DashboardPage() {
               })}
               <button onClick={handleFocusMode} style={{
                 width: '100%', marginTop: 4,
-                background: 'var(--primary)', border: 'none', color: 'var(--primary-text)',
+                background: 'linear-gradient(135deg, var(--primary) 0%, #a85a90 100%)',
+                border: 'none', color: 'var(--primary-text)',
                 borderRadius: 10, padding: '11px 16px', fontSize: 13, fontWeight: 600,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                transition: 'opacity 0.15s',
+                transition: 'opacity 0.15s', position: 'relative', overflow: 'hidden',
               }}
                 onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
                 onMouseLeave={e => e.currentTarget.style.opacity = '1'}
@@ -254,7 +257,9 @@ export default function DashboardPage() {
           <p style={sectionLabel}>Stats</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
             {statCards.length > 0 ? statCards.map(s => (
-              <div key={s.label} style={card}>
+              <div key={s.label} style={{ ...card, position: 'relative', overflow: 'hidden' }}>
+                {/* Shimmer line across top */}
+                <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(196,122,170,0.25), transparent)', pointerEvents: 'none' }} />
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{s.label}</p>
                 <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{s.value}</p>
               </div>
@@ -309,9 +314,9 @@ export default function DashboardPage() {
                     if (!unlocked && c.key !== 'project') { navigate('/settings'); return; }
                     navigate(c.path!);
                   }}
-                  style={{ borderTopColor: 'transparent' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderTopColor = col.text; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderTopColor = 'transparent'; }}
+                  style={{ borderTopColor: col.text }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-card-hover)'; e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.boxShadow = 'none'; }}
                 >
                   <div style={{ width: 32, height: 32, borderRadius: 9, background: col.bg, color: col.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>
                     {col.icon}
