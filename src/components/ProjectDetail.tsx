@@ -431,7 +431,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
               </div>
               {stepProgressPct !== null && (
                 <div style={{ height: 6, background: 'var(--bg-muted)', borderRadius: 3, marginTop: 16, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${stepProgressPct}%`, background: 'var(--primary)', borderRadius: 3 }} />
+                  <div className="progress-bar-fill" style={{ height: '100%', width: `${stepProgressPct}%`, background: 'var(--primary)', borderRadius: 3 }} />
                 </div>
               )}
               <p style={{ color: 'var(--text-faint)', fontSize: 11, textAlign: 'center', marginTop: 10, fontStyle: 'italic' }}>Tap a step below to mark it complete</p>
@@ -494,7 +494,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
             </div>
           </div>
           <div style={{ height: 6, background: 'var(--bg-muted)', borderRadius: 3, marginBottom: 12, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0}%`, background: 'var(--primary)', borderRadius: 3 }} />
+            <div className="progress-bar-fill" style={{ height: '100%', width: `${totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0}%`, background: 'var(--primary)', borderRadius: 3 }} />
           </div>
           {/* Section tabs */}
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 12, paddingBottom: 4 }}>
@@ -641,7 +641,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
         const effectiveDifficulty = stepDifficulty(genStepDifficulty, current.sectionTitle, stepNum, project.pattern?.difficulty);
 
         return (
-          <div style={{
+          <div className="focus-mode-overlay" style={{
             position: 'fixed', inset: 0, background: 'var(--bg-page)', zIndex: 200,
             display: 'flex', flexDirection: 'column',
           }}>

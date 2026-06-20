@@ -229,7 +229,7 @@ export default function DashboardPage() {
                     </div>
                     {p.total_steps > 0 && (
                       <div style={{ height: 4, background: 'var(--border-light)', borderRadius: 2 }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: 'var(--primary)', borderRadius: 2, transition: 'width 0.4s ease' }} />
+                        <div style={{ height: '100%', width: `${pct}%`, background: 'var(--primary)', borderRadius: 2 }} className="progress-bar-fill" />
                       </div>
                     )}
                   </div>

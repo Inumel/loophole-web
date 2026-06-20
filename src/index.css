@@ -24,6 +24,9 @@
   --primary:          #c49bbf;
   --primary-text:     #ffffff;
 
+  --card-shimmer:     linear-gradient(90deg, transparent, rgba(196,155,191,0.15), transparent);
+  --progress-glow:    0 0 6px rgba(196,155,191,0.5);
+
   --success-vivid:     #10B981;
   --success-vivid-bg:  rgba(16,185,129,0.13);
   --warning-vivid:     #F59E0B;
@@ -65,10 +68,10 @@
   --bg-muted:         rgba(255,255,255,0.04);
   --bg-accent:        rgba(196,122,170,0.15);
 
-  --border-light:     rgba(255,255,255,0.08);
-  --border-medium:    rgba(255,255,255,0.12);
+  --border-light:     rgba(196,122,170,0.12);
+  --border-medium:    rgba(196,122,170,0.20);
   --border-accent:    #c47aaa;
-  --border-input:     rgba(255,255,255,0.1);
+  --border-input:     rgba(196,122,170,0.15);
 
   --text-primary:     #e8c8d8;
   --text-body:        #d4b0c4;
@@ -78,6 +81,9 @@
 
   --primary:          #c47aaa;
   --primary-text:     #ffffff;
+
+  --card-shimmer:     linear-gradient(90deg, transparent, rgba(196,122,170,0.22), transparent);
+  --progress-glow:    0 0 8px rgba(196,122,170,0.6);
 
   --success-vivid:     #10B981;
   --success-vivid-bg:  rgba(16,185,129,0.18);
@@ -423,8 +429,60 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
 /* ── Pattern step card ── */
 .step-card {
   transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+[data-theme="dark"] .step-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--card-shimmer);
+  pointer-events: none;
 }
 .step-card:hover {
   transform: translateX(2px);
   box-shadow: var(--shadow-hover);
+}
+
+/* ── Card shimmer — all .card elements in dark mode ── */
+[data-theme="dark"] .card {
+  position: relative;
+  overflow: hidden;
+}
+[data-theme="dark"] .card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--card-shimmer);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Progress bar glow ── */
+.progress-bar-fill {
+  box-shadow: var(--progress-glow);
+  transition: width 0.4s ease;
+}
+
+/* ── Heading refinement (dark mode) ── */
+[data-theme="dark"] h1 {
+  text-shadow: 0 1px 12px rgba(196,122,170,0.15);
+  letter-spacing: -0.2px;
+}
+
+/* ── Section nav — frosted in dark mode ── */
+[data-theme="dark"] .section-nav-sticky {
+  background: rgba(26, 10, 18, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ── Focus mode — inherits gradient in dark mode ── */
+[data-theme="dark"] .focus-mode-overlay {
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(196,122,170,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 90%, rgba(120,60,100,0.06) 0%, transparent 50%),
+    var(--bg-page);
 }
