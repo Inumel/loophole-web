@@ -167,6 +167,18 @@ export default function GeneratePage() {
 
   const isCircularObject = CIRCULAR_OBJECTS.some(o => object.toLowerCase().includes(o.toLowerCase()));
 
+  function randomise() {
+    const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+    setObject(pick(SUGGESTED_OBJECTS));
+    setStyle(pick(SUGGESTED_STYLES));
+    setYarnWeight(pick(YARN_WEIGHTS));
+    setDifficulty(pick(DIFFICULTIES));
+    setLength('');
+    setWidth('');
+    setCircumference('');
+    setExtraNotes('');
+  }
+
   async function generate() {
     const token = localStorage.getItem('loophole_token');
     if (!token) { setError('Session expired. Please go to Settings and unlock again.'); return; }
@@ -724,9 +736,21 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
           )}
         </div>
 
-        <button onClick={generate} disabled={generating} className="btn btn-primary" style={{ opacity: generating ? 0.6 : 1 }}>
-          {generating ? (referenceImage ? '✨ Looking at your reference image…' : '✨ Generating pattern…') : '✨ Generate Pattern'}
-        </button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button onClick={generate} disabled={generating} className="btn btn-primary" style={{ opacity: generating ? 0.6 : 1 }}>
+            {generating ? (referenceImage ? '✨ Looking at your reference image…' : '✨ Generating pattern…') : '✨ Generate Pattern'}
+          </button>
+          <button onClick={() => { randomise(); }} title="Pick random inputs" style={{
+            background: 'var(--bg-card)', border: '1px solid var(--border-medium)',
+            borderRadius: 8, padding: '10px 14px', fontSize: 16, cursor: 'pointer',
+            color: 'var(--text-muted)', transition: 'transform 0.15s, color 0.15s',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.transform = 'rotate(30deg)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.transform = 'rotate(0deg)'; }}
+          >
+            🎲
+          </button>
+        </div>
 
         <div style={{ marginTop: 12 }}>
           {showSaveTemplate ? (
