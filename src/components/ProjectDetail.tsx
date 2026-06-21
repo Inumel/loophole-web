@@ -425,9 +425,9 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
           <p className="card-title" style={{ marginBottom: 16 }}>Step Counter</p>
           {sections && sections.length > 0 ? (
             <>
-              <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: 52, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{completedSteps}</p>
-                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>of {totalSteps} steps</p>
+              <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                <p style={{ fontSize: 64, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1, letterSpacing: '-2px' }}>{completedSteps}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 6 }}>of {totalSteps} steps</p>
               </div>
               {stepProgressPct !== null && (
                 <div style={{ height: 6, background: 'var(--bg-muted)', borderRadius: 3, marginTop: 16, overflow: 'hidden' }}>
@@ -497,23 +497,38 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
             <div className="progress-bar-fill" style={{ height: '100%', width: `${totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0}%`, background: 'var(--primary)', borderRadius: 3 }} />
           </div>
           {/* Section tabs */}
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 12, paddingBottom: 4 }}>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 4, paddingBottom: 4 }}>
             {sections.map((sec, i) => {
               const comp = sectionProg(i, getSteps(sec, project.chosen_size, project.chosen_color_variation).length);
               const total = getSteps(sec, project.chosen_size, project.chosen_color_variation).length;
-              const done = comp === total;
+              const done = comp === total && total > 0;
+              const isActive = activeSection === i;
               return (
                 <button key={i} onClick={() => setActiveSection(i)} style={{
-                  padding: '6px 12px', borderRadius: 8, border: `1px solid ${activeSection === i ? 'var(--primary)' : done ? 'var(--success-vivid)' : 'var(--border-medium)'}`,
-                  background: activeSection === i ? 'var(--primary)' : 'transparent',
-                  color: activeSection === i ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
+                  padding: '6px 12px', borderRadius: 8,
+                  border: `1px solid ${isActive ? 'var(--primary)' : done ? 'var(--success-vivid)' : 'var(--border-medium)'}`,
+                  background: isActive ? 'var(--primary)' : 'transparent',
+                  color: isActive ? 'var(--primary-text)' : done ? 'var(--success-vivid)' : 'var(--text-muted)',
+                  cursor: 'pointer', fontSize: 12,
                   whiteSpace: 'nowrap', flexShrink: 0,
                 }}>
-                  {done ? '✓ ' : ''}{sec.title} ({comp}/{total})
+                  {done ? '✓ ' : ''}{sec.title}
                 </button>
               );
             })}
           </div>
+          {/* Active section progress shown below tabs, not in each tab */}
+          {(() => {
+            const sec = sections[activeSection];
+            if (!sec) return null;
+            const comp = sectionProg(activeSection, getSteps(sec, project.chosen_size, project.chosen_color_variation).length);
+            const tot = getSteps(sec, project.chosen_size, project.chosen_color_variation).length;
+            return (
+              <p style={{ color: 'var(--text-faint)', fontSize: 11, marginBottom: 10, paddingLeft: 2 }}>
+                {sec.title} · {comp} of {tot} steps
+              </p>
+            );
+          })()}
           <p style={{ color: 'var(--text-faint)', fontSize: 11, textAlign: 'center', marginBottom: 10, fontStyle: 'italic' }}>Click to complete a step</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {getSteps(sections[activeSection], project.chosen_size, project.chosen_color_variation).map((step, si) => {

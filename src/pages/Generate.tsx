@@ -660,7 +660,7 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16, paddingTop: 16, borderTop: '1px solid var(--border-light)' }}>
           <div>
             <label style={lbl}>Yarn Weight</label>
             <select value={yarnWeight} onChange={e => setYarnWeight(e.target.value)} style={sel}>
@@ -691,7 +691,7 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
           </div>
         </div>
 
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 16, paddingTop: 16, borderTop: '1px solid var(--border-light)' }}>
           <label style={lbl}>Additional notes (optional)</label>
           <textarea style={{ ...inp, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }}
             value={extraNotes} onChange={e => setExtraNotes(e.target.value)}
