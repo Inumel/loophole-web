@@ -105,7 +105,7 @@ export default function NextPatternPage() {
     // Aggregate stash by yarn_catalog_id
     const stashMap = new Map<string, StashEntry>();
     for (const row of stashData ?? []) {
-      const cat = row.yarn_catalog as { id: string; name: string; brand: string | null; weight: string | null; color_hex: string | null; colorway: string | null } | null;
+      const cat = (Array.isArray(row.yarn_catalog) ? row.yarn_catalog[0] : row.yarn_catalog) as { id: string; name: string; brand: string | null; weight: string | null; color_hex: string | null; colorway: string | null } | null;
       if (!cat) continue;
       const qty = parseFloat(String(row.quantity ?? 0));
       const yards = toYards(qty, row.unit);
