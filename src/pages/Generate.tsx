@@ -106,6 +106,7 @@ export default function GeneratePage() {
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   // Inline save state — replaces the alert() dialog with a button state change
   const [saved, setSaved] = useState(false);
+  const [saveCategory, setSaveCategory] = useState('');
   // Track which section tabs have been visited so we can show a subtle ✓ indicator
   const [visitedSections, setVisitedSections] = useState<Set<number>>(new Set([0]));
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -177,6 +178,7 @@ export default function GeneratePage() {
     setError('');
     setActiveOutputSection(0);
     setSaved(false);
+    setSaveCategory('');
     setVisitedSections(new Set([0]));
 
     const dimensions = [
@@ -517,6 +519,7 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
     const { error: saveError } = await supabase.from('patterns').insert({
       name: pattern.name,
       source: 'generated',
+      category: saveCategory || null,
       difficulty: pattern.metadata?.['Difficulty'] ?? null,
       yarn_weight: pattern.metadata?.['Yarn weight'] ?? null,
       needle_size: pattern.metadata?.['Needle size'] ?? null,
@@ -1025,11 +1028,18 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
           ))}
 
           {/* Save footer — inline state, no alert() dialogs */}
-          <div className="reveal" style={{ animationDelay: '0.1s', borderTop: '1px solid var(--border-light)', paddingTop: 20, marginTop: 8, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div className="reveal" style={{ animationDelay: '0.1s', borderTop: '1px solid var(--border-light)', paddingTop: 20, marginTop: 8, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             {!saved && (
-              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                Happy with this pattern? Save it to your pattern library.
-              </p>
+              <>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Happy with this pattern? Save it to your library.</p>
+                <select value={saveCategory} onChange={e => setSaveCategory(e.target.value)}
+                  style={{ background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: saveCategory ? 'var(--text-body)' : 'var(--text-faint)', fontSize: 13, cursor: 'pointer' }}>
+                  <option value="">Category…</option>
+                  {['Hats', 'Body', 'Feet', 'Bags', 'Misc'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </>
             )}
             <button
               className={saved ? '' : 'btn btn-primary'}
