@@ -176,7 +176,18 @@ export default function GeneratePage() {
     setLength('');
     setWidth('');
     setCircumference('');
-    setExtraNotes('');
+    // Fetch a random quirk from the database
+    supabase
+      .from('pattern_quirks')
+      .select('quirk')
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const quirk = data[Math.floor(Math.random() * data.length)].quirk;
+          setExtraNotes(`Constraint: ${quirk}`);
+        } else {
+          setExtraNotes('');
+        }
+      });
   }
 
   async function generate() {
