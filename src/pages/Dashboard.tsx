@@ -49,6 +49,7 @@ const WORKSHOP_ITEMS = [
   { label: '✨ Generate Pattern', path: '/generate' },
   { label: '📐 Gauge & Needles',  path: '/gauge' },
   { label: '🧶 Yarn Substitute',  path: '/substitute' },
+  { label: '🤔 What Should I Knit Next?', path: '/next-pattern' },
   { label: 'Abbreviations',       path: '/abbreviations' },
 ];
 
@@ -168,7 +169,7 @@ export default function DashboardPage() {
     { key: 'stash',    label: 'Stash',     desc: 'Yarn catalog',           path: '/stash',     stat: stats ? `${stats.totalYarns} yarns` : '...' },
     { key: 'tools',    label: 'Tools',     desc: 'Needles & notions',      path: '/tools',     stat: stats ? `${stats.totalTools} items` : '...' },
     { key: 'timeline', label: 'Timeline',  desc: 'Sessions & stats',       path: '/timeline',  stat: stats ? `${stats.totalSessions} sessions` : '...' },
-    { key: 'workshop', label: 'Workshop',  desc: 'Generate, gauge & more', path: null,         stat: '4 tools' },
+    { key: 'workshop', label: 'Workshop',  desc: 'Generate, gauge, substitute & more', path: null,         stat: '5 tools' },
   ] as const;
 
   const statCards = stats ? [

@@ -89,6 +89,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
   const [focusMode, setFocusMode] = useState(false);
   const [focusStepIndex, setFocusStepIndex] = useState(0);
   const didAutoScrollRef = useRef(false);
+  const openFocusOnLoadRef = useRef(false); // set true when dashboard signal fires
   const [projectYarns, setProjectYarns] = useState<ProjectYarn[]>([]);
   const [stashYarns, setStashYarns] = useState<StashYarn[]>([]);
   const [showYarnModal, setShowYarnModal] = useState(false);
@@ -119,11 +120,14 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
     fetchProject();
     fetchSessions();
     fetchProjectYarns();
-    // Check for focus mode signal from the dashboard shortcut button
+    // Check for focus mode signal from the dashboard shortcut button.
+    // We set a ref here rather than calling setFocusMode directly because
+    // stepProgress hasn't loaded yet — focusStepIndex would default to 0.
+    // fetchStepProgress will pick up the ref and open focus at the right step.
     const focusTargetId = sessionStorage.getItem('loophole_open_focus');
     if (focusTargetId === projectId) {
       sessionStorage.removeItem('loophole_open_focus');
-      setTimeout(() => setFocusMode(true), 800);
+      openFocusOnLoadRef.current = true;
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [projectId]);
@@ -151,6 +155,24 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
     if (data) {
       setStepProgress(data);
       completedStepsCountRef.current = data.filter(p => p.completed).length;
+
+      // If the dashboard Focus shortcut triggered this load, open Focus Mode
+      // at the first incomplete step now that we have the progress data.
+      if (openFocusOnLoadRef.current) {
+        openFocusOnLoadRef.current = false;
+        // We need the sections array to compute the flat step list, but that
+        // lives in `project` state which may not be set yet. Defer briefly.
+        setTimeout(() => {
+          setFocusMode(prev => {
+            // Compute first incomplete step using the progress data we just loaded
+            // and the sections from the current project state via a callback pattern.
+            // We'll trigger the Focus button's own logic instead.
+            const btn = document.querySelector('[data-focus-btn]') as HTMLButtonElement | null;
+            if (btn) btn.click();
+            return prev;
+          });
+        }, 100);
+      }
 
       // Auto-scroll to first incomplete step, but only if the user has already
       // made progress (so opening a fresh project starts at the top as normal).
@@ -473,7 +495,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{completedSteps}/{totalSteps} steps</span>
               {!readOnly && (
-                <button onClick={() => {
+                <button data-focus-btn onClick={() => {
                   // Start focus mode at the first incomplete step
                   const steps = sections.flatMap((sec, si) =>
                     getSteps(sec, project.chosen_size, project.chosen_color_variation).map((_, ti) => ({ si, ti }))

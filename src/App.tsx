@@ -13,6 +13,8 @@ import TimelinePage from './pages/Timeline';
 import SubstitutePage from './pages/Substitute';
 import GaugePage from './pages/Gauge';
 
+import NextPatternPage from './pages/NextPattern';
+
 export default function App() {
   const { unlocked } = useAuth();
   const navigate = useNavigate();
@@ -50,6 +52,7 @@ export default function App() {
             <Route path="/generate" element={<GeneratePage />} />
             <Route path="/substitute" element={<SubstitutePage />} />
             <Route path="/abbreviations" element={<AbbreviationsPage />} />
+            <Route path="/next-pattern" element={<NextPatternPage />} />
           </>}
         </Routes>
       </main>
