@@ -796,9 +796,8 @@ export default function PatternsPage() {
         )}
 
         {[
-          ['Pattern Name *', name, setName, 'e.g. Hermione\'s Everyday Socks'],
+          ['Pattern Name *', name, setName, 'e.g. Harbour Light Cable Hat'],
           ['Designer', designer, setDesigner, 'Designer name'],
-          ['Category', category, setCategory, 'e.g. Socks, Sweater, Hat'],
           ['Yarn Weight', yarnWeight, setYarnWeight, 'e.g. DK, Worsted'],
           ['Needle Size', needleSize, setNeedleSize, 'e.g. 4mm, US 6'],
         ].map(([label, value, setter, placeholder]) => (
@@ -809,6 +808,16 @@ export default function PatternsPage() {
               placeholder={placeholder as string} />
           </div>
         ))}
+
+        <div style={fi.field}>
+          <label style={fi.label}>Category</label>
+          <select value={category} onChange={e => setCategory(e.target.value)} style={{ ...fi.input, cursor: 'pointer' }}>
+            <option value="">— select —</option>
+            {['Hats', 'Body', 'Feet', 'Bags', 'Misc'].map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
 
         <div style={fi.field}>
           <label style={fi.label}>Notes</label>
@@ -826,12 +835,28 @@ export default function PatternsPage() {
   }
 
   // ── List view ────────────────────────────────────────────────────────────────
+  const CATEGORY_ORDER = ['Hats', 'Body', 'Feet', 'Bags', 'Misc'];
+
   const filteredPatterns = patterns.filter(p =>
     !listSearch.trim() ||
     p.name.toLowerCase().includes(listSearch.toLowerCase()) ||
     (p.designer ?? '').toLowerCase().includes(listSearch.toLowerCase()) ||
     (p.category ?? '').toLowerCase().includes(listSearch.toLowerCase())
   );
+
+  // Group by category; uncategorised goes in Misc
+  const grouped = filteredPatterns.reduce<Record<string, Pattern[]>>((acc, p) => {
+    const cat = p.category ?? 'Misc';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(p);
+    return acc;
+  }, {});
+
+  // Sort category keys: known order first, then alphabetical remainder
+  const sortedCats = [
+    ...CATEGORY_ORDER.filter(c => grouped[c]),
+    ...Object.keys(grouped).filter(c => !CATEGORY_ORDER.includes(c)).sort(),
+  ];
 
   return (
     <div>
@@ -843,37 +868,44 @@ export default function PatternsPage() {
         value={listSearch}
         onChange={e => setListSearch(e.target.value)}
         placeholder="Search patterns…"
-        style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-body)', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+        style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-body)', fontSize: 14, marginBottom: 20, boxSizing: 'border-box' }}
       />
       {loading ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : filteredPatterns.length === 0 ? (
         <p className="empty">{listSearch ? 'No matching patterns.' : 'No patterns yet.'}</p>
       ) : (
-        filteredPatterns.map(p => (
-          <div key={p.id} className="card" onClick={() => {
-            setSelected(p);
-            setView('detail');
-            recordRecentItem({
-              id: p.id,
-              name: p.name,
-              type: 'pattern',
-              meta: [p.source, p.difficulty, p.yarn_weight].filter(Boolean).join(' · '),
-              path: '/patterns',
-              color: '#1D9E75',
-            });
-          }}>
-            <div className="card-row" style={{ alignItems: 'flex-start', gap: 12 }}>
-              <span style={{ fontSize: 20 }}>{sourceIcon[p.source] ?? '📌'}</span>
-              <div style={{ flex: 1 }}>
-                <p className="card-title">{p.name}</p>
-                {p.designer && <p className="card-sub">by {p.designer}</p>}
-                <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-                  {p.difficulty && <span style={{ color: 'var(--text-accent)', fontSize: 12 }}>{p.difficulty}</span>}
-                  {(p.category || p.yarn_weight) && (
-                    <span className="card-meta">{[p.category, p.yarn_weight].filter(Boolean).join(' · ')}</span>
-                  )}
+        sortedCats.map(cat => (
+          <div key={cat} style={{ marginBottom: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{cat}</h2>
+              <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+              <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{grouped[cat].length}</span>
+            </div>
+            {grouped[cat].map(p => (
+              <div key={p.id} className="card" onClick={() => {
+                setSelected(p);
+                setView('detail');
+                recordRecentItem({
+                  id: p.id,
+                  name: p.name,
+                  type: 'pattern',
+                  meta: [p.source, p.difficulty, p.yarn_weight].filter(Boolean).join(' · '),
+                  path: '/patterns',
+                  color: '#1D9E75',
+                });
+              }}>
+                <div className="card-row" style={{ alignItems: 'flex-start', gap: 12 }}>
+                  <span style={{ fontSize: 20 }}>{sourceIcon[p.source] ?? '📌'}</span>
+                  <div style={{ flex: 1 }}>
+                    <p className="card-title">{p.name}</p>
+                    {p.designer && <p className="card-sub">by {p.designer}</p>}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                      {p.difficulty && <span style={{ color: 'var(--text-accent)', fontSize: 12 }}>{p.difficulty}</span>}
+                      {p.yarn_weight && <span className="card-meta">{p.yarn_weight}</span>}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            ))}
           </div>
         ))
       )}
