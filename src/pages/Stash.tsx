@@ -38,6 +38,8 @@ export default function StashPage() {
   const [unit, setUnit] = useState(() => getPref('DEFAULT_YARN_UNIT'));
   const [lot, setLot] = useState('');
   const [saving, setSaving] = useState(false);
+  const [weightFilter, setWeightFilter] = useState<string>('all');
+  const [stockFilter, setStockFilter] = useState<'all' | 'in_stock'>('all');
   const [search, setSearch] = useState('');
 
   useEffect(() => { if (view === 'list') fetchYarns(); }, [view]);
@@ -182,63 +184,166 @@ export default function StashPage() {
     );
   }
 
+  // Derive all weights present in stash for filter chips
+  const allWeights = Array.from(new Set(yarns.map(y => y.weight).filter(Boolean))) as string[];
+
+  const filtered = yarns.filter(y => {
+    const matchSearch = !search.trim() ||
+      y.name.toLowerCase().includes(search.toLowerCase()) ||
+      (y.brand ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (y.colorway ?? '').toLowerCase().includes(search.toLowerCase());
+    const matchWeight = weightFilter === 'all' || y.weight === weightFilter;
+    const matchStock = stockFilter === 'all' || y.stash.some(s => s.status === 'in_stock' && (s.quantity ?? 0) > 0);
+    return matchSearch && matchWeight && matchStock;
+  });
+
+  // Total yardage across all in-stock entries (yards only)
+  const totalYards = yarns.reduce((sum, y) => {
+    return sum + y.stash
+      .filter(s => s.status === 'in_stock')
+      .reduce((s2, s) => {
+        if (s.unit === 'yards' || s.unit === 'yds') return s2 + (s.quantity ?? 0);
+        if (s.unit === 'meters' || s.unit === 'm') return s2 + (s.quantity ?? 0) * 1.094;
+        return s2;
+      }, 0);
+  }, 0);
+
   return (
     <div>
       <div className="page-header">
         <h1>Yarn Stash</h1>
         <button className="btn btn-primary" onClick={() => setView('new')}>+ Add Yarn</button>
       </div>
-      <input
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        placeholder="Search stash…"
-        style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-body)', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
-      />
-      <YarnWeightReference />
-      {loading ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : yarns.length === 0 ? (
-        <p className="empty">Your stash is empty.</p>
+
+      {/* Summary strip */}
+      {!loading && yarns.length > 0 && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, padding: '10px 16px', flex: 1 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>Total yarns</p>
+            <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{yarns.length}</p>
+          </div>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, padding: '10px 16px', flex: 1 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>In stock</p>
+            <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
+              {yarns.filter(y => y.stash.some(s => s.status === 'in_stock' && (s.quantity ?? 0) > 0)).length}
+            </p>
+          </div>
+          {totalYards > 0 && (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, padding: '10px 16px', flex: 1 }}>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>Total yardage (approx)</p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{Math.round(totalYards).toLocaleString()} yds</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Search + filters */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search stash…"
+          style={{ flex: 1, minWidth: 200, background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-body)', fontSize: 14, boxSizing: 'border-box' as const }}
+        />
+        <button onClick={() => setStockFilter(s => s === 'all' ? 'in_stock' : 'all')} style={{
+          padding: '7px 14px', borderRadius: 8, border: '1px solid',
+          borderColor: stockFilter === 'in_stock' ? 'var(--success-vivid)' : 'var(--border-medium)',
+          background: stockFilter === 'in_stock' ? 'var(--success-vivid-bg)' : 'transparent',
+          color: stockFilter === 'in_stock' ? 'var(--success-vivid)' : 'var(--text-muted)',
+          cursor: 'pointer', fontSize: 12, fontWeight: 500,
+        }}>In Stock Only</button>
+      </div>
+
+      {/* Weight filter chips */}
+      {allWeights.length > 1 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
+          {['all', ...WEIGHTS.filter(w => allWeights.includes(w))].map(w => (
+            <button key={w} onClick={() => setWeightFilter(w)} style={{
+              padding: '4px 12px', borderRadius: 16, border: '1px solid',
+              borderColor: weightFilter === w ? 'var(--primary)' : 'var(--border-medium)',
+              background: weightFilter === w ? 'var(--primary)' : 'transparent',
+              color: weightFilter === w ? 'var(--primary-text)' : 'var(--text-muted)',
+              cursor: 'pointer', fontSize: 12, fontWeight: 500,
+            }}>{w === 'all' ? 'All weights' : w}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Grid */}
+      {loading ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : filtered.length === 0 ? (
+        <p className="empty">{search || weightFilter !== 'all' || stockFilter !== 'all' ? 'No matching yarn.' : 'Your stash is empty.'}</p>
       ) : (
-        yarns.filter(y =>
-          !search.trim() ||
-          y.name.toLowerCase().includes(search.toLowerCase()) ||
-          (y.brand ?? '').toLowerCase().includes(search.toLowerCase()) ||
-          (y.colorway ?? '').toLowerCase().includes(search.toLowerCase())
-        ).map(y => {
-          const status = stockStatus(y);
-          const total = totalInStock(y);
-          const unit = y.stash[0]?.unit ?? 'g';
-          return (
-            <div key={y.id} className="card" onClick={() => {
-              setSelectedId(y.id);
-              setView('detail');
-              recordRecentItem({
-                id: y.id,
-                name: y.colorway ?? y.name,
-                type: 'yarn',
-                meta: `${y.brand ? y.brand + ' · ' : ''}${total > 0 ? `${total} ${unit} in stock` : 'out of stock'}`,
-                path: '/stash',
-                color: y.color_hex ?? '#BA7517',
-              });
-            }}>
-              <div className="card-row" style={{ alignItems: 'center', gap: 12 }}>
-                {y.photo_url
-                  ? <YarnThumb storagePath={y.photo_url} fallback={y.color_hex} />
-                  : <div className="color-dot" style={{ background: y.color_hex ?? 'var(--neutral-vivid)' }} />
-                }
-                <div style={{ flex: 1 }}>
-                  <p className="card-title">{y.colorway ?? y.name}</p>
-                  <p className="card-sub">{y.name}{y.brand ? ` · ${y.brand}` : ''}</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+          {filtered.map(y => {
+            const status = stockStatus(y);
+            const total = totalInStock(y);
+            const stashUnit = y.stash.find(s => s.status === 'in_stock')?.unit ?? y.stash[0]?.unit ?? 'g';
+            return (
+              <div key={y.id}
+                onClick={() => {
+                  setSelectedId(y.id);
+                  setView('detail');
+                  recordRecentItem({
+                    id: y.id, name: y.colorway ?? y.name, type: 'yarn',
+                    meta: `${y.brand ? y.brand + ' · ' : ''}${total > 0 ? `${total} ${stashUnit} in stock` : 'out of stock'}`,
+                    path: '/stash', color: y.color_hex ?? '#BA7517',
+                  });
+                }}
+                style={{
+                  background: 'var(--bg-card)', border: '1px solid var(--border-light)',
+                  borderRadius: 12, overflow: 'hidden', cursor: 'pointer',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
+                {/* Swatch */}
+                <div style={{ width: '100%', aspectRatio: '1 / 1', position: 'relative', overflow: 'hidden', background: y.color_hex ?? 'var(--bg-muted)' }}>
+                  {y.photo_url
+                    ? <YarnThumb storagePath={y.photo_url} fallback={y.color_hex} />
+                    : y.color_hex
+                      ? null  /* colour fill from background */
+                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, opacity: 0.3 }}>🧶</div>
+                  }
+                  {/* Weight pill */}
+                  {y.weight && (
+                    <div style={{
+                      position: 'absolute', top: 8, right: 8,
+                      background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
+                      color: '#fff', fontSize: 10, fontWeight: 600,
+                      padding: '2px 7px', borderRadius: 10, letterSpacing: '0.04em',
+                    }}>{y.weight}</div>
+                  )}
+                  {/* Out of stock overlay */}
+                  {status.label !== 'In Stock' && (
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'rgba(0,0,0,0.35)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, background: 'rgba(0,0,0,0.5)', padding: '3px 8px', borderRadius: 8 }}>{status.label}</span>
+                    </div>
+                  )}
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  {total > 0 && <p className="card-title">{total} {unit}</p>}
-                  <span style={{ background: status.color + '22', color: status.color, borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>
-                    {status.label}
-                  </span>
+
+                {/* Info */}
+                <div style={{ padding: '10px 12px 12px' }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {y.colorway ?? y.name}
+                  </p>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {y.name}{y.brand ? ` · ${y.brand}` : ''}
+                  </p>
+                  {total > 0 && (
+                    <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--success-vivid)', marginTop: 6 }}>
+                      {total.toLocaleString()} {stashUnit}
+                    </p>
+                  )}
                 </div>
               </div>
-            </div>
-          );
-        })
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -262,13 +367,13 @@ function YarnThumb({ storagePath, fallback }: { storagePath: string; fallback: s
       .then(({ data }) => { if (data?.signedUrl) setUrl(data.signedUrl); });
   }, [storagePath]);
 
-  if (!url) return <div className="color-dot" style={{ background: fallback ?? 'var(--neutral-vivid)' }} />;
+  if (!url) return null; // fallback handled by parent background colour
 
   return (
     <img
       src={url}
       alt="yarn"
-      style={{ width: 40, height: 40, borderRadius: 20, objectFit: 'cover', flexShrink: 0 }}
+      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
     />
   );
 }
