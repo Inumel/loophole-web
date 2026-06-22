@@ -48,6 +48,7 @@ type StashYarn = {
   id: string;
   name: string;
   brand: string | null;
+  colorway: string | null;
   color_hex: string | null;
   quantity: number | null;
   unit: string;
@@ -211,26 +212,25 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
 
   async function openYarnModal() {
     const { data } = await supabase.from('yarn_catalog')
-      .select('id, name, brand, color_hex, stash:yarn_stash(id, quantity, unit, status)')
+      .select('id, name, brand, colorway, color_hex, stash:yarn_stash(id, quantity, unit, status)')
       .order('name');
-    // Flatten to stash entries for display, keeping catalog info
     const flat = (data ?? []).flatMap(c =>
       (c.stash as Array<{ id: string; quantity: number | null; unit: string; status: string }>).map(s => ({
         id: s.id,
         name: c.name,
         brand: c.brand,
+        colorway: c.colorway,
         color_hex: c.color_hex,
         quantity: s.quantity,
         unit: s.unit,
         status: s.status,
       }))
     );
-    // If no stash entries, show catalog items anyway
     if (flat.length > 0) {
       setStashYarns(flat);
     } else {
       setStashYarns((data ?? []).map(c => ({
-        id: c.id, name: c.name, brand: c.brand,
+        id: c.id, name: c.name, brand: c.brand, colorway: c.colorway,
         color_hex: c.color_hex, quantity: null, unit: 'g', status: 'in_stock',
       })));
     }
@@ -864,12 +864,16 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
               {stashYarns.map(y => (
                 <div key={y.id} onClick={() => { setSelectedStashYarn(y); setYarnUnit(y.unit); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', background: selectedStashYarn?.id === y.id ? 'var(--bg-accent)' : 'transparent', borderRadius: 8 }}>
-                  <div style={{ width: 20, height: 20, borderRadius: 10, background: y.color_hex ?? 'var(--neutral-vivid)' }} />
-                  <div style={{ flex: 1 }}>
-                    <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{y.name}</p>
-                    {y.brand && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>{y.brand}</p>}
+                  <div style={{ width: 24, height: 24, borderRadius: 12, background: y.color_hex ?? 'var(--neutral-vivid)', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {y.colorway ?? y.name}
+                    </p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {y.name}{y.brand ? ` · ${y.brand}` : ''}
+                    </p>
                   </div>
-                  {y.quantity != null && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{y.quantity} {y.unit}</span>}
+                  {y.quantity != null && <span style={{ color: 'var(--text-muted)', fontSize: 12, flexShrink: 0 }}>{y.quantity} {y.unit}</span>}
                 </div>
               ))}
             </div>
