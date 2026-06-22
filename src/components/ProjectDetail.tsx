@@ -634,10 +634,25 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
           <div key={py.id} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 8, borderTop: '1px solid var(--border-light)' }}>
             <div style={{ width: 20, height: 20, borderRadius: 10, background: py.yarn?.[0]?.color_hex ?? 'var(--neutral-vivid)', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
-            <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{py.yarn?.[0]?.name ?? py.yarn_name ?? 'Unknown'}</p>
-            {py.yarn?.[0]?.brand && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>{py.yarn[0].brand}</p>}
+              <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{py.yarn?.[0]?.name ?? py.yarn_name ?? 'Unknown'}</p>
+              {py.yarn?.[0]?.brand && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>{py.yarn[0].brand}</p>}
             </div>
             {py.quantity_used != null && <span style={{ color: 'var(--text-accent)', fontWeight: 600 }}>{py.quantity_used} {py.unit}</span>}
+            {!readOnly && (
+              <button onClick={async () => {
+                await supabase.from('project_yarn').delete().eq('id', py.id);
+                fetchProjectYarns();
+              }} style={{
+                background: 'none', border: 'none', color: 'var(--text-faint)',
+                cursor: 'pointer', fontSize: 16, padding: '2px 6px', borderRadius: 4,
+                lineHeight: 1, flexShrink: 0,
+                transition: 'color 0.15s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--danger-vivid)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}
+                title="Remove yarn"
+              >✕</button>
+            )}
           </div>
         ))}
       </div>
