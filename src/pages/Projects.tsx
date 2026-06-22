@@ -13,6 +13,11 @@ type Project = {
   status: string;
   current_row: number;
   started_at: string | null;
+  total_steps: number;
+  pattern_name: string | null;
+  yarn_weight: string | null;
+  category: string | null;
+  photo_url: string | null;
 };
 
 type GalleryProject = {
@@ -43,6 +48,22 @@ type SelectedYarn = {
 };
 
 type View = 'list' | 'detail' | 'new' | 'gallery';
+
+const CATEGORY_COLORS: Record<string, { bg: string; label: string }> = {
+  'Hats':  { bg: 'linear-gradient(160deg, #b8a8d8, #9888c0)', label: 'Hats' },
+  'Body':  { bg: 'linear-gradient(160deg, #9ab0c8, #7890a8)', label: 'Body' },
+  'Feet':  { bg: 'linear-gradient(160deg, #c8a0b8, #a880a0)', label: 'Feet' },
+  'Bags':  { bg: 'linear-gradient(160deg, #c8a878, #b08858)', label: 'Bags' },
+  'Misc':  { bg: 'linear-gradient(160deg, #98b8a8, #789888)', label: 'Misc' },
+};
+const DEFAULT_SWATCH = 'linear-gradient(160deg, #b8a8b8, #9888a0)';
+
+const statusBadge: Record<string, { bg: string; color: string }> = {
+  active:    { bg: 'var(--badge-active-bg)',    color: 'var(--badge-active-text)' },
+  paused:    { bg: 'var(--badge-paused-bg)',    color: 'var(--badge-paused-text)' },
+  completed: { bg: 'var(--badge-completed-bg)', color: 'var(--badge-completed-text)' },
+  frogged:   { bg: 'var(--badge-frogged-bg)',   color: 'var(--badge-frogged-text)' },
+};
 
 const statusClass: Record<string, string> = {
   active: 'badge-active', completed: 'badge-completed',
@@ -84,9 +105,39 @@ export default function ProjectsPage() {
     setLoading(true);
     const { data } = await supabase
       .from('projects')
-      .select('id, name, status, current_row, started_at')
+      .select('id, name, status, current_row, started_at, pattern:patterns(name, yarn_weight, category, parsed_guide)')
       .order('created_at', { ascending: false });
-    if (data) setProjects(data);
+
+    if (!data) { setLoading(false); return; }
+
+    // For each project get the first photo signed URL and compute total steps
+    const enriched = await Promise.all(data.map(async p => {
+      const pat = p.pattern as { name?: string; yarn_weight?: string; category?: string; parsed_guide?: { sections?: Array<{ steps?: string[] }> } } | null;
+      const sections = pat?.parsed_guide?.sections ?? [];
+      const total_steps = sections.reduce((s: number, sec: { steps?: string[] }) => s + (sec.steps?.length ?? 0), 0);
+
+      const { data: photos } = await supabase
+        .from('project_photos').select('storage_path')
+        .eq('project_id', p.id).order('created_at', { ascending: true }).limit(1);
+      let photo_url: string | null = null;
+      if (photos?.[0]) {
+        const { data: signed } = await supabase.storage
+          .from('project-photos').createSignedUrl(photos[0].storage_path, 3600);
+        photo_url = signed?.signedUrl ?? null;
+      }
+
+      return {
+        id: p.id, name: p.name, status: p.status,
+        current_row: p.current_row, started_at: p.started_at,
+        total_steps,
+        pattern_name: pat?.name ?? null,
+        yarn_weight: pat?.yarn_weight ?? null,
+        category: pat?.category ?? null,
+        photo_url,
+      };
+    }));
+
+    setProjects(enriched);
     setLoading(false);
   }, []);
 
@@ -425,23 +476,87 @@ export default function ProjectsPage() {
       ) : filteredProjects.length === 0 ? (
         <p className="empty">{search || statusFilter !== 'all' ? 'No matching projects.' : 'No projects yet.'}</p>
       ) : (
-        filteredProjects.map(p => (
-          <div key={p.id} className="card" onClick={() => {
-            setSelectedId(p.id);
-            setView('detail');
-            recordRecentItem({
-              id: p.id, name: p.name, type: 'project',
-              meta: `${p.status} · ${p.current_row} step${p.current_row === 1 ? '' : 's'}`,
-              path: '/projects', color: '#7F77DD',
-            });
-          }}>
-            <div className="card-row">
-              <span className="card-title">{p.name}</span>
-              <span className={`badge ${statusClass[p.status] ?? ''}`}>{p.status}</span>
-            </div>
-            <p className="card-sub">{p.current_row === 0 ? 'Not started' : `${p.current_row} step${p.current_row === 1 ? '' : 's'} completed`}</p>
-          </div>
-        ))
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {filteredProjects.map(p => {
+            const pct = p.total_steps > 0 ? Math.round((p.current_row / p.total_steps) * 100) : 0;
+            const swatch = CATEGORY_COLORS[p.category ?? ''] ?? { bg: DEFAULT_SWATCH, label: p.category ?? '' };
+            const badge = statusBadge[p.status] ?? { bg: 'var(--bg-muted)', color: 'var(--text-muted)' };
+            return (
+              <div key={p.id}
+                onClick={() => {
+                  setSelectedId(p.id);
+                  setView('detail');
+                  recordRecentItem({
+                    id: p.id, name: p.name, type: 'project',
+                    meta: `${p.status} · ${p.current_row} step${p.current_row === 1 ? '' : 's'}`,
+                    path: '/projects', color: '#7F77DD',
+                  });
+                }}
+                style={{
+                  display: 'grid', gridTemplateColumns: '88px 1fr',
+                  background: 'var(--bg-card)', border: '1px solid var(--border-light)',
+                  borderRadius: 12, overflow: 'hidden', cursor: 'pointer',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
+                {/* Colour swatch sidebar */}
+                <div style={{
+                  background: p.photo_url ? 'var(--bg-muted)' : swatch.bg,
+                  position: 'relative', overflow: 'hidden',
+                  display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                  paddingBottom: 8,
+                }}>
+                  {p.photo_url && (
+                    <img src={p.photo_url} alt={p.name}
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  )}
+                  {p.category && (
+                    <span style={{
+                      position: 'relative', zIndex: 1,
+                      background: 'rgba(0,0,0,0.35)', color: '#fff',
+                      fontSize: 9, fontWeight: 600, padding: '2px 6px',
+                      borderRadius: 8, letterSpacing: '0.05em', textTransform: 'uppercase',
+                    }}>{p.category}</span>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
+                      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.pattern_name && p.pattern_name !== p.name ? p.pattern_name : (p.yarn_weight ?? '—')}
+                      </p>
+                    </div>
+                    <span style={{ background: badge.bg, color: badge.color, borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
+                      {p.status}
+                    </span>
+                  </div>
+
+                  <div>
+                    {p.total_steps > 0 ? (
+                      <>
+                        <div style={{ height: 3, background: 'var(--border-light)', borderRadius: 2, marginBottom: 4 }}>
+                          <div className="progress-bar-fill" style={{ height: '100%', width: `${pct}%`, background: 'var(--primary)', borderRadius: 2 }} />
+                        </div>
+                        <p style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                          {p.current_row === 0 ? `Not started · ${p.total_steps} steps` : `${p.current_row} of ${p.total_steps} steps · ${pct}%`}
+                        </p>
+                      </>
+                    ) : (
+                      <p style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                        {p.current_row === 0 ? 'Not started' : `${p.current_row} steps completed`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
