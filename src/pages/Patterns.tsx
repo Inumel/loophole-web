@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { searchRavelryPatterns, getRavelryPattern, mapRavelryPattern } from '../lib/ravelry';
 import { parsePatternWithClaude } from '../lib/claude';
@@ -40,6 +41,7 @@ function getSteps(sec: { steps?: unknown; steps_by_size?: Record<string, unknown
 }
 
 export default function PatternsPage() {
+  const [searchParams] = useSearchParams();
   const [patterns, setPatterns] = useState<Pattern[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('list');
@@ -89,7 +91,15 @@ export default function PatternsPage() {
   async function fetchPatterns() {
     setLoading(true);
     const { data } = await supabase.from('patterns').select('*').order('created_at', { ascending: false });
-    if (data) setPatterns(data);
+    if (data) {
+      setPatterns(data);
+      // Open a specific pattern if navigated here with ?open=ID
+      const openId = searchParams.get('open');
+      if (openId) {
+        const target = data.find(p => p.id === openId);
+        if (target) { setSelected(target); setView('detail'); }
+      }
+    }
     setLoading(false);
   }
 

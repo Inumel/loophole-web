@@ -278,7 +278,11 @@ export default function DashboardPage() {
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden' }}>
                 {recent.map((item, i) => (
                   <div key={`${item.type}-${item.id}`}
-                    onClick={() => navigate(item.type === 'project' ? '/projects' : item.type === 'pattern' ? '/patterns' : '/stash')}
+                    onClick={() => {
+                  if (item.type === 'project') navigate(`/projects?open=${item.id}`);
+                  else if (item.type === 'pattern') navigate(`/patterns?open=${item.id}`);
+                  else navigate('/stash');
+                }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '10px 14px', cursor: 'pointer',
