@@ -41,7 +41,7 @@ type ProjectYarn = {
   yarn_name: string | null;
   quantity_used: number | null;
   unit: string;
-  yarn: { name: string; brand: string | null; color_hex: string | null; catalog: { colorway: string | null }[] | null }[] | null;
+  yarn: { name: string; brand: string | null; colorway: string | null; color_hex: string | null }[] | null;
 };
 
 type StashYarn = {
@@ -205,7 +205,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
 
   async function fetchProjectYarns() {
     const { data } = await supabase.from('project_yarn')
-      .select('id, yarn_name, quantity_used, unit, yarn:yarn_stash(name, brand, color_hex, catalog:yarn_catalog_id(colorway))')
+      .select('id, yarn_name, quantity_used, unit, yarn:yarn_stash(name, brand, colorway, color_hex)')
       .eq('project_id', projectId);
     if (data) setProjectYarns(data);
   }
@@ -635,7 +635,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
             <div style={{ width: 20, height: 20, borderRadius: 10, background: py.yarn?.[0]?.color_hex ?? 'var(--neutral-vivid)', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>
-                {py.yarn?.[0]?.catalog?.[0]?.colorway ?? py.yarn?.[0]?.name ?? py.yarn_name ?? 'Unknown'}
+                {py.yarn?.[0]?.colorway ?? py.yarn?.[0]?.name ?? py.yarn_name ?? 'Unknown'}
               </p>
               <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>
                 {py.yarn?.[0]?.name ?? py.yarn_name ?? ''}{py.yarn?.[0]?.brand ? ` · ${py.yarn[0].brand}` : ''}
