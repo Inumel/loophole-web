@@ -207,7 +207,7 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
     const { data } = await supabase.from('project_yarn')
       .select('id, yarn_name, quantity_used, unit, yarn:yarn_stash(name, brand, colorway, color_hex)')
       .eq('project_id', projectId);
-    if (data) setProjectYarns(data);
+    if (data) setProjectYarns(data as unknown as ProjectYarn[]);
   }
 
   async function openYarnModal() {
