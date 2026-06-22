@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -85,11 +85,12 @@ function normaliseWeight(raw: string | null): string | null {
 
 export default function NextPatternPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [stash, setStash] = useState<StashEntry[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [filter, setFilter] = useState<'all' | 'great' | 'possible' | 'partial'>('all');
-  const [weightFilter, setWeightFilter] = useState<string>('all');
+  const [weightFilter, setWeightFilter] = useState<string>(() => searchParams.get('weight') ?? 'all');
 
   useEffect(() => { load(); }, []);
 
@@ -256,6 +257,9 @@ export default function NextPatternPage() {
   return (
     <div style={{ maxWidth: 860 }}>
       <div style={{ marginBottom: 24 }}>
+        {searchParams.get('weight') && (
+          <button onClick={() => navigate('/stash')} className="btn btn-secondary" style={{ marginBottom: 12, fontSize: 12, padding: '5px 12px' }}>← Back to Stash</button>
+        )}
         <h1 style={{ marginBottom: 6 }}>What Should I Knit Next?</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
           Patterns from your library matched against your in-stock stash.

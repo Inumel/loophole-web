@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import YarnDetail from '../components/YarnDetail';
 import YarnWeightReference from '../components/YarnWeightReference';
@@ -25,6 +26,7 @@ export default function StashPage() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('list');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
@@ -40,6 +42,7 @@ export default function StashPage() {
   const [saving, setSaving] = useState(false);
   const [weightFilter, setWeightFilter] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<'all' | 'in_stock'>('all');
+  const [sort, setSort] = useState<'brand' | 'weight' | 'yardage'>('brand');
   const [search, setSearch] = useState('');
 
   useEffect(() => { if (view === 'list') fetchYarns(); }, [view]);
@@ -195,6 +198,21 @@ export default function StashPage() {
     const matchWeight = weightFilter === 'all' || y.weight === weightFilter;
     const matchStock = stockFilter === 'all' || y.stash.some(s => s.status === 'in_stock' && (s.quantity ?? 0) > 0);
     return matchSearch && matchWeight && matchStock;
+  }).sort((a, b) => {
+    if (sort === 'weight') {
+      const ai = WEIGHTS.indexOf(a.weight ?? ''), bi = WEIGHTS.indexOf(b.weight ?? '');
+      const wa = ai === -1 ? 99 : ai, wb = bi === -1 ? 99 : bi;
+      return wa !== wb ? wa - wb : (a.colorway ?? a.name).localeCompare(b.colorway ?? b.name);
+    }
+    if (sort === 'yardage') {
+      const toYds = (y: YarnCatalog) => y.stash.filter(s => s.status === 'in_stock').reduce((sum, s) => {
+        if (s.unit === 'yards' || s.unit === 'yds') return sum + (s.quantity ?? 0);
+        if (s.unit === 'meters' || s.unit === 'm') return sum + (s.quantity ?? 0) * 1.094;
+        return sum;
+      }, 0);
+      return toYds(b) - toYds(a);
+    }
+    return (a.brand ?? a.name).localeCompare(b.brand ?? b.name);
   });
 
   // Total yardage across all in-stock entries (yards only)
@@ -245,6 +263,14 @@ export default function StashPage() {
           placeholder="Search stash…"
           style={{ flex: 1, minWidth: 200, background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-body)', fontSize: 14, boxSizing: 'border-box' as const }}
         />
+        <select value={sort} onChange={e => setSort(e.target.value as typeof sort)} style={{
+          background: 'var(--bg-input)', border: '1px solid var(--border-medium)',
+          borderRadius: 8, padding: '7px 12px', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer',
+        }}>
+          <option value="brand">Sort: Brand</option>
+          <option value="weight">Sort: Weight</option>
+          <option value="yardage">Sort: Yardage ↓</option>
+        </select>
         <button onClick={() => setStockFilter(s => s === 'all' ? 'in_stock' : 'all')} style={{
           padding: '7px 14px', borderRadius: 8, border: '1px solid',
           borderColor: stockFilter === 'in_stock' ? 'var(--success-vivid)' : 'var(--border-medium)',
@@ -338,6 +364,22 @@ export default function StashPage() {
                     <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--success-vivid)', marginTop: 6 }}>
                       {total.toLocaleString()} {stashUnit}
                     </p>
+                  )}
+                  {y.weight && (
+                    <button
+                      onClick={e => { e.stopPropagation(); navigate(`/next-pattern?weight=${encodeURIComponent(y.weight!)}`); }}
+                      style={{
+                        marginTop: 8, width: '100%',
+                        background: 'var(--bg-muted)', border: '1px solid var(--border-light)',
+                        borderRadius: 7, padding: '5px 8px', cursor: 'pointer',
+                        color: 'var(--text-muted)', fontSize: 11, fontWeight: 500,
+                        transition: 'background 0.15s, color 0.15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary-text)'; e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-muted)'; e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border-light)'; }}
+                    >
+                      🤔 Use this yarn
+                    </button>
                   )}
                 </div>
               </div>
