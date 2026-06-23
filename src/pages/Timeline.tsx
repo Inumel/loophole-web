@@ -134,7 +134,7 @@ export default function TimelinePage() {
           </div>
 
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 16, padding: 24, overflowX: 'auto' }}>
-            <div style={{ position: 'relative', height: 24, marginLeft: 180, marginBottom: 8, minWidth: 600 }}>
+            <div style={{ position: 'relative', height: 24, marginLeft: 260, marginBottom: 8, minWidth: 600 }}>
               {monthLabels.map((m, i) => (
                 <span key={i} style={{ position: 'absolute', left: m.pct, transform: 'translateX(-50%)', color: 'var(--text-faint)', fontSize: 11, whiteSpace: 'nowrap' }}>{m.label}</span>
               ))}
@@ -151,7 +151,7 @@ export default function TimelinePage() {
                   <div key={p.id}>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4, cursor: 'pointer' }}
                       onClick={() => setSelectedProject(isSelected ? null : p.id)}>
-                      <div style={{ width: 180, flexShrink: 0, paddingRight: 12 }}>
+                      <div style={{ width: 260, flexShrink: 0, paddingRight: 12 }}>
                         <p style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
                         <p style={{ color: 'var(--text-faint)', fontSize: 11 }}>{totalMins > 0 ? formatDuration(totalMins) : 'no sessions'}</p>
                       </div>
@@ -165,7 +165,7 @@ export default function TimelinePage() {
                       </div>
                     </div>
                     {isSelected && p.sessions.length > 0 && (
-                      <div style={{ marginLeft: 180, marginBottom: 8, background: 'var(--bg-muted)', border: '1px solid var(--border-light)', borderRadius: 8, padding: 12 }}>
+                      <div style={{ marginLeft: 260, marginBottom: 8, background: 'var(--bg-muted)', border: '1px solid var(--border-light)', borderRadius: 8, padding: 12 }}>
                         <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Sessions</p>
                         {p.sessions.map(s => (
                           <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 6, marginBottom: 6, borderBottom: '1px solid var(--border-light)' }}>
@@ -179,7 +179,7 @@ export default function TimelinePage() {
                       </div>
                     )}
                     {isSelected && p.sessions.length === 0 && (
-                      <div style={{ marginLeft: 180, marginBottom: 8, padding: '8px 12px' }}>
+                      <div style={{ marginLeft: 260, marginBottom: 8, padding: '8px 12px' }}>
                         <p style={{ color: 'var(--text-faint)', fontSize: 13 }}>No timed sessions recorded for this project.</p>
                       </div>
                     )}

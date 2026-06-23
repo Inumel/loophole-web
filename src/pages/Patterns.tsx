@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { searchRavelryPatterns, getRavelryPattern, mapRavelryPattern } from '../lib/ravelry';
 import { parsePatternWithClaude } from '../lib/claude';
@@ -42,6 +42,7 @@ function getSteps(sec: { steps?: unknown; steps_by_size?: Record<string, unknown
 
 export default function PatternsPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [patterns, setPatterns] = useState<Pattern[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('list');
@@ -85,8 +86,20 @@ export default function PatternsPage() {
   // List search
   const [listSearch, setListSearch] = useState('');
   const [activeSection, setActiveSection] = useState(0);
+  const [linkedProjects, setLinkedProjects] = useState<Array<{ id: string; name: string; status: string }>>([]);
 
   useEffect(() => { if (view === 'list') fetchPatterns(); }, [view]);
+
+  useEffect(() => {
+    if (view === 'detail' && selected) {
+      supabase.from('projects')
+        .select('id, name, status')
+        .eq('pattern_id', selected.id)
+        .then(({ data }) => setLinkedProjects(data ?? []));
+    } else {
+      setLinkedProjects([]);
+    }
+  }, [view, selected]);
 
   async function fetchPatterns() {
     setLoading(true);
@@ -467,6 +480,28 @@ export default function PatternsPage() {
           </button>
         </div>
         {selected.designer && <p style={{ color: 'var(--text-muted)', marginBottom: 12 }}>by {selected.designer}</p>}
+
+        {/* Used in projects */}
+        {linkedProjects.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+            <span style={{ color: 'var(--text-faint)', fontSize: 13, alignSelf: 'center' }}>Used in:</span>
+            {linkedProjects.map(p => (
+              <button key={p.id}
+                onClick={() => navigate(`/projects?open=${p.id}`)}
+                style={{
+                  background: 'var(--bg-card)', border: '1px solid var(--border-light)',
+                  borderRadius: 8, padding: '4px 12px', cursor: 'pointer',
+                  fontSize: 13, fontWeight: 500, color: 'var(--primary)',
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-light)'}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Meta grid */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>

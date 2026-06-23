@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import StepText from './StepText';
 import ProjectPhotos from './ProjectPhotos';
@@ -13,6 +14,7 @@ type Project = {
   notes: string | null;
   chosen_size: string | null;
   chosen_color_variation: string | null;
+  pattern_id: string | null;
   pattern: { name: string; difficulty: string | null; parsed_guide: Record<string, unknown> | null } | null;
 };
 
@@ -80,6 +82,7 @@ function getSteps(sec: GuideSection, chosenSize: string | null, chosenVariation:
 const UNITS = ['g', 'oz', 'yards', 'meters', 'skeins'];
 
 export default function ProjectDetail({ projectId, onBack, readOnly = false }: Props) {
+  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [notes, setNotes] = useState('');
@@ -418,7 +421,17 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
       </div>
       {project.pattern && (
         <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 16 }}>
-          Pattern: {project.pattern.name}{project.chosen_size && project.chosen_size !== 'One Size' ? ` · Size: ${project.chosen_size}` : ''}
+          Pattern:{' '}
+          {project.pattern_id
+            ? <span
+                onClick={() => navigate(`/patterns?open=${project.pattern_id}`)}
+                style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 500 }}
+                onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+                onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+              >{project.pattern.name}</span>
+            : project.pattern.name
+          }
+          {project.chosen_size && project.chosen_size !== 'One Size' ? ` · Size: ${project.chosen_size}` : ''}
         </p>
       )}
 
@@ -479,9 +492,26 @@ export default function ProjectDetail({ projectId, onBack, readOnly = false }: P
             <p style={{ color: 'var(--text-muted)', fontSize: 12, textAlign: 'center', marginTop: 8 }}>Total: {totalTime()}</p>
           )}
           {sessions.slice(0, 4).map(s => (
-            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-light)', marginTop: 6, paddingTop: 6 }}>
+            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-light)', marginTop: 6, paddingTop: 6 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{new Date(s.started_at).toLocaleDateString()}</span>
-              <span style={{ color: 'var(--text-primary)', fontSize: 12 }}>{s.duration_minutes ? `${Math.round(s.duration_minutes)}m` : 'in progress'}</span>
+              {s.duration_minutes != null
+                ? <span style={{ color: 'var(--text-primary)', fontSize: 12 }}>{Math.round(s.duration_minutes)}m</span>
+                : <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ color: 'var(--text-faint)', fontSize: 12, fontStyle: 'italic' }}>in progress</span>
+                    <button onClick={async () => {
+                      await supabase.from('knitting_sessions').delete().eq('id', s.id);
+                      fetchSessions();
+                    }} style={{
+                      background: 'none', border: '1px solid var(--border-medium)',
+                      color: 'var(--text-faint)', borderRadius: 5, padding: '1px 7px',
+                      fontSize: 10, cursor: 'pointer', transition: 'color 0.15s, border-color 0.15s',
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--danger-vivid)'; e.currentTarget.style.borderColor = 'var(--danger-vivid)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)'; e.currentTarget.style.borderColor = 'var(--border-medium)'; }}
+                      title="Discard this session"
+                    >Discard</button>
+                  </div>
+              }
             </div>
           ))}
         </div>
