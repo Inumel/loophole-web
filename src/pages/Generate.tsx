@@ -6,12 +6,45 @@ import { inputStyle, selectStyle, labelStyle, difficultyColor, stepDifficulty } 
 const YARN_WEIGHTS = ['Lace', 'Fingering', 'Sport', 'DK', 'Worsted', 'Aran', 'Bulky', 'Super Bulky'];
 const DIFFICULTIES = ['Beginner', 'Easy', 'Intermediate', 'Advanced'];
 
-const SUGGESTED_OBJECTS = ['Scarf', 'Hat', 'Cowl', 'Shawl', 'Mittens', 'Socks', 'Sweater', 'Cardigan', 'Baby Blanket', 'Dishcloth', 'Fingerless Gloves', 'Headband', 'Bag', 'Toy'];
-const SUGGESTED_STYLES = ['Stockinette', 'Garter', 'Ribbing', 'Seed stitch', 'Moss stitch', 'Ribbing with cabling', 'Lace', 'Colorwork', 'Cables', 'Textured', 'Brioche', 'Slip stitch', 'Fair Isle'];
+const OBJECT_CARDS = [
+  { label: 'Hat',            emoji: '🧢' },
+  { label: 'Scarf',          emoji: '🧣' },
+  { label: 'Mittens',        emoji: '🧤' },
+  { label: 'Socks',          emoji: '🧦' },
+  { label: 'Cowl',           emoji: '👜' },
+  { label: 'Sweater',        emoji: '🦺' },
+  { label: 'Shawl',          emoji: '🧶' },
+  { label: 'Bag',            emoji: '👜' },
+  { label: 'Fingerless',     emoji: '🧤' },
+  { label: 'Baby Blanket',   emoji: '👶' },
+  { label: 'Toy',            emoji: '🧸' },
+  { label: 'Dishcloth',      emoji: '🧹' },
+  { label: 'Headband',       emoji: '🎠' },
+  { label: 'Cardigan',       emoji: '🧥' },
+  { label: 'Custom…',       emoji: '✏️' },
+];
+
+const STYLE_CARDS = [
+  { label: 'Cables',       desc: 'Crossed stitches, textured ropes' },
+  { label: 'Lace',         desc: 'Open eyelets, delicate patterns' },
+  { label: 'Brioche',      desc: 'Squishy, reversible rib texture' },
+  { label: 'Fair Isle',    desc: 'Stranded colourwork, geometric motifs' },
+  { label: 'Colorwork',    desc: 'Two or more colours, intarsia or stranded' },
+  { label: 'Garter',       desc: 'Knit every row, ridged texture' },
+  { label: 'Ribbing',      desc: 'Stretchy knit-purl columns' },
+  { label: 'Seed stitch',  desc: 'Alternating k/p, bumpy texture' },
+  { label: 'Textured',     desc: 'Mixed stitches, dimensional surface' },
+  { label: 'Slip stitch',  desc: 'Mosaic patterns, easy colourwork' },
+  { label: 'Stockinette',  desc: 'Classic smooth fabric, let the yarn shine' },
+  { label: 'Custom…',     desc: 'Describe exactly what you want' },
+];
+
+// For the randomiser — label values that map to generator inputs
+const SUGGESTED_OBJECTS = OBJECT_CARDS.filter(o => o.label !== 'Custom…').map(o => o.label);
+const SUGGESTED_STYLES  = STYLE_CARDS.filter(s => s.label  !== 'Custom…').map(s => s.label);
 
 // Objects where the third dimension field should be labelled 'Circumference'
-// rather than 'Circumference / Depth'.
-const CIRCULAR_OBJECTS = ['Hat', 'Cowl', 'Mittens', 'Socks', 'Headband', 'Fingerless Gloves'];
+const CIRCULAR_OBJECTS = ['Hat', 'Cowl', 'Mittens', 'Socks', 'Headband', 'Fingerless'];
 
 type PatternSection = {
   title: string;
@@ -654,39 +687,93 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
       )}
 
       {/* Input form */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-          <div>
-            <label style={lbl}>What do you want to knit?</label>
-            <input style={{ ...inp, marginBottom: 8 }} value={object} onChange={e => setObject(e.target.value)}
-              placeholder="e.g. Scarf, Baby booties, Fingerless gloves…" />
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {SUGGESTED_OBJECTS.map(o => (
-                <button key={o} onClick={() => setObject(o)} style={{
-                  padding: '3px 10px', borderRadius: 16, border: '1px solid var(--border-medium)',
-                  background: object === o ? 'var(--primary)' : 'transparent',
-                  color: object === o ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 11,
-                }}>{o}</button>
-              ))}
-            </div>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
+
+        {/* Section 1: Object picker */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)' }}>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--text-muted)', marginBottom: 12 }}>What do you want to knit?</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+            {OBJECT_CARDS.map(o => {
+              const isCustom = o.label === 'Custom…';
+              const isOn = isCustom
+                ? !OBJECT_CARDS.filter(x => x.label !== 'Custom…').some(x => x.label === object) && object !== ''
+                : object === o.label;
+              return (
+                <button key={o.label} onClick={() => {
+                  if (isCustom) { setObject(''); }
+                  else { setObject(prev => prev === o.label ? '' : o.label); }
+                }} style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                  padding: '12px 6px 10px',
+                  border: `1px solid ${isOn ? 'var(--primary)' : 'var(--border-medium)'}`,
+                  borderRadius: 10,
+                  background: isOn ? 'var(--bg-accent)' : 'var(--bg-card)',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}
+                  onMouseEnter={e => { if (!isOn) { e.currentTarget.style.borderColor = 'var(--border-accent)'; e.currentTarget.style.background = 'var(--bg-card-hover)'; } }}
+                  onMouseLeave={e => { if (!isOn) { e.currentTarget.style.borderColor = 'var(--border-medium)'; e.currentTarget.style.background = 'var(--bg-card)'; } }}
+                >
+                  <span style={{ fontSize: 22, lineHeight: 1 }}>{o.emoji}</span>
+                  <span style={{ fontSize: 11, fontWeight: 500, color: isOn ? 'var(--primary)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', textAlign: 'center' }}>{o.label}</span>
+                </button>
+              );
+            })}
           </div>
-          <div>
-            <label style={lbl}>Style</label>
-            <input style={{ ...inp, marginBottom: 8 }} value={style} onChange={e => setStyle(e.target.value)}
-              placeholder="e.g. Cables, Lace, Fair Isle, leave blank for Claude to decide…" />
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {SUGGESTED_STYLES.map(s => (
-                <button key={s} onClick={() => setStyle(s)} style={{
-                  padding: '3px 10px', borderRadius: 16, border: '1px solid var(--border-medium)',
-                  background: style === s ? 'var(--primary)' : 'transparent',
-                  color: style === s ? 'var(--primary-text)' : 'var(--text-muted)', cursor: 'pointer', fontSize: 11,
-                }}>{s}</button>
-              ))}
-            </div>
-          </div>
+          {/* Custom text input — shown when no preset is active */}
+          {!OBJECT_CARDS.filter(x => x.label !== 'Custom…').some(x => x.label === object) && (
+            <input
+              style={{ ...inp, marginTop: 10 }}
+              value={object}
+              onChange={e => setObject(e.target.value)}
+              placeholder="Describe what you want to knit…"
+            />
+          )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16, paddingTop: 16, borderTop: '1px solid var(--border-light)' }}>
+        {/* Section 2: Style picker */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)' }}>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--text-muted)', marginBottom: 12 }}>Style <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, opacity: 0.7 }}>— leave blank for Claude to decide</span></p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            {STYLE_CARDS.map(s => {
+              const isCustom = s.label === 'Custom…';
+              const isOn = isCustom
+                ? !STYLE_CARDS.filter(x => x.label !== 'Custom…').some(x => x.label === style) && style !== ''
+                : style === s.label;
+              return (
+                <button key={s.label} onClick={() => {
+                  if (isCustom) { setStyle(''); }
+                  else { setStyle(prev => prev === s.label ? '' : s.label); }
+                }} style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                  padding: '10px 12px',
+                  border: `1px solid ${isOn ? 'var(--primary)' : 'var(--border-medium)'}`,
+                  borderRadius: 10,
+                  background: isOn ? 'var(--bg-accent)' : 'var(--bg-card)',
+                  cursor: 'pointer', textAlign: 'left',
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}
+                  onMouseEnter={e => { if (!isOn) { e.currentTarget.style.borderColor = 'var(--border-accent)'; e.currentTarget.style.background = 'var(--bg-card-hover)'; } }}
+                  onMouseLeave={e => { if (!isOn) { e.currentTarget.style.borderColor = 'var(--border-medium)'; e.currentTarget.style.background = 'var(--bg-card)'; } }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 600, color: isOn ? 'var(--primary)' : 'var(--text-primary)', marginBottom: 2 }}>{s.label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.4 }}>{s.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Custom style input */}
+          {!STYLE_CARDS.filter(x => x.label !== 'Custom…').some(x => x.label === style) && style !== '' && (
+            <input
+              style={{ ...inp, marginTop: 10 }}
+              value={style}
+              onChange={e => setStyle(e.target.value)}
+              placeholder="Describe the style you want…"
+            />
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, padding: '16px 20px', borderBottom: '1px solid var(--border-light)' }}>
           <div>
             <label style={lbl}>Yarn Weight</label>
             <select value={yarnWeight} onChange={e => setYarnWeight(e.target.value)} style={sel}>
@@ -717,14 +804,14 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
           </div>
         </div>
 
-        <div style={{ marginBottom: 16, paddingTop: 16, borderTop: '1px solid var(--border-light)' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)' }}>
           <label style={lbl}>Additional notes (optional)</label>
           <textarea style={{ ...inp, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }}
             value={extraNotes} onChange={e => setExtraNotes(e.target.value)}
             placeholder="e.g. Include a simple border, make it suitable for a beginner, use a 4-stitch cable repeat…" />
         </div>
 
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)' }}>
           <label style={lbl}>Reference image (optional)</label>
           <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleReferenceImageSelect} />
           {referenceImagePreview ? (
@@ -747,7 +834,7 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ padding: '14px 20px', background: 'var(--bg-muted)', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={generate} disabled={generating} className="btn btn-primary" style={{ opacity: generating ? 0.6 : 1 }}>
             {generating ? (referenceImage ? '✨ Looking at your reference image…' : '✨ Generating pattern…') : '✨ Generate Pattern'}
           </button>
@@ -761,26 +848,25 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
           >
             🎲
           </button>
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          {showSaveTemplate ? (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input value={saveTemplateName} onChange={e => setSaveTemplateName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSaveTemplate()}
-                placeholder="Template name…"
-                style={{ flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 6, padding: '6px 10px', color: 'var(--text-body)', fontSize: 13 }} />
-              <button onClick={handleSaveTemplate} disabled={!saveTemplateName.trim()}
-                style={{ background: 'var(--primary)', border: 'none', color: 'var(--primary-text)', borderRadius: 6, padding: '6px 12px', fontSize: 13, cursor: 'pointer', opacity: saveTemplateName.trim() ? 1 : 0.5 }}>Save</button>
-              <button onClick={() => { setShowSaveTemplate(false); setSaveTemplateName(''); }}
-                style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-            </div>
-          ) : (
-            <button onClick={() => setShowSaveTemplate(true)}
-              style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 12, cursor: 'pointer', padding: 0 }}>
-              💾 Save current inputs as template
-            </button>
-          )}
+          <div style={{ marginLeft: 'auto' }}>
+            {showSaveTemplate ? (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input value={saveTemplateName} onChange={e => setSaveTemplateName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveTemplate()}
+                  placeholder="Template name…"
+                  style={{ flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: 6, padding: '6px 10px', color: 'var(--text-body)', fontSize: 13, minWidth: 160 }} />
+                <button onClick={handleSaveTemplate} disabled={!saveTemplateName.trim()}
+                  style={{ background: 'var(--primary)', border: 'none', color: 'var(--primary-text)', borderRadius: 6, padding: '6px 12px', fontSize: 13, cursor: 'pointer', opacity: saveTemplateName.trim() ? 1 : 0.5 }}>Save</button>
+                <button onClick={() => { setShowSaveTemplate(false); setSaveTemplateName(''); }}
+                  style={{ background: 'none', border: '1px solid var(--border-medium)', color: 'var(--text-muted)', borderRadius: 6, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+              </div>
+            ) : (
+              <button onClick={() => setShowSaveTemplate(true)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 12, cursor: 'pointer', padding: 0 }}>
+                💾 Save as template
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
