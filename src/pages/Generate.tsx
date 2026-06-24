@@ -169,7 +169,7 @@ export default function GeneratePage() {
       .eq('status', 'in_stock')
       .then(({ data }) => {
         const weights = (data ?? [])
-          .map((r: { yarn_catalog: { weight?: string } | null }) => r.yarn_catalog?.weight)
+          .map((r: unknown) => (r as { yarn_catalog: { weight?: string } | null }).yarn_catalog?.weight)
           .filter((w): w is string => !!w);
         // Deduplicate and sort by canonical weight order
         const unique = YARN_WEIGHTS.filter(w => weights.some(sw =>
