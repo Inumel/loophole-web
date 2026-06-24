@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { inputStyle, selectStyle, labelStyle, difficultyColor, stepDifficulty } from '../lib/theme';
@@ -115,13 +115,17 @@ function deleteTemplate(id: string) {
 export default function GeneratePage() {
   const { unlocked } = useAuth();
   const [object, setObject] = useState('');
+  const [customObjectActive, setCustomObjectActive] = useState(false);
   const [style, setStyle] = useState('');
+  const [customStyleActive, setCustomStyleActive] = useState(false);
   const [yarnWeight, setYarnWeight] = useState('Worsted');
   const [difficulty, setDifficulty] = useState('Intermediate');
   const [length, setLength] = useState('');
   const [width, setWidth] = useState('');
   const [circumference, setCircumference] = useState('');
   const [extraNotes, setExtraNotes] = useState('');
+  const [useStash, setUseStash] = useState(false);
+  const [stashWeights, setStashWeights] = useState<string[]>([]);
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -156,6 +160,24 @@ export default function GeneratePage() {
       </div>
     );
   }
+
+  // Fetch in-stock yarn weights for the "Use my stash" toggle
+  useEffect(() => {
+    supabase
+      .from('yarn_stash')
+      .select('yarn_catalog:yarn_catalog_id(weight)')
+      .eq('status', 'in_stock')
+      .then(({ data }) => {
+        const weights = (data ?? [])
+          .map((r: { yarn_catalog: { weight?: string } | null }) => r.yarn_catalog?.weight)
+          .filter((w): w is string => !!w);
+        // Deduplicate and sort by canonical weight order
+        const unique = YARN_WEIGHTS.filter(w => weights.some(sw =>
+          sw.toLowerCase().includes(w.toLowerCase()) || w.toLowerCase().includes(sw.toLowerCase())
+        ));
+        setStashWeights(unique);
+      });
+  }, []);
 
   function handleReferenceImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -695,13 +717,16 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
             {OBJECT_CARDS.map(o => {
               const isCustom = o.label === 'Custom…';
-              const isOn = isCustom
-                ? !OBJECT_CARDS.filter(x => x.label !== 'Custom…').some(x => x.label === object) && object !== ''
-                : object === o.label;
+              const isOn = isCustom ? customObjectActive : object === o.label;
               return (
                 <button key={o.label} onClick={() => {
-                  if (isCustom) { setObject(''); }
-                  else { setObject(prev => prev === o.label ? '' : o.label); }
+                  if (isCustom) {
+                    setCustomObjectActive(true);
+                    setObject('');
+                  } else {
+                    setCustomObjectActive(false);
+                    setObject(prev => prev === o.label ? '' : o.label);
+                  }
                 }} style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                   padding: '12px 6px 10px',
@@ -720,9 +745,10 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
               );
             })}
           </div>
-          {/* Custom text input — shown when no preset is active */}
-          {!OBJECT_CARDS.filter(x => x.label !== 'Custom…').some(x => x.label === object) && (
+          {/* Custom text input — only shown when Custom… is active */}
+          {customObjectActive && (
             <input
+              autoFocus
               style={{ ...inp, marginTop: 10 }}
               value={object}
               onChange={e => setObject(e.target.value)}
@@ -737,13 +763,16 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
             {STYLE_CARDS.map(s => {
               const isCustom = s.label === 'Custom…';
-              const isOn = isCustom
-                ? !STYLE_CARDS.filter(x => x.label !== 'Custom…').some(x => x.label === style) && style !== ''
-                : style === s.label;
+              const isOn = isCustom ? customStyleActive : style === s.label;
               return (
                 <button key={s.label} onClick={() => {
-                  if (isCustom) { setStyle(''); }
-                  else { setStyle(prev => prev === s.label ? '' : s.label); }
+                  if (isCustom) {
+                    setCustomStyleActive(true);
+                    setStyle('');
+                  } else {
+                    setCustomStyleActive(false);
+                    setStyle(prev => prev === s.label ? '' : s.label);
+                  }
                 }} style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
                   padding: '10px 12px',
@@ -762,9 +791,10 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
               );
             })}
           </div>
-          {/* Custom style input */}
-          {!STYLE_CARDS.filter(x => x.label !== 'Custom…').some(x => x.label === style) && style !== '' && (
+          {/* Custom style input — only shown when Custom… is active */}
+          {customStyleActive && (
             <input
+              autoFocus
               style={{ ...inp, marginTop: 10 }}
               value={style}
               onChange={e => setStyle(e.target.value)}
@@ -773,33 +803,71 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
           )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, padding: '16px 20px', borderBottom: '1px solid var(--border-light)' }}>
-          <div>
-            <label style={lbl}>Yarn Weight</label>
-            <select value={yarnWeight} onChange={e => setYarnWeight(e.target.value)} style={sel}>
-              {YARN_WEIGHTS.map(w => <option key={w} value={w}>{w}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={lbl}>Difficulty</label>
-            <select value={difficulty} onChange={e => setDifficulty(e.target.value)} style={sel}>
-              {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-          {/* Three dimension fields — the third relabels contextually for circular objects */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 16 }}>
             <div>
-              <label style={lbl}>Length</label>
-              <input style={inp} value={length} onChange={e => setLength(e.target.value)} placeholder='e.g. 70"' />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <label style={{ ...lbl, marginBottom: 0 }}>Yarn Weight</label>
+                {stashWeights.length > 0 && (
+                  <button onClick={() => {
+                    const next = !useStash;
+                    setUseStash(next);
+                    if (next && stashWeights.length > 0) setYarnWeight(stashWeights[0]);
+                  }} style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    background: useStash ? 'var(--bg-accent)' : 'transparent',
+                    border: `1px solid ${useStash ? 'var(--primary)' : 'var(--border-medium)'}`,
+                    borderRadius: 20, padding: '2px 8px',
+                    color: useStash ? 'var(--primary)' : 'var(--text-faint)',
+                    fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}>
+                    🧶 Use my stash
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(useStash && stashWeights.length > 0 ? stashWeights : YARN_WEIGHTS).map(w => (
+                  <button key={w} onClick={() => setYarnWeight(w)} style={{
+                    padding: '5px 12px', borderRadius: 16, border: '1px solid',
+                    borderColor: yarnWeight === w ? 'var(--primary)' : 'var(--border-medium)',
+                    background: yarnWeight === w ? 'var(--primary)' : 'transparent',
+                    color: yarnWeight === w ? 'var(--primary-text)' : 'var(--text-muted)',
+                    fontSize: 12, cursor: 'pointer', fontWeight: 500,
+                    transition: 'all 0.12s',
+                  }}>{w}</button>
+                ))}
+              </div>
             </div>
             <div>
-              <label style={lbl}>Width</label>
-              <input style={inp} value={width} onChange={e => setWidth(e.target.value)} placeholder='e.g. 6"' />
+              <label style={{ ...lbl, marginBottom: 8 }}>Difficulty</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {DIFFICULTIES.map(d => (
+                  <button key={d} onClick={() => setDifficulty(d)} style={{
+                    padding: '5px 12px', borderRadius: 16, border: '1px solid',
+                    borderColor: difficulty === d ? 'var(--primary)' : 'var(--border-medium)',
+                    background: difficulty === d ? 'var(--primary)' : 'transparent',
+                    color: difficulty === d ? 'var(--primary-text)' : 'var(--text-muted)',
+                    fontSize: 12, cursor: 'pointer', fontWeight: 500,
+                    transition: 'all 0.12s',
+                  }}>{d}</button>
+                ))}
+              </div>
             </div>
-            <div>
-              <label style={lbl}>{isCircularObject ? 'Circumference' : 'Circ / Depth'}</label>
-              <input style={inp} value={circumference} onChange={e => setCircumference(e.target.value)}
-                placeholder={isCircularObject ? 'e.g. 22"' : 'e.g. 10"'} />
+          </div>
+          {/* Dimensions */}
+          <div>
+            <label style={{ ...lbl, marginBottom: 8 }}>Dimensions <span style={{ fontWeight: 400, opacity: 0.6, fontSize: 10 }}>(optional)</span></label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[['Length', length, setLength], ['Width', width, setWidth], [isCircularObject ? 'Circumference' : 'Circ / Depth', circumference, setCircumference]].map(([label, val, setter]) => (
+                <div key={label as string} style={{ flex: 1 }}>
+                  <input style={{ ...inp, textAlign: 'center' }}
+                    value={val as string}
+                    onChange={e => (setter as (v: string) => void)(e.target.value)}
+                    placeholder='e.g. 22"' />
+                  <p style={{ fontSize: 10, color: 'var(--text-faint)', textAlign: 'center', marginTop: 3 }}>{label as string}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
