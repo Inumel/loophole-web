@@ -393,6 +393,8 @@ Rules:
       if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
       const parsed = JSON.parse(text) as GeneratedPattern;
       setPattern(parsed);
+      // Auto-generate visualization in the background while user reads the pattern
+      generateVisualization('auto', parsed, objectName);
       const entry: HistoryEntry = {
         id: Date.now().toString(),
         name: parsed.name,
@@ -410,13 +412,19 @@ Rules:
     setGenerating(false);
   }
 
-  async function generateVisualization(typeHint: typeof diagType = diagType) {
-    if (!pattern) return;
+  async function generateVisualization(typeHint: typeof diagType = diagType, patternOverride?: GeneratedPattern, objectOverride?: string) {
+    const activePattern = patternOverride ?? pattern;
+    const activeObject = objectOverride ?? object;
+    if (!activePattern) return;
     const token = localStorage.getItem('loophole_token');
     if (!token) return;
 
     setGeneratingViz(true);
-    setPattern(prev => prev ? { ...prev, visualization: undefined } : prev);
+    if (patternOverride) {
+      // Setting on fresh pattern — visualization will be set when ready
+    } else {
+      setPattern(prev => prev ? { ...prev, visualization: undefined } : prev);
+    }
 
     const isDark = document.documentElement.dataset.theme === 'dark';
     const colors = isDark
@@ -424,16 +432,16 @@ Rules:
       : { bg: '#ffffff', bgAlt: '#fdf6f0', text: '#5c3d2e', accent: '#c49bbf' };
 
     const patternSummary = [
-      `Name: ${pattern.name}`,
-      `Object: ${object || pattern.name}`,
-      pattern.metadata?.['Needle size'] && `Needle size: ${pattern.metadata['Needle size']}`,
-      pattern.metadata?.['Gauge'] && `Gauge: ${pattern.metadata['Gauge']}`,
-      pattern.metadata?.['Cast on'] && `Cast on: ${pattern.metadata['Cast on']}`,
-      pattern.metadata?.['Finished length'] && `Finished length: ${pattern.metadata['Finished length']}`,
-      pattern.metadata?.['Finished width'] && `Finished width: ${pattern.metadata['Finished width']}`,
-      pattern.metadata?.['Difficulty'] && `Difficulty: ${pattern.metadata['Difficulty']}`,
-      pattern.stitchPattern && `Stitch pattern: ${pattern.stitchPattern.layout}`,
-      pattern.extras?.length && `Extras: ${pattern.extras.map(e => e.title).join(', ')}`,
+      `Name: ${activePattern.name}`,
+      `Object: ${activeObject || activePattern.name}`,
+      activePattern.metadata?.['Needle size'] && `Needle size: ${activePattern.metadata['Needle size']}`,
+      activePattern.metadata?.['Gauge'] && `Gauge: ${activePattern.metadata['Gauge']}`,
+      activePattern.metadata?.['Cast on'] && `Cast on: ${activePattern.metadata['Cast on']}`,
+      activePattern.metadata?.['Finished length'] && `Finished length: ${activePattern.metadata['Finished length']}`,
+      activePattern.metadata?.['Finished width'] && `Finished width: ${activePattern.metadata['Finished width']}`,
+      activePattern.metadata?.['Difficulty'] && `Difficulty: ${activePattern.metadata['Difficulty']}`,
+      activePattern.stitchPattern && `Stitch pattern: ${activePattern.stitchPattern.layout}`,
+      activePattern.extras?.length && `Extras: ${activePattern.extras.map(e => e.title).join(', ')}`,
     ].filter(Boolean).join('\n');
 
     const typeInstruction = typeHint === 'auto'
