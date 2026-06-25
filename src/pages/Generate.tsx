@@ -381,14 +381,47 @@ Rules:
         }
       );
 
-      const data = await res.json();
       if (!res.ok) {
-        const errMsg = data.error ?? `Error ${res.status}`;
+        const errData = await res.json().catch(() => ({}));
+        const errMsg = errData.error ?? `Error ${res.status}`;
         if (res.status === 401) throw new Error('Session expired — please go to Settings and unlock again.');
         throw new Error(errMsg);
       }
 
-      let text = data.content?.[0]?.text ?? '{}';
+      // Read the SSE stream and accumulate the full text
+      const contentType = res.headers.get('content-type') ?? '';
+      let text = '';
+
+      if (contentType.includes('text/event-stream') && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const payload = line.slice(6).trim();
+            if (payload === '[DONE]') continue;
+            try {
+              const evt = JSON.parse(payload);
+              if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+                text += evt.delta.text;
+              }
+            } catch { /* skip malformed lines */ }
+          }
+        }
+      } else {
+        // Fallback: non-streaming response
+        const data = await res.json();
+        if (res.status === 401) throw new Error('Session expired — please go to Settings and unlock again.');
+        if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
+        text = data.content?.[0]?.text ?? '{}';
+      }
       text = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
       const start = text.indexOf('{'), end = text.lastIndexOf('}');
       if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
