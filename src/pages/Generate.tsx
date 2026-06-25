@@ -439,49 +439,52 @@ Rules:
       const start = text.indexOf('{'), end = text.lastIndexOf('}');
       if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
 
-      // Attempt parse with increasingly aggressive repair
+      // Attempt parse with repair fallback
       let parsed: GeneratedPattern;
       try {
         parsed = JSON.parse(text);
       } catch {
-        // Repair pass: fix unescaped control characters inside JSON strings.
-        // Strategy: walk the string char by char tracking whether we're inside a JSON
-        // string, and escape any bare newlines/tabs/quotes we find there.
-        try {
-          let repaired = '';
-          let inString = false;
-          let escaped = false;
-          for (let i = 0; i < text.length; i++) {
-            const ch = text[i];
-            if (escaped) {
-              repaired += ch;
-              escaped = false;
-              continue;
-            }
-            if (ch === '\\') {
-              repaired += ch;
-              escaped = true;
-              continue;
-            }
-            if (ch === '"') {
-              inString = !inString;
-              repaired += ch;
-              continue;
-            }
-            if (inString) {
-              if (ch === '\n') { repaired += '\\n'; continue; }
-              if (ch === '\r') { repaired += '\\r'; continue; }
-              if (ch === '\t') { repaired += '\\t'; continue; }
-            }
+        // Char-by-char repair: escape bare control characters inside JSON strings
+        let repaired = '';
+        let inString = false;
+        let i = 0;
+        while (i < text.length) {
+          const ch = text[i];
+          // Handle escape sequences — skip the next character wholesale
+          if (inString && ch === '\\') {
             repaired += ch;
+            i++;
+            if (i < text.length) {
+              repaired += text[i];
+              i++;
+            }
+            continue;
           }
+          // Toggle string state on unescaped quote
+          if (ch === '"') {
+            inString = !inString;
+            repaired += ch;
+            i++;
+            continue;
+          }
+          // Escape bare control characters inside strings
+          if (inString) {
+            if (ch === '\n') { repaired += '\\n'; i++; continue; }
+            if (ch === '\r') { repaired += '\\r'; i++; continue; }
+            if (ch === '\t') { repaired += '\\t'; i++; continue; }
+          }
+          repaired += ch;
+          i++;
+        }
+        try {
           parsed = JSON.parse(repaired);
         } catch (finalErr) {
           const pos = finalErr instanceof SyntaxError
             ? parseInt(String(finalErr.message).match(/position (\d+)/)?.[1] ?? '0')
             : 0;
-          const snippet = text.slice(Math.max(0, pos - 100), pos + 100);
-          console.error('JSON repair failed at pos', pos, '\nSnippet:', JSON.stringify(snippet));
+          // Log from the ORIGINAL text so we can see what the repairer mangled
+          const origSnippet = text.slice(Math.max(0, pos - 120), pos + 120);
+          console.error('JSON repair failed at pos', pos, '\nOriginal snippet:', JSON.stringify(origSnippet));
           throw new Error(`Pattern generated but could not be parsed. Try generating again. (${finalErr instanceof Error ? finalErr.message : String(finalErr)})`);
         }
       }
