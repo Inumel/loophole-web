@@ -354,7 +354,8 @@ Rules:
 - stepDifficulty is OPTIONAL and should only be included if the pattern has genuinely varying difficulty across its steps. If the whole pattern is uniformly one difficulty level, omit stepDifficulty entirely
 - When included, key stepDifficulty as "<section title>|<step number>" exactly matching the section's title string and the step's number. Only include entries for steps whose difficulty differs from the overall pattern difficulty
 - Use the same difficulty labels as the overall scale: "Beginner", "Easy", "Intermediate", "Advanced"
-- Return ONLY raw JSON, no markdown, no code fences, no comments`;
+- Return ONLY raw JSON, no markdown, no code fences, no comments
+- CRITICAL: All string values in the JSON must be properly escaped. Use \" for any double quote character inside a string (e.g. needle sizes like US 7 (4.5mm) are fine, but if you write 6\" inches you must escape the inch mark as 6\\\" or write it as 6 inches instead). Never use unescaped double quotes, backslashes, or control characters inside JSON string values`;
 
     try {
       const messageContent: Array<Record<string, unknown>> = [];
@@ -425,7 +426,29 @@ Rules:
       text = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
       const start = text.indexOf('{'), end = text.lastIndexOf('}');
       if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
-      const parsed = JSON.parse(text) as GeneratedPattern;
+      // Pre-sanitise: replace inch mark patterns before JSON parsing
+      // e.g. 22" → 22in, e.g. 6.5" → 6.5in (only digits followed by ")
+      text = text.replace(/(\d)"(\s|,|\.|\\n|\))/g, '$1in$2');
+
+      // Attempt parse — if it fails, try to sanitise common JSON issues
+      let parsed: GeneratedPattern;
+      try {
+        parsed = JSON.parse(text) as GeneratedPattern;
+      } catch (parseErr) {
+        // Log the raw text around the failure point for debugging
+        console.error('JSON parse error:', parseErr);
+        console.error('Raw text length:', text.length);
+        // Try sanitising: replace unescaped newlines inside string values
+        const sanitised = text
+          .replace(/([^\\])\n/g, '$1\\n')
+          .replace(/([^\\])\r/g, '$1\\r')
+          .replace(/([^\\])\t/g, '$1\\t');
+        try {
+          parsed = JSON.parse(sanitised) as GeneratedPattern;
+        } catch {
+          throw new Error(`Pattern generated but could not be parsed. The response may have been cut off. Try generating again, or reduce complexity. (${parseErr instanceof Error ? parseErr.message : String(parseErr)})`);
+        }
+      }
       setPattern(parsed);
       // Auto-generate visualization in the background while user reads the pattern
       generateVisualization('auto', parsed, objectName);
