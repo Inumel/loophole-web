@@ -413,7 +413,19 @@ Rules:
               if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
                 text += evt.delta.text;
               }
-            } catch { /* skip malformed lines */ }
+            } catch { /* skip malformed SSE lines */ }
+          }
+        }
+        // Flush any remaining buffer
+        if (buffer.startsWith('data: ')) {
+          const payload = buffer.slice(6).trim();
+          if (payload && payload !== '[DONE]') {
+            try {
+              const evt = JSON.parse(payload);
+              if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+                text += evt.delta.text;
+              }
+            } catch { /* ignore */ }
           }
         }
       } else {
@@ -469,8 +481,11 @@ Rules:
           }
           parsed = JSON.parse(repaired);
         } catch (finalErr) {
-          console.error('JSON repair failed. Text length:', text.length);
-          console.error('Sample around error:', text.slice(9900, 10100));
+          const pos = finalErr instanceof SyntaxError
+            ? parseInt(String(finalErr.message).match(/position (\d+)/)?.[1] ?? '0')
+            : 0;
+          const snippet = text.slice(Math.max(0, pos - 100), pos + 100);
+          console.error('JSON repair failed at pos', pos, '\nSnippet:', JSON.stringify(snippet));
           throw new Error(`Pattern generated but could not be parsed. Try generating again. (${finalErr instanceof Error ? finalErr.message : String(finalErr)})`);
         }
       }
