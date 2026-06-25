@@ -355,7 +355,7 @@ Rules:
 - When included, key stepDifficulty as "<section title>|<step number>" exactly matching the section's title string and the step's number. Only include entries for steps whose difficulty differs from the overall pattern difficulty
 - Use the same difficulty labels as the overall scale: "Beginner", "Easy", "Intermediate", "Advanced"
 - Return ONLY raw JSON, no markdown, no code fences, no comments
-- CRITICAL: All string values in the JSON must be properly escaped. Use \" for any double quote character inside a string (e.g. needle sizes like US 7 (4.5mm) are fine, but if you write 6\" inches you must escape the inch mark as 6\\\" or write it as 6 inches instead). Never use unescaped double quotes, backslashes, or control characters inside JSON string values. For line breaks within content strings, use the two-character sequence \\n — never a literal newline character`;
+- CRITICAL: All string values in the JSON must be properly escaped. Never use literal double-quote characters inside string values for any reason — this includes inch measurements (write "22 inches" or "22in" not "22\""), abbreviation definitions, and step content. Never use unescaped backslashes or control characters. For line breaks within content strings use the escape sequence \\n — never a literal newline`;
 
     try {
       const messageContent: Array<Record<string, unknown>> = [];
@@ -438,10 +438,6 @@ Rules:
       text = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
       const start = text.indexOf('{'), end = text.lastIndexOf('}');
       if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
-      // Pre-sanitise common issues before parsing
-      text = text
-        .replace(/(\d)"(\s|,|\.|\\n|\)|:)/g, '$1in$2')  // inch marks: 22" → 22in
-        .replace(/(\d)"$/gm, '$1in');                      // inch marks at end of line
 
       // Attempt parse with increasingly aggressive repair
       let parsed: GeneratedPattern;
