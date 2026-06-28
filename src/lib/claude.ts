@@ -25,6 +25,34 @@ async function callClaude(body: object): Promise<{ content: Array<{ text: string
     throw new Error(err.error ?? `Claude proxy error: ${res.status}`);
   }
 
+  // Handle streaming SSE response (used for large requests)
+  const contentType = res.headers.get('content-type') ?? '';
+  if (contentType.includes('text/event-stream') && res.body) {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let text = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const payload = line.slice(6).trim();
+        if (payload === '[DONE]') continue;
+        try {
+          const evt = JSON.parse(payload);
+          if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+            text += evt.delta.text;
+          }
+        } catch { /* skip malformed lines */ }
+      }
+    }
+    return { content: [{ text }] };
+  }
+
   return res.json();
 }
 

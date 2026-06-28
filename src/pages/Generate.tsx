@@ -588,7 +588,7 @@ SVG requirements:
             'x-loophole-token': token,
           },
           body: JSON.stringify({
-            max_tokens: 4097,
+            max_tokens: 4000, // below streaming threshold — viz is fast enough
             messages: [{ role: 'user', content: vizPrompt }],
           }),
         }
