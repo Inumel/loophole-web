@@ -364,10 +364,24 @@ export default function GeneratePage() {
     const start = text.indexOf('{'), end = text.lastIndexOf('}');
     if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
     try { return JSON.parse(text) as T; } catch {
+      // Char-by-char repair: fix bare control chars and bad escape sequences inside strings
       let repaired = '', inString = false, i = 0;
+      const VALID_ESCAPES = new Set(['"', '\\', '/', 'n', 'r', 't', 'b', 'f', 'u']);
       while (i < text.length) {
         const ch = text[i];
-        if (inString && ch === '\\') { repaired += ch + (text[++i] ?? ''); i++; continue; }
+        if (inString && ch === '\\') {
+          const next = text[i + 1] ?? '';
+          if (VALID_ESCAPES.has(next)) {
+            // Valid escape sequence — copy both chars
+            repaired += ch + next;
+            i += 2;
+          } else {
+            // Invalid escape — drop the backslash, keep the char
+            repaired += next;
+            i += 2;
+          }
+          continue;
+        }
         if (ch === '"') { inString = !inString; repaired += ch; i++; continue; }
         if (inString) {
           if (ch === '\n') { repaired += '\\n'; i++; continue; }
@@ -376,7 +390,15 @@ export default function GeneratePage() {
         }
         repaired += ch; i++;
       }
-      return JSON.parse(repaired) as T;
+      try {
+        return JSON.parse(repaired) as T;
+      } catch (finalErr) {
+        const pos = finalErr instanceof SyntaxError
+          ? parseInt(String(finalErr.message).match(/position (\d+)/)?.[1] ?? '0') : 0;
+        const origSnippet = text.slice(Math.max(0, pos - 120), pos + 120);
+        console.error('JSON repair failed at pos', pos, '\nOriginal snippet:', JSON.stringify(origSnippet));
+        throw finalErr;
+      }
     }
   }
 
@@ -1418,7 +1440,7 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
               <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>{pattern.stitchPattern.title}</p>
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 10, padding: 16, marginBottom: 10 }}>
                 <p style={{ fontFamily: 'monospace', color: 'var(--text-body)', fontSize: 14, lineHeight: 1.8, wordBreak: 'break-word' }}>
-                  {pattern.stitchPattern.layout.split('·').map((part, i, arr) => (
+                  {pattern.stitchPattern.layout?.split('·').map((part, i, arr) => (
                     <span key={i}>
                       {part.trim().startsWith('[') ? (
                         <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{part.trim()}</span>
