@@ -51,6 +51,27 @@ type PatternSection = {
   content: string;
 };
 
+type SectionPlan = {
+  title: string;
+  startStitches: number;
+  endStitches: number;
+  notes: string; // brief description of what happens in this section
+};
+
+type PatternPlan = {
+  name: string;
+  tagline: string;
+  sizes?: string[];
+  metadata: Record<string, string>;
+  materials?: { yarn: string; needles: string; notions?: string[] };
+  prerequisites?: string[];
+  abbreviations: Record<string, string>;
+  extras?: { title: string; rows: [string, string][] }[];
+  stitchPattern?: { title: string; layout: string; note: string };
+  sectionPlan: SectionPlan[];
+  stepDifficulty?: Record<string, string>;
+};
+
 type GeneratedPattern = {
   name: string;
   tagline: string;
@@ -129,6 +150,9 @@ export default function GeneratePage() {
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [generatingPhase, setGeneratingPhase] = useState<'idle' | 'planning' | 'sections'>('idle');
+  const [sectionsComplete, setSectionsComplete] = useState(0);
+  const [sectionsTotal, setSectionsTotal] = useState(0);
   const [generatingViz, setGeneratingViz] = useState(false);
   const [regeneratingSection, setRegeneratingSection] = useState<number | null>(null);
   const [diagType, setDiagType] = useState<'auto' | 'schematic' | 'stitch' | 'colorwork'>('auto');
@@ -285,6 +309,188 @@ export default function GeneratePage() {
     return result;
   }
 
+  // ── Shared proxy helper ─────────────────────────────────────────────────
+  async function callProxy(body: object, token: string): Promise<string> {
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claude-proxy`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'x-loophole-token': token,
+        },
+        body: JSON.stringify(body),
+      }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 401) throw new Error('Session expired — please go to Settings and unlock again.');
+      throw new Error(err.error ?? `Error ${res.status}`);
+    }
+    const contentType = res.headers.get('content-type') ?? '';
+    if (contentType.includes('text/event-stream') && res.body) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '', text = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6).trim();
+          if (payload === '[DONE]') continue;
+          try {
+            const evt = JSON.parse(payload);
+            if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+              text += evt.delta.text;
+              setStreamingText(text);
+            }
+          } catch { /* skip */ }
+        }
+      }
+      return text;
+    }
+    const data = await res.json();
+    return data.content?.[0]?.text ?? '{}';
+  }
+
+  function parseJSON<T>(raw: string): T {
+    let text = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    const start = text.indexOf('{'), end = text.lastIndexOf('}');
+    if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
+    try { return JSON.parse(text) as T; } catch {
+      let repaired = '', inString = false, i = 0;
+      while (i < text.length) {
+        const ch = text[i];
+        if (inString && ch === '\\') { repaired += ch + (text[++i] ?? ''); i++; continue; }
+        if (ch === '"') { inString = !inString; repaired += ch; i++; continue; }
+        if (inString) {
+          if (ch === '\n') { repaired += '\\n'; i++; continue; }
+          if (ch === '\r') { repaired += '\\r'; i++; continue; }
+          if (ch === '\t') { repaired += '\\t'; i++; continue; }
+        }
+        repaired += ch; i++;
+      }
+      return JSON.parse(repaired) as T;
+    }
+  }
+
+  // ── Phase 1: Plan ────────────────────────────────────────────────────────
+  async function planPattern(
+    token: string,
+    objectName: string,
+    messageContent: Array<Record<string, unknown>>,
+    dimensions: string,
+  ): Promise<PatternPlan> {
+    const planPrompt = `You are an expert knitting pattern designer. Create a complete pattern PLAN (not the full instructions yet) for:
+
+Object: ${objectName}
+Style: ${style || 'your choice'}
+Yarn weight: ${yarnWeight}
+Difficulty: ${difficulty}${dimensions ? `\nDimensions: ${dimensions}` : ''}${extraNotes ? `\nNotes: ${extraNotes}` : ''}${
+  referenceImage ? '\n\nA reference image is attached — use it for visual inspiration.' : ''
+}
+
+Return ONLY this JSON (no markdown, no fences):
+{
+  "name": "Pattern name",
+  "tagline": "One-line description",
+  "sizes": ["One Size"],
+  "metadata": {
+    "Yarn weight": "e.g. Medium (4)",
+    "Needle size": "e.g. US 7 (4.5mm)",
+    "Gauge": "e.g. 20 sts / 4 inches",
+    "Cast on": "e.g. 80 sts",
+    "Finished length": "e.g. 70 inches",
+    "Finished width": "e.g. 6 inches",
+    "Difficulty": "${difficulty}"
+  },
+  "materials": {
+    "yarn": "~X yds weight yarn (shown in Brand Name)",
+    "needles": "US X (Xmm) needles",
+    "notions": ["Tapestry needle", "Stitch markers"]
+  },
+  "prerequisites": ["Long-tail cast on", "k2tog decrease"],
+  "abbreviations": { "k": "knit", "p": "purl" },
+  "extras": [],
+  "stitchPattern": null,
+  "sectionPlan": [
+    { "title": "Gauge Swatch", "startStitches": 24, "endStitches": 24, "notes": "Cast on and work swatch in pattern" },
+    { "title": "Cast On", "startStitches": 80, "endStitches": 80, "notes": "Long-tail cast on, join in round" },
+    { "title": "Brim", "startStitches": 80, "endStitches": 80, "notes": "2x2 rib for 2 inches" },
+    { "title": "Body", "startStitches": 80, "endStitches": 80, "notes": "Main cable pattern for 5 inches" },
+    { "title": "Crown", "startStitches": 80, "endStitches": 0, "notes": "8 decrease rounds, draw through remaining sts" }
+  ]
+}
+
+Rules:
+- sectionPlan must list every section in order with accurate stitch counts at start and end of each section
+- Verify stitch math: cast-on must be divisible by any stitch repeat
+- Gauge must match needle size and yarn weight
+- Only include extras/stitchPattern if relevant
+- All string values must be properly escaped — never use literal double quotes, write measurements as "22in" not "22\""
+- Return ONLY raw JSON`;
+
+    const content = [...messageContent.filter(m => m.type === 'image'), { type: 'text', text: planPrompt }];
+    const raw = await callProxy({ max_tokens: 3000, messages: [{ role: 'user', content }] }, token);
+    return parseJSON<PatternPlan>(raw);
+  }
+
+  // ── Phase 2: Generate one section ────────────────────────────────────────
+  async function generateSection(
+    token: string,
+    plan: PatternPlan,
+    sectionIndex: number,
+    objectName: string,
+  ): Promise<PatternSection> {
+    const sec = plan.sectionPlan[sectionIndex];
+    const prevSection = plan.sectionPlan[sectionIndex - 1];
+    const nextSection = plan.sectionPlan[sectionIndex + 1];
+    const isIntermediate = difficulty === 'Intermediate' || difficulty === 'Advanced';
+
+    const sectionPrompt = `You are an expert knitting pattern designer writing ONE section of a pattern.
+
+Pattern: ${plan.name}
+Object: ${objectName}
+Style: ${style || 'as planned'}
+Yarn weight: ${yarnWeight}
+Difficulty: ${difficulty}
+Gauge: ${plan.metadata['Gauge'] ?? 'as specified'}
+Needles: ${plan.metadata['Needle size'] ?? 'as specified'}
+Abbreviations in use: ${Object.keys(plan.abbreviations).join(', ')}
+${
+  plan.extras?.length ? `Cable/stitch definitions: ${plan.extras.map(e => e.rows.map(r => r[0]).join(', ')).join('; ')}` : ''
+}
+
+Full section plan (for context and stitch count continuity):
+${plan.sectionPlan.map((s, i) => `${i + 1}. ${s.title}: starts with ${s.startStitches} sts, ends with ${s.endStitches} sts — ${s.notes}`).join('\n')}
+
+Now write ONLY the "${sec.title}" section (section ${sectionIndex + 1} of ${plan.sectionPlan.length}):
+- Starts with: ${sec.startStitches} stitches${prevSection ? ` (handed off from ${prevSection.title})` : ''}
+- Ends with: ${sec.endStitches} stitches${nextSection ? ` (will hand off to ${nextSection.title})` : ''}
+- What happens: ${sec.notes}
+${
+  isIntermediate
+    ? '- Write every step in full — never use "continue as established" or "repeat last row". If a row repeats 10 times, write it 10 times.'
+    : '- Shorthand like "Repeat Row 2 for 10 rows total" is acceptable for this difficulty level.'
+}
+- Include helpful coaching notes
+- Each step starts with its number and a period
+
+Return ONLY this JSON (no markdown, no fences):
+{ "title": "${sec.title}", "content": "1. Step one...\\n2. Step two..." }
+
+All string values must be properly escaped — never use literal double quotes or newlines.`;
+
+    const raw = await callProxy({ max_tokens: 6000, messages: [{ role: 'user', content: sectionPrompt }] }, token);
+    return parseJSON<PatternSection>(raw);
+  }
+
   async function generate() {
     const token = localStorage.getItem('loophole_token');
     if (!token) { setError('Session expired. Please go to Settings and unlock again.'); return; }
@@ -292,6 +498,7 @@ export default function GeneratePage() {
     if (!objectName) { setError('Please specify what you want to knit.'); return; }
 
     setGenerating(true);
+    setGeneratingPhase('planning');
     setPattern(null);
     setStreamingText('');
     setError('');
@@ -299,6 +506,8 @@ export default function GeneratePage() {
     setSaved(false);
     setSaveCategory('');
     setVisitedSections(new Set([0]));
+    setSectionsComplete(0);
+    setSectionsTotal(0);
 
     const dimensions = [
       length && `length: ${length}`,
@@ -306,233 +515,55 @@ export default function GeneratePage() {
       circumference && `circumference: ${circumference}`,
     ].filter(Boolean).join(', ');
 
-    const prompt = `You are an expert knitting pattern designer. Create a complete, detailed, genuinely usable knitting pattern based on these specifications:
-
-Object: ${objectName}
-Style: ${style || 'your choice based on the object'}
-Yarn weight: ${yarnWeight}
-Difficulty: ${difficulty}${dimensions ? `\nDimensions: ${dimensions}` : ''}${extraNotes ? `\nAdditional notes: ${extraNotes}` : ''}${referenceImage ? `\n\nA reference image is attached. Use it as visual inspiration alongside the specifications above — let it inform the silhouette, stitch texture, colorwork, proportions, and overall aesthetic you design toward. The text specifications (object, style, yarn weight, difficulty, dimensions) still take priority where they conflict with what the image shows; use the image to fill in and refine the details those specifications leave open, not to override them.` : ''}
-
-Return a JSON object with this exact structure (omit optional fields if not relevant):
-{
-  "name": "Pattern name",
-  "tagline": "One-line description (yarn weight · dimensions · style summary)",
-  "sizes": ["One Size"],
-  "metadata": {
-    "Yarn weight": "e.g. Medium (4)",
-    "Needle size": "e.g. US 7 (4.5 mm)",
-    "Gauge": "e.g. 20 sts / 4 inches",
-    "Cast on": "e.g. 34 sts",
-    "Finished length": "e.g. 70 inches",
-    "Finished width": "e.g. 6 inches",
-    "Difficulty": "e.g. Intermediate"
-  },
-  "materials": {
-    "yarn": "e.g. ~600 yds worsted weight yarn (shown in Cascade 220)",
-    "needles": "e.g. US 7 (4.5mm) straight or circular needles, 32 inches",
-    "notions": ["Tapestry needle", "Stitch markers", "Scissors"]
-  },
-  "prerequisites": [
-    "Long-tail cast on",
-    "Knit and purl stitches",
-    "Binding off"
-  ],
-  "abbreviations": {
-    "k": "knit",
-    "p": "purl"
-  },
-  "stepDifficulty": {
-    "Pattern Instructions|1": "Easy",
-    "Pattern Instructions|6": "Advanced"
-  },
-  "extras": [
-    {
-      "title": "Cable Definitions",
-      "rows": [
-        ["C4F", "Sl 2 sts to cn, hold in front. K2 from left needle. K2 from cn."],
-        ["C4B", "Sl 2 sts to cn, hold in back. K2 from left needle. K2 from cn."]
-      ]
-    }
-  ],
-  "stitchPattern": {
-    "title": "Stitch Pattern — N stitch repeat layout",
-    "layout": "K2 · P2 · [C4F or C4B] · P2 · K2",
-    "note": "Brief explanation of the stitch structure"
-  },
-  "sections": [
-    {
-      "title": "Gauge Swatch",
-      "content": "1. Cast on 24 sts using your chosen yarn and needle size...\n2. Work in pattern for 4 inches..."
-    },
-    {
-      "title": "Cast On & Brim",
-      "content": "1. Using the long-tail cast on, cast on X sts...\n2. Join to work in the round..."
-    },
-    {
-      "title": "Body",
-      "content": "1. Begin main pattern..."
-    },
-    {
-      "title": "Finishing",
-      "content": "1. Break yarn and draw through remaining sts..."
-    }
-  ]
-}
-
-Rules:
-- STITCH COUNT MATH: Verify all stitch counts are mathematically consistent before returning. The cast-on stitch count must be evenly divisible by any stitch pattern repeat. If you specify a 6-stitch cable repeat, the cast-on must be a multiple of 6 (plus any edge stitches). Double-check every increase, decrease, and shaping calculation against the running stitch count
-- GAUGE CONSISTENCY: The needle size, yarn weight, and gauge must be consistent with each other. A worsted weight yarn on 4.5mm needles should give approximately 18–22 sts per 4 inches in stockinette. Do not specify a gauge that contradicts the needle size or yarn weight
-- YARN QUANTITY: For objects with distinct components (sweater body + sleeves, socks with heel + leg + foot), break the yarn estimate down by section in the materials.yarn field. For simple objects, a single total is fine. Always note it as approximate and round up generously
-- sizes: include if the pattern supports multiple sizes (e.g. ["XS", "S", "M", "L", "XL"] or ["Child", "Adult"]). Use ["One Size"] for patterns with no sizing
-- materials: always include. yarn should specify total yardage, weight, and a suggested yarn. needles should include size in both US and mm. notions lists any additional tools needed (stitch markers, tapestry needle, cable needle, stitch holders, etc.)
-- prerequisites: list every technique the knitter must already know before starting. Be specific — not just "knitting" but "long-tail cast on", "k2tog decrease", "picking up stitches", etc. Derive this list from the actual techniques used in the instructions
-- STEP EXPANSION (Intermediate and Advanced only): For Intermediate and Advanced difficulty patterns, never use shorthand repetition such as "Continue in pattern as established", "Repeat last row", "Work as before", "Continue as set", "Repeat from * to *", or "Work even in pattern". Every step must be written out in full with explicit stitch-by-stitch instructions — if a row repeats 10 times, write it 10 times. For Beginner and Easy patterns, shorthand like "Repeat Row 2 for 10 rows total" is acceptable to keep things readable
-- Include helpful coaching notes within steps (e.g. why to do something, what to watch out for)
-- SECTIONS: Split instructions into logical named sections — never put everything into one "Pattern Instructions" section. Each distinct construction phase gets its own section: e.g. "Gauge Swatch", "Cast On", "Brim", "Body", "Shaping", "Crown", "Finishing", "Sleeves", "Neckband" — whatever phases apply to this specific object. A hat should have at minimum: Gauge Swatch, Brim, Body, Crown. A sweater should have at minimum: Gauge Swatch, Body, Sleeves, Neckband, Finishing. Simple objects (scarves, dishcloths) may have 2–3 sections. Complex objects should have 4–7. Each step within a section must start with its number and a period on its own line
-- Only include extras and stitchPattern if they are relevant to this specific pattern
-- Only include a row repeat reference section in sections[] if the pattern has a repeating row structure
-- All abbreviations used in the instructions must be defined in the abbreviations object
-- stepDifficulty is OPTIONAL and should only be included if the pattern has genuinely varying difficulty across its steps. If the whole pattern is uniformly one difficulty level, omit stepDifficulty entirely
-- When included, key stepDifficulty as "<section title>|<step number>" exactly matching the section's title string and the step's number. Only include entries for steps whose difficulty differs from the overall pattern difficulty
-- Use the same difficulty labels as the overall scale: "Beginner", "Easy", "Intermediate", "Advanced"
-- Return ONLY raw JSON, no markdown, no code fences, no comments
-- CRITICAL: All string values in the JSON must be properly escaped. Never use literal double-quote characters inside string values for any reason — this includes inch measurements (write "22 inches" or "22in" not "22\""), abbreviation definitions, and step content. Never use unescaped backslashes or control characters. For line breaks within content strings use the escape sequence \\n — never a literal newline`;
-
     try {
+      // Build message content (image + text)
       const messageContent: Array<Record<string, unknown>> = [];
       if (referenceImage) {
         const { base64, mediaType } = await imageFileToBase64(referenceImage);
         messageContent.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } });
       }
-      messageContent.push({ type: 'text', text: prompt });
+      messageContent.push({ type: 'text', text: '' }); // placeholder, replaced per call
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claude-proxy`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'x-loophole-token': token,
-          },
-          body: JSON.stringify({
-            max_tokens: 16000,
-            messages: [{ role: 'user', content: messageContent }],
-          }),
-        }
+      // ── Phase 1: Get the pattern plan ──────────────────────────────────
+      const plan = await planPattern(token, objectName, messageContent, dimensions);
+
+      // Show name/tagline/metadata immediately in the streaming preview
+      setStreamingText(JSON.stringify({ name: plan.name, tagline: plan.tagline, metadata: plan.metadata }));
+
+      setSectionsTotal(plan.sectionPlan.length);
+      setGeneratingPhase('sections');
+
+      // ── Phase 2: Generate all sections in parallel ──────────────────────
+      const sectionPromises = plan.sectionPlan.map((_, i) =>
+        generateSection(token, plan, i, objectName)
+          .then(sec => { setSectionsComplete(c => c + 1); return sec; })
+          .catch(err => {
+            console.error(`Section ${i} failed:`, err);
+            // Return a placeholder so Promise.all doesn’t reject entirely
+            return { title: plan.sectionPlan[i].title, content: '1. (This section failed to generate — try regenerating it with the button above.)' };
+          })
       );
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        const errMsg = errData.error ?? `Error ${res.status}`;
-        if (res.status === 401) throw new Error('Session expired — please go to Settings and unlock again.');
-        throw new Error(errMsg);
-      }
+      const sections = await Promise.all(sectionPromises);
 
-      // Read the SSE stream and accumulate the full text
-      const contentType = res.headers.get('content-type') ?? '';
-      let text = '';
+      // Assemble the final pattern
+      const parsed: GeneratedPattern = {
+        name: plan.name,
+        tagline: plan.tagline,
+        sizes: plan.sizes,
+        metadata: plan.metadata,
+        materials: plan.materials,
+        prerequisites: plan.prerequisites,
+        abbreviations: plan.abbreviations,
+        extras: plan.extras,
+        stitchPattern: plan.stitchPattern ?? undefined,
+        stepDifficulty: plan.stepDifficulty,
+        sections,
+      };
 
-      if (contentType.includes('text/event-stream') && res.body) {
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const payload = line.slice(6).trim();
-            if (payload === '[DONE]') continue;
-            try {
-              const evt = JSON.parse(payload);
-              if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-                text += evt.delta.text;
-                setStreamingText(text);
-              }
-            } catch { /* skip malformed SSE lines */ }
-          }
-        }
-        // Flush any remaining buffer
-        if (buffer.startsWith('data: ')) {
-          const payload = buffer.slice(6).trim();
-          if (payload && payload !== '[DONE]') {
-            try {
-              const evt = JSON.parse(payload);
-              if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-                text += evt.delta.text;
-              }
-            } catch { /* ignore */ }
-          }
-        }
-      } else {
-        // Fallback: non-streaming response
-        const data = await res.json();
-        if (res.status === 401) throw new Error('Session expired — please go to Settings and unlock again.');
-        if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
-        text = data.content?.[0]?.text ?? '{}';
-      }
-      text = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-      const start = text.indexOf('{'), end = text.lastIndexOf('}');
-      if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
-
-      // Attempt parse with repair fallback
-      let parsed: GeneratedPattern;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        // Char-by-char repair: escape bare control characters inside JSON strings
-        let repaired = '';
-        let inString = false;
-        let i = 0;
-        while (i < text.length) {
-          const ch = text[i];
-          // Handle escape sequences — skip the next character wholesale
-          if (inString && ch === '\\') {
-            repaired += ch;
-            i++;
-            if (i < text.length) {
-              repaired += text[i];
-              i++;
-            }
-            continue;
-          }
-          // Toggle string state on unescaped quote
-          if (ch === '"') {
-            inString = !inString;
-            repaired += ch;
-            i++;
-            continue;
-          }
-          // Escape bare control characters inside strings
-          if (inString) {
-            if (ch === '\n') { repaired += '\\n'; i++; continue; }
-            if (ch === '\r') { repaired += '\\r'; i++; continue; }
-            if (ch === '\t') { repaired += '\\t'; i++; continue; }
-          }
-          repaired += ch;
-          i++;
-        }
-        try {
-          parsed = JSON.parse(repaired);
-        } catch (finalErr) {
-          const pos = finalErr instanceof SyntaxError
-            ? parseInt(String(finalErr.message).match(/position (\d+)/)?.[1] ?? '0')
-            : 0;
-          // Log from the ORIGINAL text so we can see what the repairer mangled
-          const origSnippet = text.slice(Math.max(0, pos - 120), pos + 120);
-          console.error('JSON repair failed at pos', pos, '\nOriginal snippet:', JSON.stringify(origSnippet));
-          throw new Error(`Pattern generated but could not be parsed. Try generating again. (${finalErr instanceof Error ? finalErr.message : String(finalErr)})`);
-        }
-      }
       setPattern(parsed);
-      // Auto-generate visualization in the background while user reads the pattern
       generateVisualization('auto', parsed, objectName);
+
       const entry: HistoryEntry = {
         id: Date.now().toString(),
         name: parsed.name,
@@ -543,11 +574,13 @@ Rules:
       };
       saveToHistory(entry);
       setHistory(loadHistory());
+
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to generate pattern. Please try again.');
     }
     clearReferenceImage();
     setGenerating(false);
+    setGeneratingPhase('idle');
   }
 
   async function generateVisualization(typeHint: typeof diagType = diagType, patternOverride?: GeneratedPattern, objectOverride?: string) {
@@ -1109,7 +1142,14 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
                   animation: 'spin 0.8s linear infinite',
                   margin: '0 auto 16px',
                 }} />
-                <p style={{ fontSize: 16, fontWeight: 500 }}>Crafting your pattern…</p>
+                <p style={{ fontSize: 16, fontWeight: 500 }}>
+                  {generatingPhase === 'planning' ? 'Planning your pattern…' : 'Crafting your pattern…'}
+                </p>
+                {generatingPhase === 'sections' && sectionsTotal > 0 && (
+                  <p style={{ fontSize: 13, color: 'var(--text-faint)', marginTop: 8 }}>
+                    Writing {sectionsTotal} sections in parallel…
+                  </p>
+                )}
               </div>
             ) : (
               <div style={{ opacity: 0.85 }}>
@@ -1128,6 +1168,18 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
                         <p style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 700 }}>{v}</p>
                       </div>
                     ) : null)}
+                  </div>
+                )}
+                {/* Section progress bar during parallel generation */}
+                {generatingPhase === 'sections' && sectionsTotal > 0 && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Writing sections in parallel…</span>
+                      <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>{sectionsComplete} / {sectionsTotal}</span>
+                    </div>
+                    <div style={{ height: 4, background: 'var(--border-light)', borderRadius: 2 }}>
+                      <div style={{ height: '100%', background: 'var(--primary)', borderRadius: 2, width: `${(sectionsComplete / sectionsTotal) * 100}%`, transition: 'width 0.4s ease' }} />
+                    </div>
                   </div>
                 )}
                 {partial.completedSections.length > 0 && partial.completedSections.map((sec, i) => (
@@ -1151,10 +1203,12 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
                     </div>
                   </div>
                 ))}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-faint)', fontSize: 13, padding: '12px 0' }}>
-                  <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--border-medium)', borderTopColor: 'var(--primary)', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
-                  Writing more sections…
-                </div>
+                {generatingPhase !== 'sections' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-faint)', fontSize: 13, padding: '12px 0' }}>
+                    <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--border-medium)', borderTopColor: 'var(--primary)', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+                    Writing more sections…
+                  </div>
+                )}
               </div>
             )}
           </div>
