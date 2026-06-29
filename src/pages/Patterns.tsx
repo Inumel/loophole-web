@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 import { searchRavelryPatterns, getRavelryPattern, mapRavelryPattern } from '../lib/ravelry';
 import { parsePatternWithClaude } from '../lib/claude';
 import StepText from '../components/StepText';
