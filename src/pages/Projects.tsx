@@ -73,7 +73,7 @@ const statusClass: Record<string, string> = {
 const UNITS = ['g', 'oz', 'yards', 'meters', 'skeins'];
 
 export default function ProjectsPage() {
-  const { unlocked } = useAuth();
+  const { unlocked, userId } = useAuth();
   const [searchParams] = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +106,7 @@ export default function ProjectsPage() {
     const { data } = await supabase
       .from('projects')
       .select('id, name, status, current_row, started_at, pattern:patterns(name, yarn_weight, category, parsed_guide)')
+      .eq('user_id', userId ?? '')
       .order('created_at', { ascending: false });
 
     if (!data) { setLoading(false); return; }
@@ -147,6 +148,7 @@ export default function ProjectsPage() {
       .from('projects')
       .select('id, name, completed_at, rating, completion_notes')
       .eq('status', 'completed')
+      .eq('user_id', userId ?? '')
       .order('completed_at', { ascending: false });
 
     if (!completed) { setGalleryLoading(false); return; }
@@ -222,6 +224,7 @@ export default function ProjectsPage() {
     const { data, error } = await supabase.from('projects').insert({
       name: name.trim(), started_at: startedAt || null,
       notes: notes || null, status: 'active', current_row: 0,
+      user_id: userId ?? 'mason',
     }).select().single();
     if (error || !data) { setSaving(false); return; }
 

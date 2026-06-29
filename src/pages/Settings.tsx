@@ -6,8 +6,9 @@ import { useTheme } from '../lib/useTheme';
 type PrefKey = keyof typeof PREF_KEYS;
 
 export default function SettingsPage() {
-  const { unlocked, unlock, lock } = useAuth();
+  const { unlocked, userId, unlock, lock } = useAuth();
   const { dark, toggleDark } = useTheme();
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,13 +24,13 @@ export default function SettingsPage() {
   const [timerReminder, setTimerReminder] = useState(() => getPref('TIMER_REMINDER_HOURS'));
 
   async function handleUnlock() {
-    if (!password.trim()) return;
+    if (!username.trim() || !password.trim()) return;
     setLoading(true); setError('');
-    const result = await unlock(password);
+    const result = await unlock(username.trim(), password);
     setLoading(false);
-    if (result.success) { setPassword(''); }
+    if (result.success) { setUsername(''); setPassword(''); }
     else {
-      setError(result.error ?? 'Incorrect password.');
+      setError(result.error ?? 'Incorrect username or password.');
       setShake(true); setTimeout(() => setShake(false), 500);
     }
   }
@@ -180,7 +181,7 @@ export default function SettingsPage() {
               <span style={{ fontSize: 32 }}>🔓</span>
               <div>
                 <p style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 600 }}>Full access unlocked</p>
-                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>All features are available this session.</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Signed in as <strong>{userId}</strong></p>
               </div>
             </div>
             <button onClick={lock} style={{
@@ -210,12 +211,27 @@ export default function SettingsPage() {
             </div>
             <div style={{ animation: shake ? 'shake 0.4s ease' : 'none' }}>
               <input
+                type="text"
+                value={username}
+                onChange={e => { setUsername(e.target.value); setError(''); }}
+                onKeyDown={e => e.key === 'Enter' && handleUnlock()}
+                placeholder="Username"
+                autoFocus
+                autoCapitalize="none"
+                autoCorrect="off"
+                style={{
+                  width: '100%', background: 'var(--bg-input)',
+                  border: `1px solid ${error ? 'var(--danger-vivid)' : 'var(--border-input)'}`,
+                  borderRadius: 8, padding: '12px 14px', color: 'var(--text-body)',
+                  fontSize: 16, boxSizing: 'border-box', marginBottom: 8, outline: 'none',
+                }}
+              />
+              <input
                 type="password"
                 value={password}
                 onChange={e => { setPassword(e.target.value); setError(''); }}
                 onKeyDown={e => e.key === 'Enter' && handleUnlock()}
-                placeholder="Enter password"
-                autoFocus
+                placeholder="Password"
                 style={{
                   width: '100%', background: 'var(--bg-input)',
                   border: `1px solid ${error ? 'var(--danger-vivid)' : 'var(--border-input)'}`,
@@ -225,12 +241,12 @@ export default function SettingsPage() {
               />
             </div>
             {error && <p style={{ color: 'var(--danger-vivid)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
-            <button onClick={handleUnlock} disabled={!password.trim() || loading} style={{
+            <button onClick={handleUnlock} disabled={!username.trim() || !password.trim() || loading} style={{
               width: '100%', padding: '12px 16px', borderRadius: 8,
               border: 'none', background: 'var(--primary)', color: 'var(--primary-text)',
-              cursor: password.trim() && !loading ? 'pointer' : 'default',
+              cursor: username.trim() && password.trim() && !loading ? 'pointer' : 'default',
               fontSize: 15, fontWeight: 600,
-              opacity: password.trim() && !loading ? 1 : 0.5,
+              opacity: username.trim() && password.trim() && !loading ? 1 : 0.5,
             }}>
               {loading ? 'Checking…' : 'Unlock'}
             </button>

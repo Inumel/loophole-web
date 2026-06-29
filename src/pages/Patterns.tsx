@@ -43,6 +43,7 @@ function getSteps(sec: { steps?: unknown; steps_by_size?: Record<string, unknown
 export default function PatternsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { userId } = useAuth();
   const [patterns, setPatterns] = useState<Pattern[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('list');
@@ -95,6 +96,7 @@ export default function PatternsPage() {
       supabase.from('projects')
         .select('id, name, status')
         .eq('pattern_id', selected.id)
+        .eq('user_id', userId ?? '')
         .then(({ data }) => setLinkedProjects(data ?? []));
     } else {
       setLinkedProjects([]);
@@ -269,6 +271,7 @@ export default function PatternsPage() {
       chosen_color_variation: chosenVariation ?? null,
       status: 'active', current_row: 0,
       started_at: new Date().toISOString().split('T')[0],
+      user_id: userId ?? 'mason',
     }).select().single();
 
     if (data) {

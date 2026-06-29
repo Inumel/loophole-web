@@ -74,7 +74,7 @@ type Stats = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const { unlocked } = useAuth();
+  const { unlocked, userId } = useAuth();
   const navigate = useNavigate();
   const [activeProjects, setActiveProjects] = useState<ActiveProject[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -94,6 +94,7 @@ export default function DashboardPage() {
       .from('projects')
       .select('id, name, status, current_row')
       .eq('status', 'active')
+      .eq('user_id', userId ?? '')
       .order('updated_at', { ascending: false })
       .limit(3);
 
@@ -136,7 +137,7 @@ export default function DashboardPage() {
       supabase.from('yarn_catalog').select('id'),
       supabase.from('tools').select('id'),
       supabase.from('knitting_sessions').select('duration_minutes'),
-      supabase.from('projects').select('id').eq('status', 'completed'),
+      supabase.from('projects').select('id').eq('status', 'completed').eq('user_id', userId ?? ''),
       supabase.from('project_step_progress').select('completed').eq('completed', true),
     ]);
 

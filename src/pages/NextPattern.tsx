@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -86,6 +87,7 @@ function normaliseWeight(raw: string | null): string | null {
 export default function NextPatternPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { userId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stash, setStash] = useState<StashEntry[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -140,6 +142,7 @@ export default function NextPatternPage() {
     const { data: activeProjectPatterns } = await supabase
       .from('projects')
       .select('pattern_id')
+      .eq('user_id', userId ?? '')
       .in('status', ['active', 'paused']);
     const activePatternIds = new Set((activeProjectPatterns ?? []).map(p => p.pattern_id).filter(Boolean));
 

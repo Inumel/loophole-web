@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 
 type Session = {
   id: string;
@@ -35,6 +36,7 @@ function formatDuration(minutes: number): string {
 }
 
 export default function TimelinePage() {
+  const { userId } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
@@ -47,6 +49,7 @@ export default function TimelinePage() {
     const { data: projectData } = await supabase
       .from('projects')
       .select('id, name, status, started_at, completed_at')
+      .eq('user_id', userId ?? '')
       .order('started_at', { ascending: true });
     if (!projectData) { setLoading(false); return; }
     const { data: sessionData } = await supabase

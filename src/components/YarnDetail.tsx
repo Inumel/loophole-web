@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 import { inputStyle, labelStyle } from '../lib/theme';
 
 type YarnCatalog = {
@@ -37,6 +38,7 @@ const UNITS = ['g', 'oz', 'yards', 'meters', 'skeins'];
 type Props = { yarnId: string; onBack: () => void };
 
 export default function YarnDetail({ yarnId, onBack }: Props) {
+  const { userId } = useAuth();
   const [yarn, setYarn] = useState<YarnCatalog | null>(null);
   const [stash, setStash] = useState<StashEntry[]>([]);
   const [projects, setProjects] = useState<LinkedProject[]>([]);
@@ -80,8 +82,9 @@ export default function YarnDetail({ yarnId, onBack }: Props) {
       supabase.from('yarn_stash').select('id, quantity, unit, status, lot, date_acquired')
         .eq('yarn_catalog_id', yarnId).order('date_acquired', { ascending: false }),
       supabase.from('project_yarn')
-        .select('id, quantity_used, unit, project:projects(id, name, status)')
-        .eq('yarn_stash_id', yarnId),
+        .select('id, quantity_used, unit, project:projects!inner(id, name, status, user_id)')
+        .eq('yarn_stash_id', yarnId)
+        .eq('project.user_id', userId ?? ''),
     ]);
 
     if (catalogRes.data) {
