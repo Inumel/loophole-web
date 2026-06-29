@@ -488,7 +488,12 @@ Return ONLY this JSON (no markdown, no fences):
 All string values must be properly escaped — never use literal double quotes or newlines.`;
 
     const raw = await callProxy({ max_tokens: 6000, messages: [{ role: 'user', content: sectionPrompt }] }, token);
-    return parseJSON<PatternSection>(raw);
+    const parsed = parseJSON<PatternSection>(raw);
+    // Ensure content is always a string
+    if (!parsed.content || typeof parsed.content !== 'string') {
+      parsed.content = '1. (Section content missing — tap Regenerate section to retry.)';
+    }
+    return parsed;
   }
 
   async function generate() {
@@ -1186,7 +1191,7 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
                   <div key={i} style={{ marginBottom: 20 }}>
                     <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>{sec.title}</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {sec.content.split('\n').filter(Boolean).map((line, j) => {
+                      {(sec.content ?? '').split('\n').filter(Boolean).map((line, j) => {
                         const stepMatch = line.match(/^(\d+)\.\s+(.+)/);
                         if (stepMatch) return (
                           <div key={j} style={{
@@ -1449,7 +1454,7 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
                 <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-faint)', fontSize: 13, fontStyle: 'italic', background: 'var(--bg-card)', borderRadius: 8 }}>Rewriting this section…</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {sec.content.split('\n').filter(Boolean).map((line, j) => {
+                  {(sec.content ?? '').split('\n').filter(Boolean).map((line, j) => {
                     const stepMatch = line.match(/^(\d+)\.\s+(.+)/);
                     if (stepMatch) {
                       const effectiveDifficulty = stepDifficulty(pattern.stepDifficulty, sec.title, stepMatch[1], pattern.metadata?.['Difficulty']);
