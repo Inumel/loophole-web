@@ -310,7 +310,7 @@ export default function GeneratePage() {
   }
 
   // ── Shared proxy helper ─────────────────────────────────────────────────
-  async function callProxy(body: object, token: string): Promise<string> {
+  async function callProxy(body: object, token: string, onDelta?: (text: string) => void): Promise<string> {
     const res = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claude-proxy`,
       {
@@ -348,7 +348,7 @@ export default function GeneratePage() {
             const evt = JSON.parse(payload);
             if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
               text += evt.delta.text;
-              setStreamingText(text);
+              onDelta?.(text);
             }
           } catch { /* skip */ }
         }
@@ -437,7 +437,7 @@ Rules:
 - Return ONLY raw JSON`;
 
     const content = [...messageContent.filter(m => m.type === 'image'), { type: 'text', text: planPrompt }];
-    const raw = await callProxy({ max_tokens: 3000, messages: [{ role: 'user', content }] }, token);
+    const raw = await callProxy({ max_tokens: 3000, messages: [{ role: 'user', content }] }, token, setStreamingText);
     return parseJSON<PatternPlan>(raw);
   }
 
