@@ -324,6 +324,15 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
   animation: reveal-up 0.4s ease both;
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal { animation: none; }
 }

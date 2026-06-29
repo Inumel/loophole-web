@@ -144,6 +144,7 @@ export default function GeneratePage() {
   // Inline save state — replaces the alert() dialog with a button state change
   const [saved, setSaved] = useState(false);
   const [saveCategory, setSaveCategory] = useState('');
+  const [streamingText, setStreamingText] = useState(''); // raw accumulated SSE text while generating
   // Track which section tabs have been visited so we can show a subtle ✓ indicator
   const [visitedSections, setVisitedSections] = useState<Set<number>>(new Set([0]));
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -245,6 +246,45 @@ export default function GeneratePage() {
       });
   }
 
+  // Extract what we can from partial streaming JSON for live preview
+  function extractPartial(raw: string): { name?: string; tagline?: string; metadata?: Record<string, string>; completedSections: PatternSection[] } {
+    const result: { name?: string; tagline?: string; metadata?: Record<string, string>; completedSections: PatternSection[] } = { completedSections: [] };
+
+    // Extract name
+    const nameMatch = raw.match(/"name"\s*:\s*"([^"]+)"/);
+    if (nameMatch) result.name = nameMatch[1];
+
+    // Extract tagline
+    const taglineMatch = raw.match(/"tagline"\s*:\s*"([^"]+)"/);
+    if (taglineMatch) result.tagline = taglineMatch[1];
+
+    // Extract metadata object
+    const metaStart = raw.indexOf('"metadata"');
+    if (metaStart !== -1) {
+      const objStart = raw.indexOf('{', metaStart);
+      const objEnd = raw.indexOf('}', objStart);
+      if (objStart !== -1 && objEnd !== -1) {
+        try { result.metadata = JSON.parse(raw.slice(objStart, objEnd + 1)); } catch { /* partial */ }
+      }
+    }
+
+    // Extract completed sections — a section is complete when its closing } appears after its content
+    const sectionsStart = raw.indexOf('"sections"');
+    if (sectionsStart !== -1) {
+      // Find all complete section objects {"title":"...","content":"..."}  
+      const sectionRegex = /\{\s*"title"\s*:\s*"([^"]+)"\s*,\s*"content"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g;
+      let m;
+      while ((m = sectionRegex.exec(raw)) !== null) {
+        result.completedSections.push({
+          title: m[1],
+          content: m[2].replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"'),
+        });
+      }
+    }
+
+    return result;
+  }
+
   async function generate() {
     const token = localStorage.getItem('loophole_token');
     if (!token) { setError('Session expired. Please go to Settings and unlock again.'); return; }
@@ -253,6 +293,7 @@ export default function GeneratePage() {
 
     setGenerating(true);
     setPattern(null);
+    setStreamingText('');
     setError('');
     setActiveOutputSection(0);
     setSaved(false);
@@ -412,6 +453,7 @@ Rules:
               const evt = JSON.parse(payload);
               if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
                 text += evt.delta.text;
+                setStreamingText(text);
               }
             } catch { /* skip malformed SSE lines */ }
           }
@@ -1053,12 +1095,71 @@ Return ONLY a JSON object with this exact shape, nothing else — no markdown, n
         </div>
       )}
 
-      {generating && (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-          <p style={{ fontSize: 18, marginBottom: 8 }}>✨ Crafting your pattern…</p>
-          <p style={{ fontSize: 13 }}>This usually takes 10–20 seconds</p>
-        </div>
-      )}
+      {generating && (() => {
+        const partial = extractPartial(streamingText);
+        const hasContent = partial.name || partial.completedSections.length > 0;
+        return (
+          <div>
+            {!hasContent ? (
+              <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: '50%',
+                  border: '3px solid var(--border-medium)',
+                  borderTopColor: 'var(--primary)',
+                  animation: 'spin 0.8s linear infinite',
+                  margin: '0 auto 16px',
+                }} />
+                <p style={{ fontSize: 16, fontWeight: 500 }}>Crafting your pattern…</p>
+              </div>
+            ) : (
+              <div style={{ opacity: 0.85 }}>
+                {partial.name && (
+                  <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+                    {partial.name}
+                    <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', marginLeft: 8, animation: 'pulse 1s ease-in-out infinite' }} />
+                  </h2>
+                )}
+                {partial.tagline && <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 16 }}>{partial.tagline}</p>}
+                {partial.metadata && Object.keys(partial.metadata).length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: 20 }}>
+                    {Object.entries(partial.metadata).map(([k, v]) => v ? (
+                      <div key={k} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '10px 12px' }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 500, marginBottom: 3 }}>{k}</p>
+                        <p style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 700 }}>{v}</p>
+                      </div>
+                    ) : null)}
+                  </div>
+                )}
+                {partial.completedSections.length > 0 && partial.completedSections.map((sec, i) => (
+                  <div key={i} style={{ marginBottom: 20 }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>{sec.title}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {sec.content.split('\n').filter(Boolean).map((line, j) => {
+                        const stepMatch = line.match(/^(\d+)\.\s+(.+)/);
+                        if (stepMatch) return (
+                          <div key={j} style={{
+                            display: 'flex', gap: 12, background: 'var(--bg-card)',
+                            border: '1px solid var(--border-light)', borderLeft: '3px solid var(--primary)',
+                            borderRadius: 8, padding: '12px 14px',
+                          }}>
+                            <span style={{ background: 'var(--primary)', color: 'var(--primary-text)', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{stepMatch[1]}</span>
+                            <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, margin: 0 }}>{stepMatch[2]}</p>
+                          </div>
+                        );
+                        return <p key={j} style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, padding: '4px 14px' }}>{line}</p>;
+                      })}
+                    </div>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-faint)', fontSize: 13, padding: '12px 0' }}>
+                  <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--border-medium)', borderTopColor: 'var(--primary)', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+                  Writing more sections…
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {pattern && (
         <div>
